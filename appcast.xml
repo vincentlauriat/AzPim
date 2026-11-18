@@ -6,16 +6,16 @@
     <description>AzurePim release feed</description>
     <language>en</language>
     <item>
-      <title>v0.9.1</title>
-      <pubDate>Fri, 06 Nov 2026 14:45:28 +0100</pubDate>
-      <sparkle:version>3</sparkle:version>
-      <sparkle:shortVersionString>0.9.1</sparkle:shortVersionString>
+      <title>v0.9.2</title>
+      <pubDate>Wed, 18 Nov 2026 12:30:39 +0100</pubDate>
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>0.9.2</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://github.com/vincentlauriat/AzurePim/releases/tag/v0.9.1</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://github.com/vincentlauriat/AzurePim/releases/tag/v0.9.2</sparkle:releaseNotesLink>
       <enclosure
-        url="https://github.com/vincentlauriat/AzurePim/releases/download/v0.9.1/AzurePim-0.9.1.dmg"
+        url="https://github.com/vincentlauriat/AzurePim/releases/download/v0.9.2/AzurePim-0.9.2.dmg"
         type="application/octet-stream"
-        sparkle:edSignature="NOhb1ng+ntnUwt4FInpHtjaOrAadCO9xJsSRRfCdqUBfwEKTXUQZKAVyCGzo8iz9WIwpxS5uYvNB5kAs74oMDg==" length="6554192" />
+        sparkle:edSignature="vjq8B+XX0uzKcIxWMxcxGUVUFC21nkwr/JXd0v9mYo9S8JXXAMWy5Oy68k+Xegk3uvlX36sM4XEFrcOcSCQQAA==" length="6561144" />
     </item>
   </channel>
 </rss>
