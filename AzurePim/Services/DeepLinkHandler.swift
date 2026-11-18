@@ -58,6 +58,10 @@ enum DeepLinkHandler {
         NSApp.activate(ignoringOtherApps: true)
         let confirm = NSAlert()
         confirm.messageText = "Activate “\(favorite.name)”?"
+        // Same policy as the run reads (fetched if never read), so the lines below match what is sent.
+        for role in favorite.items.compactMap({ store.eligibleRole(id: $0.eligibleRoleId) }) {
+            await store.ensurePolicy(for: role)
+        }
         // Everything the request will send: account, tenant, duration and justification of each role.
         let lines = favorite.items.compactMap { item -> String? in
             guard let role = store.eligibleRole(id: item.eligibleRoleId) else { return nil }
