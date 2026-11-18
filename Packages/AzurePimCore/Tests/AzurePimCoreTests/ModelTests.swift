@@ -87,4 +87,18 @@ struct ModelTests {
         try context.save()
         #expect(try context.fetchCount(FetchDescriptor<EligibleRole>()) == 0)
     }
+
+    /// A cached activation past its end date must not count as active (panel, favorites, Extend).
+    @Test func expiredActivationIsNotLive() {
+        let account = Account(mode: .azureCLI, upn: "a@x.com", objectId: "o1", tenantId: "t1")
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        func assignment(endAt: Date?) -> ActiveAssignment {
+            ActiveAssignment(id: "i", account: account, source: .azureResource, roleName: "Reader", scope: "/s",
+                             scopeName: "s", assignmentType: .activated, startAt: now.addingTimeInterval(-3600), endAt: endAt)
+        }
+        #expect(assignment(endAt: now.addingTimeInterval(60)).isLive(at: now))
+        #expect(!assignment(endAt: now.addingTimeInterval(-1)).isLive(at: now))
+        #expect(!assignment(endAt: now).isLive(at: now))
+        #expect(assignment(endAt: nil).isLive(at: now))
+    }
 }

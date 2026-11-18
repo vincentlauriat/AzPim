@@ -80,23 +80,41 @@ final class MSALTokenProvider: TokenProvider {
 
     // MARK: - Internals
 
+    /// The sign-in window currently open, if any: concurrent sources wait for it instead of opening a second one.
+    private var openSignIn: Task<MSALResult, Error>?
+
     private func acquire(scopes: [String], tenantId: String?, claims: String?) async throws -> MSALResult {
-        if claims == nil, let id = homeAccountId, let account = try? application.account(forIdentifier: id) {
-            let parameters = MSALSilentTokenParameters(scopes: scopes, account: account)
-            if let tenantId {
-                parameters.authority = try MSALAADAuthority(url: URL(string: "https://login.microsoftonline.com/\(tenantId)")!)
-            }
-            do {
-                return try await withCheckedThrowingContinuation { continuation in
-                    application.acquireTokenSilent(with: parameters) { result, error in
-                        Self.resume(continuation, result, error)
-                    }
-                }
-            } catch TokenError.interactionRequired {
-                // fall through to interactive
-            }
+        if claims == nil, let result = try await silent(scopes: scopes, tenantId: tenantId) { return result }
+        if let running = openSignIn {
+            _ = try? await running.value
+            if claims == nil, let result = try await silent(scopes: scopes, tenantId: tenantId) { return result }
         }
-        return try await interactive(scopes: scopes, extraScopes: [], tenantId: tenantId, claims: claims, prompt: .default)
+        // A background refresh never opens a window: the panel banner offers Sign in instead.
+        guard !TokenInteraction.isBackground else { throw TokenError.interactionRequired(claims: claims) }
+        let signIn = Task {
+            try await interactive(scopes: scopes, extraScopes: [], tenantId: tenantId, claims: claims, prompt: .default)
+        }
+        openSignIn = signIn
+        defer { openSignIn = nil }
+        return try await signIn.value
+    }
+
+    /// Silent renewal from the Keychain cache; nil when MSAL needs the user or has no cached account.
+    private func silent(scopes: [String], tenantId: String?) async throws -> MSALResult? {
+        guard let id = homeAccountId, let account = try? application.account(forIdentifier: id) else { return nil }
+        let parameters = MSALSilentTokenParameters(scopes: scopes, account: account)
+        if let tenantId {
+            parameters.authority = try MSALAADAuthority(url: URL(string: "https://login.microsoftonline.com/\(tenantId)")!)
+        }
+        do {
+            return try await withCheckedThrowingContinuation { continuation in
+                application.acquireTokenSilent(with: parameters) { result, error in
+                    Self.resume(continuation, result, error)
+                }
+            }
+        } catch TokenError.interactionRequired {
+            return nil
+        }
     }
 
     private func interactive(scopes: [String], extraScopes: [String], tenantId: String?, claims: String?,

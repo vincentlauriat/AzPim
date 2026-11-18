@@ -10,8 +10,10 @@ struct MenuBarLabel: View {
     @Environment(\.openWindow) private var openWindow
     @Query(sort: \ActiveAssignment.endAt) private var assignments: [ActiveAssignment]
 
-    private var activations: [ActiveAssignment] { assignments.filter { $0.assignmentType == .activated } }
-    private var nextEnd: Date? { activations.compactMap(\.endAt).filter { $0 > .now }.min() }
+    private var activations: [ActiveAssignment] {
+        assignments.filter { $0.assignmentType == .activated && $0.isLive(at: store.now) }
+    }
+    private var nextEnd: Date? { activations.compactMap(\.endAt).min() }
 
     var body: some View {
         label(at: store.now)
@@ -77,7 +79,9 @@ struct MenuBarPanel: View {
 
     private func shownAssignments(_ type: AssignmentType) -> [ActiveAssignment] {
         let shown = Set(shownAccounts.map(\.id))
-        return assignments.filter { $0.assignmentType == type && $0.account.map { shown.contains($0.id) } == true }
+        return assignments.filter {
+            $0.assignmentType == type && $0.isLive(at: store.now) && $0.account.map { shown.contains($0.id) } == true
+        }
     }
 
     /// The panel must fit under the menu bar; past ~640 pt the main window is the better place.
@@ -224,7 +228,8 @@ struct MenuBarPanel: View {
     @ViewBuilder private var errorBanners: some View {
         ForEach(shownAccounts) { account in
             ForEach(bannerKinds(account), id: \.message) { kind in
-                ErrorBanner(kind: kind, account: accountList.count > 1 ? account.upn : nil)
+                ErrorBanner(kind: kind, account: accountList.count > 1 ? account.upn : nil,
+                            onSignIn: account.mode == .msal ? { Task { await store.refresh() } } : nil)
             }
         }
     }

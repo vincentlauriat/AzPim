@@ -144,6 +144,10 @@ public final class ActiveAssignment {
 
     public var source: RoleSource { RoleSource(rawValue: sourceRaw) ?? .azureResource }
     public var assignmentType: AssignmentType { AssignmentType(rawValue: assignmentTypeRaw) ?? .assigned }
+
+    /// False once the end date has passed: the cached row may outlive the activation until the next refresh,
+    /// and longer while its source keeps failing.
+    public func isLive(at now: Date = .now) -> Bool { endAt.map { $0 > now } ?? true }
 }
 
 /// One role inside a Favorite (embedded value, soft reference to EligibleRole.id).

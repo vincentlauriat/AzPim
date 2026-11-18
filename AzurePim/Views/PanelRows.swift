@@ -197,6 +197,8 @@ struct PermanentRow: View {
 struct ErrorBanner: View {
     let kind: ErrorKind
     let account: String?
+    /// Opens the Microsoft sign-in (MSAL accounts): background refreshes never open it on their own.
+    var onSignIn: (() -> Void)?
     @State private var copied = false
 
     var body: some View {
@@ -214,6 +216,9 @@ struct ErrorBanner: View {
                     copied = true
                 }
                 .controlSize(.small)
+            }
+            if case .interactionRequired = kind, let onSignIn {
+                Button("Sign in…", action: onSignIn).controlSize(.small)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -21,7 +21,9 @@ struct RolesView: View {
 
     private var rows: [RoleRow] {
         var list = roles.map { role in
-            RoleRow(role: role, assignment: assignments.first { $0.eligibleRole?.id == role.id && $0.assignmentType == .activated })
+            RoleRow(role: role, assignment: assignments.first {
+                $0.eligibleRole?.id == role.id && $0.assignmentType == .activated && $0.isLive(at: store.now)
+            })
         }
         list += assignments.filter { $0.assignmentType == .assigned }.map { RoleRow(permanent: $0) }
         return list.filter { row in
@@ -47,13 +49,14 @@ struct RolesView: View {
 
     /// Juicy-style KPI tiles: what is active right now, what can be activated.
     private var statStrip: some View {
-        let activated = assignments.filter { $0.assignmentType == .activated }
-        let next = activated.compactMap(\.endAt).filter { $0 > store.now }.min()
+        let activated = assignments.filter { $0.assignmentType == .activated && $0.isLive(at: store.now) }
+        let permanent = assignments.filter { $0.assignmentType == .assigned }
+        let next = activated.compactMap(\.endAt).min()
         return HStack(spacing: 10) {
             StatTile(label: "Active PIM", value: "\(activated.count)",
                      note: next.map { "Next expiry in \(Countdown.hero($0.timeIntervalSince(store.now)))" } ?? "No activation",
                      tint: activated.isEmpty ? .secondary : Theme.active, icon: "bolt.fill")
-            StatTile(label: "Permanent", value: "\(assignments.count - activated.count)",
+            StatTile(label: "Permanent", value: "\(permanent.count)",
                      note: "Managed by your administrator", icon: "lock.fill")
             StatTile(label: "Eligible", value: "\(roles.count)", note: "Activatable through PIM",
                      tint: Theme.accent, icon: "key.horizontal.fill")
