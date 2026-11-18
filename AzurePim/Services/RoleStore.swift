@@ -27,6 +27,11 @@ final class RoleStore {
     /// Clock for countdowns: ticks every 30 s, every second in the last 5 minutes before an expiry (TRD › Performance).
     private(set) var now = Date.now
     private var clock: Task<Void, Never>?
+    /// End date of the last expired activation that already triggered a refresh.
+    @ObservationIgnored private var refreshedForExpiry: Date?
+    /// Policy reads of the refresh that failed (unknown policy, network): retried after an hour, not on every refresh.
+    /// The Activation Sheet and Extend read the policy directly and are not affected.
+    @ObservationIgnored private var policyFailedAt: [String: Date] = [:]
     /// Requests waiting for an approver, per account (History Window), and the last error fetching them.
     var pending: [UUID: [RemoteRequest]] = [:]
     var pendingErrors: [UUID: String] = [:]
@@ -40,6 +45,8 @@ final class RoleStore {
     /// Roles with an extension in flight (a second tap on another notification is refused).
     var extending: Set<String> = []
     private var refreshRequested = false
+    /// The pending rerun was asked by the user, not by a timer (it may open a sign-in window).
+    @ObservationIgnored private var userRefreshRequested = false
     /// Account filter of the panel (nil = all accounts, T4.4).
     var accountFilter: UUID?
 
@@ -55,11 +62,13 @@ final class RoleStore {
     func start() {
         startAutoRefresh()
         guard clock == nil else { return }
+        // Rows that expired before launch are handled by the launch refresh, not by a second one.
+        refreshedForExpiry = expiredActivationEnd()
         clock = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
                 self.now = .now
-                let next = self.activeActivations().compactMap(\.endAt).filter { $0 > .now }.min()
+                let next = self.refreshAfterExpiry()
                 let interval: Double = next.map { $0.timeIntervalSinceNow <= 300 ? 1 : 30 } ?? 30
                 try? await Task.sleep(for: .seconds(interval))
             }
@@ -70,7 +79,8 @@ final class RoleStore {
         guard autoRefresh == nil else { return }
         autoRefresh = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.refresh()
+                // Background: a token that needs the user surfaces as a banner, never as a sign-in window.
+                await TokenInteraction.$isBackground.withValue(true) { await self?.refresh() }
                 let minutes = self?.accounts.settings.refreshIntervalMinutes ?? 5
                 try? await Task.sleep(for: .seconds(minutes * 60))
             }
@@ -80,23 +90,31 @@ final class RoleStore {
     /// Refresh when the panel opens and the data is older than 60 s (PRD open question 10).
     func refreshIfStale() async {
         if let lastRefresh, Date.now.timeIntervalSince(lastRefresh) < 60 { return }
-        await refresh()
+        // Opening the panel must not pop a Microsoft sign-in window: the banner offers it.
+        await TokenInteraction.$isBackground.withValue(true) { await refresh() }
     }
 
     /// A refresh asked while one runs is not dropped: it runs once more right after (an action's result must show).
     func refresh() async {
         guard !isRefreshing else {
             refreshRequested = true
+            if !TokenInteraction.isBackground { userRefreshRequested = true }
             return
         }
         isRefreshing = true
         defer { isRefreshing = false }
+        var background = TokenInteraction.isBackground
         repeat {
             refreshRequested = false
+            userRefreshRequested = false
             let list = (try? context.fetch(FetchDescriptor<Account>(sortBy: [SortDescriptor(\.sortOrder)]))) ?? []
-            for account in list {
-                await refresh(account)
+            // A rerun asked by the user (Sign in, ⌘R) may open a sign-in window even if this run started in the background.
+            await TokenInteraction.$isBackground.withValue(background) {
+                for account in list {
+                    await self.refresh(account)
+                }
             }
+            background = !userRefreshRequested
         } while refreshRequested
         if !isOffline { lastOnline = .now }
         lastRefresh = .now
@@ -164,8 +182,14 @@ final class RoleStore {
     private func refreshPolicies(of account: Account, service: PIMService) async {
         for role in account.eligibleRoles {
             if let fetched = role.policyFetchedAt, Date.now.timeIntervalSince(fetched) < 86_400 { continue }
+            if let failed = policyFailedAt[role.id], Date.now.timeIntervalSince(failed) < 3600 { continue }
             guard let source = service.source(for: role.source) else { continue }
-            if let policy = try? await source.policy(for: role.remote) { role.policy = policy }
+            if let policy = try? await source.policy(for: role.remote) {
+                role.policy = policy
+                policyFailedAt[role.id] = nil
+            } else {
+                policyFailedAt[role.id] = .now
+            }
         }
     }
 
@@ -263,6 +287,27 @@ final class RoleStore {
         }
     }
 
+    // MARK: - Queries
+
+    /// Panel open time if recent: a stale value (panel `onAppear` not called again) would inflate the median.
+    private var recentPanelOpen: Date? {
+        guard let opened = panelOpenedAt, Date.now.timeIntervalSince(opened) < 600 else { return nil }
+        return opened
+    }
+
+    func activeActivations() -> [ActiveAssignment] {
+        let all = (try? context.fetch(FetchDescriptor<ActiveAssignment>(sortBy: [SortDescriptor(\.endAt)]))) ?? []
+        return all.filter { $0.assignmentType == .activated && $0.isLive() }
+    }
+
+    static func message(for error: Error) -> String {
+        ErrorKind.classify(error).message
+    }
+}
+
+// MARK: - Policies
+
+extension RoleStore {
     /// Fetches the policy now if it was never read (Activation Sheet needs it before validating).
     func ensurePolicy(for role: EligibleRole) async {
         guard role.policyFetchedAt == nil, let account = role.account,
@@ -281,21 +326,26 @@ final class RoleStore {
         try? context.save()
         return true
     }
+}
 
-    // MARK: - Queries
+// MARK: - Expiry
 
-    /// Panel open time if recent: a stale value (panel `onAppear` not called again) would inflate the median.
-    private var recentPanelOpen: Date? {
-        guard let opened = panelOpenedAt, Date.now.timeIntervalSince(opened) < 600 else { return nil }
-        return opened
+extension RoleStore {
+    /// Refreshes once when a cached activation has just expired, so the panel, the favorites and Extend
+    /// stop relying on it (Azure is the source of truth). Returns the next expiry still to come (one fetch per tick).
+    fileprivate func refreshAfterExpiry() -> Date? {
+        let activated = ((try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? []).filter { $0.assignmentType == .activated }
+        let now = Date.now
+        let expired = activated.compactMap(\.endAt).filter { $0 <= now }.max()
+        if let expired, expired != refreshedForExpiry {
+            refreshedForExpiry = expired
+            Task { await TokenInteraction.$isBackground.withValue(true) { await self.refresh() } }
+        }
+        return activated.compactMap(\.endAt).filter { $0 > now }.min()
     }
 
-    func activeActivations() -> [ActiveAssignment] {
-        let all = (try? context.fetch(FetchDescriptor<ActiveAssignment>(sortBy: [SortDescriptor(\.endAt)]))) ?? []
-        return all.filter { $0.assignmentType == .activated }
-    }
-
-    static func message(for error: Error) -> String {
-        ErrorKind.classify(error).message
+    fileprivate func expiredActivationEnd() -> Date? {
+        let all = (try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? []
+        return all.filter { $0.assignmentType == .activated }.compactMap(\.endAt).filter { $0 <= .now }.max()
     }
 }

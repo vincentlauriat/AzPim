@@ -104,6 +104,17 @@ struct ARMClientTests {
         #expect(transport.requests[0].url?.absoluteString.contains("roleManagementPolicyAssignments") == true)
     }
 
+    /// An empty lookup must not read as "no approval, no MFA, no maximum" (Extend would then end the role).
+    @Test func emptyPolicyLookupIsAnError() async throws {
+        let listing = FakeTransport([.init(status: 200, json: ["value": [armEligibility("s1")]])])
+        let eligibility = try #require(try await ARMClient(client: client(listing)).eligibilities().first)
+        for answer: [String: Any] in [["value": []], ["value": [["properties": ["effectiveRules": []]]]],
+                                      ["value": [["properties": ["effectiveRules": [["id": "Other_Admin_Rule"]]]]]]] {
+            let transport = FakeTransport([.init(status: 200, json: answer)])
+            await #expect(throws: PIMError.self) { try await ARMClient(client: client(transport)).policy(for: eligibility) }
+        }
+    }
+
     @Test func activationRequestBody() async throws {
         let transport = FakeTransport([.init(status: 201, json: ["name": "req-1", "properties": ["status": "Provisioned"]])])
         let eligibility = RemoteEligibility(id: "\(rootScope)/providers/Microsoft.Authorization/roleEligibilitySchedules/s1",

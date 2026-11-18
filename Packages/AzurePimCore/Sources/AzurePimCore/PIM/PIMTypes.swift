@@ -76,6 +76,21 @@ public struct RolePolicy: Sendable, Equatable {
         self.requiresApproval = requiresApproval
     }
 
+    /// Rule ids this app reads; a policy answer with none of them is not a policy it can decide on.
+    static let endUserRuleIds: Set<String> = [
+        "Expiration_EndUser_Assignment", "Enablement_EndUser_Assignment", "Approval_EndUser_Assignment",
+        "AuthenticationContext_EndUser_Assignment"
+    ]
+
+    /// Parses a policy lookup. Throws when it found no end-user rule (no assignment for this scope,
+    /// role id mismatch): an empty answer is an unknown policy, never a policy without restrictions.
+    public static func read(rules: [[String: Any]]) throws -> RolePolicy {
+        guard rules.contains(where: { endUserRuleIds.contains($0["id"] as? String ?? "") }) else {
+            throw PIMError.decoding("no PIM policy found for this role")
+        }
+        return RolePolicy(rules: rules)
+    }
+
     /// Reads the `*_EndUser_Assignment` rules shared by ARM `effectiveRules` and Graph `policy.rules`.
     public init(rules: [[String: Any]]) {
         self.init()

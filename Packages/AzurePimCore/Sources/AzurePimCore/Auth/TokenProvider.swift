@@ -78,6 +78,12 @@ public enum TokenError: Error, Equatable, Sendable {
     case failed(String)
 }
 
+/// Whether the current task may show a sign-in window. Background refreshes set `isBackground`, so a token
+/// that needs the user is reported (banner with Sign in) instead of stealing focus every few minutes.
+public enum TokenInteraction {
+    @TaskLocal public static var isBackground = false
+}
+
 /// Source of access tokens for one account (TRD › Authentication). Implemented by
 /// `AzureCLITokenProvider` (core) and `MSALTokenProvider` (app target, depends on MSAL).
 public protocol TokenProvider: Sendable {

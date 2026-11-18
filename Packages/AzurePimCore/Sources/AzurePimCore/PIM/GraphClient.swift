@@ -167,6 +167,6 @@ enum GraphURL {
             filter: "scopeId eq \(OData.literal(scopeId)) and scopeType eq \(OData.literal(scopeType))"
                 + " and roleDefinitionId eq \(OData.literal(roleDefinitionId))"))
         let rules = ((items.first?["policy"] as? [String: Any])?["rules"] as? [[String: Any]]) ?? []
-        return RolePolicy(rules: rules)
+        return try RolePolicy.read(rules: rules)
     }
 }
