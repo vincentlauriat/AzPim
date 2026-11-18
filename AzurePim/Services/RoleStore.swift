@@ -29,6 +29,8 @@ final class RoleStore {
     private var clock: Task<Void, Never>?
     /// End date of the last expired activation that already triggered a refresh.
     @ObservationIgnored private var refreshedForExpiry: Date?
+    /// Background policy reads that failed (unknown policy, network): retried after an hour, not on every refresh.
+    @ObservationIgnored private var policyFailedAt: [String: Date] = [:]
     /// Requests waiting for an approver, per account (History Window), and the last error fetching them.
     var pending: [UUID: [RemoteRequest]] = [:]
     var pendingErrors: [UUID: String] = [:]
@@ -59,26 +61,17 @@ final class RoleStore {
     func start() {
         startAutoRefresh()
         guard clock == nil else { return }
+        // Rows that expired before launch are handled by the launch refresh, not by a second one.
+        refreshedForExpiry = expiredActivationEnd()
         clock = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
                 self.now = .now
-                self.refreshAfterExpiry()
-                let next = self.activeActivations().compactMap(\.endAt).min()
+                let next = self.refreshAfterExpiry()
                 let interval: Double = next.map { $0.timeIntervalSinceNow <= 300 ? 1 : 30 } ?? 30
                 try? await Task.sleep(for: .seconds(interval))
             }
         }
-    }
-
-    /// Refreshes once when a cached activation has just expired, so the panel, the favorites and Extend
-    /// stop relying on it (Azure is the source of truth).
-    private func refreshAfterExpiry() {
-        let all = (try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? []
-        guard let expired = all.filter({ $0.assignmentType == .activated && !$0.isLive() }).compactMap(\.endAt).max(),
-              expired != refreshedForExpiry else { return }
-        refreshedForExpiry = expired
-        Task { await TokenInteraction.$isBackground.withValue(true) { await self.refresh() } }
     }
 
     private func startAutoRefresh() {
@@ -188,8 +181,14 @@ final class RoleStore {
     private func refreshPolicies(of account: Account, service: PIMService) async {
         for role in account.eligibleRoles {
             if let fetched = role.policyFetchedAt, Date.now.timeIntervalSince(fetched) < 86_400 { continue }
+            if let failed = policyFailedAt[role.id], Date.now.timeIntervalSince(failed) < 3600 { continue }
             guard let source = service.source(for: role.source) else { continue }
-            if let policy = try? await source.policy(for: role.remote) { role.policy = policy }
+            if let policy = try? await source.policy(for: role.remote) {
+                role.policy = policy
+                policyFailedAt[role.id] = nil
+            } else {
+                policyFailedAt[role.id] = .now
+            }
         }
     }
 
@@ -325,5 +324,27 @@ extension RoleStore {
         role.policy = policy
         try? context.save()
         return true
+    }
+}
+
+// MARK: - Expiry
+
+extension RoleStore {
+    /// Refreshes once when a cached activation has just expired, so the panel, the favorites and Extend
+    /// stop relying on it (Azure is the source of truth). Returns the next expiry still to come (one fetch per tick).
+    fileprivate func refreshAfterExpiry() -> Date? {
+        let activated = ((try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? []).filter { $0.assignmentType == .activated }
+        let now = Date.now
+        let expired = activated.compactMap(\.endAt).filter { $0 <= now }.max()
+        if let expired, expired != refreshedForExpiry {
+            refreshedForExpiry = expired
+            Task { await TokenInteraction.$isBackground.withValue(true) { await self.refresh() } }
+        }
+        return activated.compactMap(\.endAt).filter { $0 > now }.min()
+    }
+
+    fileprivate func expiredActivationEnd() -> Date? {
+        let all = (try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? []
+        return all.filter { $0.assignmentType == .activated }.compactMap(\.endAt).filter { $0 <= .now }.max()
     }
 }

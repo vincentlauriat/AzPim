@@ -25,7 +25,7 @@ struct RolesView: View {
                 $0.eligibleRole?.id == role.id && $0.assignmentType == .activated && $0.isLive(at: store.now)
             })
         }
-        list += assignments.filter { $0.assignmentType == .assigned }.map { RoleRow(permanent: $0) }
+        list += assignments.filter { $0.assignmentType == .assigned && $0.isLive(at: store.now) }.map { RoleRow(permanent: $0) }
         return list.filter { row in
             (source == nil || row.source == source)
                 && (accountId == nil || row.account?.id == accountId)
@@ -50,7 +50,7 @@ struct RolesView: View {
     /// Juicy-style KPI tiles: what is active right now, what can be activated.
     private var statStrip: some View {
         let activated = assignments.filter { $0.assignmentType == .activated && $0.isLive(at: store.now) }
-        let permanent = assignments.filter { $0.assignmentType == .assigned }
+        let permanent = assignments.filter { $0.assignmentType == .assigned && $0.isLive(at: store.now) }
         let next = activated.compactMap(\.endAt).min()
         return HStack(spacing: 10) {
             StatTile(label: "Active PIM", value: "\(activated.count)",

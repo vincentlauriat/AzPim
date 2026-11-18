@@ -85,9 +85,13 @@ final class MSALTokenProvider: TokenProvider {
 
     private func acquire(scopes: [String], tenantId: String?, claims: String?) async throws -> MSALResult {
         if claims == nil, let result = try await silent(scopes: scopes, tenantId: tenantId) { return result }
-        if let running = openSignIn {
-            _ = try? await running.value
+        while let running = openSignIn {
+            // Cancelled or failed: every waiting call ends with it, none opens a window of its own.
+            _ = try await running.value
             if claims == nil, let result = try await silent(scopes: scopes, tenantId: tenantId) { return result }
+            // Still not enough (other tenant, claims): the first waiter to get here opens the next window,
+            // the others wait for that one.
+            if openSignIn == running { openSignIn = nil }
         }
         // A background refresh never opens a window: the panel banner offers Sign in instead.
         guard !TokenInteraction.isBackground else { throw TokenError.interactionRequired(claims: claims) }
@@ -95,7 +99,7 @@ final class MSALTokenProvider: TokenProvider {
             try await interactive(scopes: scopes, extraScopes: [], tenantId: tenantId, claims: claims, prompt: .default)
         }
         openSignIn = signIn
-        defer { openSignIn = nil }
+        defer { if openSignIn == signIn { openSignIn = nil } }
         return try await signIn.value
     }
 
