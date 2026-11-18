@@ -29,7 +29,8 @@ final class RoleStore {
     private var clock: Task<Void, Never>?
     /// End date of the last expired activation that already triggered a refresh.
     @ObservationIgnored private var refreshedForExpiry: Date?
-    /// Background policy reads that failed (unknown policy, network): retried after an hour, not on every refresh.
+    /// Policy reads of the refresh that failed (unknown policy, network): retried after an hour, not on every refresh.
+    /// The Activation Sheet and Extend read the policy directly and are not affected.
     @ObservationIgnored private var policyFailedAt: [String: Date] = [:]
     /// Requests waiting for an approver, per account (History Window), and the last error fetching them.
     var pending: [UUID: [RemoteRequest]] = [:]
