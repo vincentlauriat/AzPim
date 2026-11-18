@@ -48,5 +48,7 @@
 	<string>https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>oGxHAH0aXmMuHBG/E6/PsROoQPDhw3vicDP+FK1S4hA=</string>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 </dict>
 </plist>

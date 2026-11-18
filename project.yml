@@ -80,6 +80,8 @@ targets:
         SUFeedURL: https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml
         SUPublicEDKey: oGxHAH0aXmMuHBG/E6/PsROoQPDhw3vicDP+FK1S4hA=
         SUEnableAutomaticChecks: true
+        # Check the EdDSA signature before extracting the archive (security review, medium 3).
+        SUVerifyUpdateBeforeExtraction: true
         CFBundleURLTypes:
           - CFBundleURLName: fr.vincentlauriat.azurepim
             CFBundleURLSchemes:

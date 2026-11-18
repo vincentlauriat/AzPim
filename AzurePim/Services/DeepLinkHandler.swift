@@ -62,10 +62,15 @@ enum DeepLinkHandler {
         let lines = favorite.items.compactMap { item -> String? in
             guard let role = store.eligibleRole(id: item.eligibleRoleId) else { return nil }
             let account = role.account.map { "\($0.upn) (tenant \($0.tenantName ?? $0.tenantId))" } ?? "unknown account"
-            let hours = (ISODuration.seconds(item.duration) ?? 0) / 3600
-            let duration = hours.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(hours)) h" : String(format: "%.1f h", hours)
-            let reason = item.justification ?? role.lastJustification ?? "last justification"
-            return "• \(role.roleName) — \(role.scopeName)\n   \(account), \(duration), “\(reason)”"
+            // Same computation as the run itself: what is shown is what will be sent (capped duration, fallback reason).
+            switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
+            case .success(let input):
+                let hours = (ISODuration.seconds(input.duration) ?? 0) / 3600
+                let duration = hours.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(hours)) h" : String(format: "%.1f h", hours)
+                return "• \(role.roleName) — \(role.scopeName)\n   \(account), \(duration), “\(input.justification)”"
+            case .failure(let failure):
+                return "• \(role.roleName) — \(role.scopeName)\n   \(account): not sent (\(failure.userMessage))"
+            }
         }
         confirm.informativeText = "A link asked AzurePim to activate:\n" + lines.joined(separator: "\n")
         // Cancel is the default button: a Return typed for another app must not activate privileged roles.
