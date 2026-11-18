@@ -42,11 +42,14 @@ extension RoleStore {
         guard await deactivate(current, refreshAfter: false) else {
             return "Couldn't extend: \(rowErrors[currentId] ?? "deactivation failed"). The role is still active."
         }
-        // Azure may still report the old activation for a few seconds after the deactivation.
+        // Azure may still report the old activation for a few seconds after the deactivation. Refusals that are
+        // retried leave no record: History shows one extension, plus the last refusal if every attempt failed.
         var status: RequestStatus?
-        for delay in [0, 3, 6, 12] {
+        let delays = [0, 3, 6, 12]
+        for (attempt, delay) in delays.enumerated() {
             if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
-            status = await activate(role, input: input, fromPanel: false, action: .extend, refreshAfter: false)
+            status = await activate(role, input: input, fromPanel: false, action: .extend, refreshAfter: false,
+                                    discardIfAlreadyActive: attempt < delays.count - 1)
             if status != nil || lastActivationError[roleId]?.alreadyActive != true { break }
         }
         await refresh()
