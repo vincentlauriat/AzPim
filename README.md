@@ -129,7 +129,7 @@ AZUREPIM_SNAPSHOT=/tmp/shots build/Build/Products/Debug/AzurePim.app/Contents/Ma
 | `Packages/AzurePimCore/` | UI-free logic: token providers, ARM and Graph PIM clients, models, validation, tests |
 | `docs/` | Website (GitHub Pages), screenshots, admin consent email template |
 | `project.yml` | XcodeGen spec (MSAL and Sparkle pinned to exact versions) |
-| `Scripts/release.sh` | Builds, signs, notarizes and packages the DMG, and writes `appcast.xml` |
+| `Scripts/release.sh` | Builds, signs, notarizes (App Store Connect API key, or keychain profile) and packages the DMG, and writes `appcast.xml` |
 | `appcast.xml` | Sparkle update feed |
 
 | Document | Content |
