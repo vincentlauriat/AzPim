@@ -106,6 +106,8 @@ final class RoleStore {
         isRefreshing = true
         defer { isRefreshing = false }
         var background = TokenInteraction.isBackground
+        // A refresh the user asked for (⌘R, Sign in) reads the Azure CLI again: `az login` / `az logout` count now.
+        if !background { await accounts.cliProvider.clearCache() }
         repeat {
             refreshRequested = false
             userRefreshRequested = false
@@ -122,8 +124,8 @@ final class RoleStore {
         if !isOffline { lastOnline = .now }
         lastRefresh = .now
         purgeHistory()
-        try? context.save()
         await notifications.reschedule(activations: activeActivations(), leadMinutes: accounts.settings.notificationLeadMinutes)
+        try? context.save()   // after reschedule: it records `notifiedAt`
     }
 
     private func refresh(_ account: Account) async {

@@ -134,6 +134,19 @@ struct AzureCLITokenProviderTests {
         }
     }
 
+    /// The identity check reads the CLI again: a cached token would still name the user before `az login`.
+    @Test func identityIgnoresCachedToken() async throws {
+        func output(_ oid: String) -> ProcessOutput {
+            let jwt = fakeJWT(["oid": oid, "tid": "t1", "upn": "\(oid)@x.com", "exp": 4_102_444_800.0])
+            return ProcessOutput(status: 0, stdout: #"{"accessToken":"\#(jwt)","expires_on":4102444800}"#, stderr: "")
+        }
+        let runner = FakeRunner([output("userA"), output("userB")])
+        let provider = AzureCLITokenProvider(configuredPath: fakeAZ, runner: runner)
+        _ = try await provider.token(for: .arm, tenantId: nil, claims: nil)
+        let identity = try await provider.identity(tenantId: nil)
+        #expect(identity.objectId == "userB")
+    }
+
     /// Concurrent sources share one `az` process (it takes 1–2 s to start).
     @Test func concurrentRequestsShareOneProcess() async throws {
         let json = #"{"accessToken":"abc","expires_on":4102444800}"#

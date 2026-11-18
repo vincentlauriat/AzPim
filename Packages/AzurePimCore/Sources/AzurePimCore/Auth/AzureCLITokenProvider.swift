@@ -64,6 +64,8 @@ public actor AzureCLITokenProvider: TokenProvider {
     }
 
     public func identity(tenantId: String?) async throws -> SignedInIdentity {
+        // Never from the cache: after `az login` as someone else the cached token still names the previous user.
+        cache["\(Resource.arm.rawValue)|\(tenantId ?? "default")"] = nil
         let token = try await token(for: .arm, tenantId: tenantId, claims: nil)
         guard let claims = JWTClaims(token: token.value), let oid = claims.objectId, let tid = claims.tenantId else {
             throw TokenError.failed("Unreadable Azure CLI token")
