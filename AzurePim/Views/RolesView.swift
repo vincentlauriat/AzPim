@@ -45,6 +45,16 @@ struct RolesView: View {
         .searchable(text: $search, prompt: "Search roles and scopes")
         .toolbar { toolbarItems }
         .navigationTitle("Roles")
+        .onChange(of: store.focusedRoleId, initial: true) { _, id in
+            guard let id else { return }
+            // Clear the filters so the row is visible, then select it.
+            search = ""
+            source = nil
+            accountId = nil
+            state = .all
+            selection = id
+            store.focusedRoleId = nil
+        }
     }
 
     /// Juicy-style KPI tiles: what is active right now, what can be activated.

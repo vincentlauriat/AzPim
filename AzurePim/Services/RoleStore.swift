@@ -47,6 +47,8 @@ final class RoleStore {
     private var refreshRequested = false
     /// The pending rerun was asked by the user, not by a timer (it may open a sign-in window).
     @ObservationIgnored private var userRefreshRequested = false
+    /// Role to show in the Roles Window (notification tap, `azurepim://role`); cleared once shown.
+    var focusedRoleId: String?
     /// Account filter of the panel (nil = all accounts, T4.4).
     var accountFilter: UUID?
 
@@ -107,7 +109,11 @@ final class RoleStore {
         repeat {
             refreshRequested = false
             userRefreshRequested = false
+            // A pass the user asked for (⌘R, Sign in, even queued behind a timer refresh) reads the Azure CLI again:
+            // `az login` / `az logout` count now.
+            if !background { await accounts.cliProvider.clearCache() }
             let list = (try? context.fetch(FetchDescriptor<Account>(sortBy: [SortDescriptor(\.sortOrder)]))) ?? []
+            forgetRemovedAccounts(keeping: Set(list.map(\.id)))
             // A rerun asked by the user (Sign in, ⌘R) may open a sign-in window even if this run started in the background.
             await TokenInteraction.$isBackground.withValue(background) {
                 for account in list {
@@ -119,8 +125,8 @@ final class RoleStore {
         if !isOffline { lastOnline = .now }
         lastRefresh = .now
         purgeHistory()
-        try? context.save()
         await notifications.reschedule(activations: activeActivations(), leadMinutes: accounts.settings.notificationLeadMinutes)
+        try? context.save()   // after reschedule: it records `notifiedAt`
     }
 
     private func refresh(_ account: Account) async {
@@ -132,6 +138,8 @@ final class RoleStore {
             return
         }
         let snapshot = await service.refresh()
+        // Removed while its refresh was in flight: nothing to store.
+        guard account.modelContext != nil, !account.isDeleted else { return }
         var errors: [RoleSource: ErrorKind] = [:]
         for (source, error) in snapshot.errors {
             if case TokenError.consentRequired = error {
@@ -144,38 +152,8 @@ final class RoleStore {
         apply(snapshot, to: account, failedSources: Set(snapshot.errors.keys))
         account.lastRefreshAt = snapshot.fetchedAt
         await refreshPolicies(of: account, service: service)
+        guard account.modelContext != nil, !account.isDeleted else { return }
         await refreshPending(of: account, service: service, failedSources: Set(snapshot.errors.keys))
-    }
-
-    /// Replaces the cache of one account. Sources that failed keep their previous rows (offline / throttled).
-    private func apply(_ snapshot: AccountSnapshot, to account: Account, failedSources: Set<RoleSource>) {
-        var existing = Dictionary(uniqueKeysWithValues: account.eligibleRoles.map { ($0.remoteId, $0) })
-        var kept: [String: EligibleRole] = [:]
-        for remote in snapshot.eligibilities {
-            let role = existing.removeValue(forKey: remote.id)
-                ?? EligibleRole(id: remote.id, account: account, source: remote.source, roleDefinitionId: remote.roleDefinitionId,
-                                roleName: remote.roleName, scope: remote.scope, scopeName: remote.scopeName,
-                                scopeType: remote.scopeType, memberType: remote.memberType)
-            if role.modelContext == nil { context.insert(role) }
-            role.roleName = remote.roleName
-            role.scopeName = remote.scopeName
-            role.fetchedAt = snapshot.fetchedAt
-            kept[remote.matchKey] = role
-        }
-        for stale in existing.values where !failedSources.contains(stale.source) {
-            context.delete(stale)
-        }
-
-        for old in account.activeAssignments where !failedSources.contains(old.source) {
-            context.delete(old)
-        }
-        for remote in snapshot.assignments {
-            let eligible = snapshot.eligibility(for: remote).flatMap { kept[$0.matchKey] }
-            let assignment = ActiveAssignment(id: remote.id, account: account, source: remote.source, roleName: remote.roleName,
-                                              scope: remote.scope, scopeName: remote.scopeName, assignmentType: remote.type,
-                                              startAt: remote.startAt, endAt: remote.endAt, eligibleRole: eligible)
-            context.insert(assignment)
-        }
     }
 
     /// Policies are cached 24 h (BackendSchema › EligibleRole.policyFetchedAt).
@@ -261,9 +239,11 @@ final class RoleStore {
             rowErrors[assignment.id] = "This assignment is permanent and cannot be deactivated."
             return false
         }
-        busy.insert(assignment.id)
-        rowErrors[assignment.id] = nil
-        defer { busy.remove(assignment.id) }
+        // The row may be deleted by a refresh while the request runs: use copies after the first `await`.
+        let rowId = assignment.id
+        busy.insert(rowId)
+        rowErrors[rowId] = nil
+        defer { busy.remove(rowId) }
         let record = ActivationRecord(account: account, eligibleRoleId: role.id, roleName: role.roleName,
                                       scopeName: role.scopeName, source: role.source, action: .deactivate)
         context.insert(record)
@@ -281,7 +261,7 @@ final class RoleStore {
         } catch {
             record.status = .failed
             record.errorMessage = Self.message(for: error)
-            rowErrors[assignment.id] = record.errorMessage
+            rowErrors[rowId] = record.errorMessage
             try? context.save()
             return false
         }
@@ -347,5 +327,64 @@ extension RoleStore {
     fileprivate func expiredActivationEnd() -> Date? {
         let all = (try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? []
         return all.filter { $0.assignmentType == .activated }.compactMap(\.endAt).filter { $0 <= .now }.max()
+    }
+}
+
+// MARK: - Cache
+
+extension RoleStore {
+    /// Per-account state of accounts removed since (an old Offline entry would keep actions disabled).
+    func forgetRemovedAccounts(keeping ids: Set<UUID>) {
+        for id in refreshErrors.keys where !ids.contains(id) { refreshErrors[id] = nil }
+        for id in pending.keys where !ids.contains(id) { pending[id] = nil }
+        for id in pendingErrors.keys where !ids.contains(id) { pendingErrors[id] = nil }
+        if let filter = accountFilter, !ids.contains(filter) { accountFilter = nil }
+    }
+
+    /// Replaces the cache of one account. Sources that failed keep their previous rows (offline / throttled).
+    private func apply(_ snapshot: AccountSnapshot, to account: Account, failedSources: Set<RoleSource>) {
+        var existing = Dictionary(account.eligibleRoles.map { ($0.remoteId, $0) }, uniquingKeysWith: { first, _ in first })
+        var kept: [String: EligibleRole] = [:]
+        for remote in snapshot.eligibilities {
+            let role = existing.removeValue(forKey: remote.id)
+                ?? EligibleRole(id: remote.id, account: account, source: remote.source, roleDefinitionId: remote.roleDefinitionId,
+                                roleName: remote.roleName, scope: remote.scope, scopeName: remote.scopeName,
+                                scopeType: remote.scopeType, memberType: remote.memberType)
+            if role.modelContext == nil { context.insert(role) }
+            role.roleName = remote.roleName
+            role.scopeName = remote.scopeName
+            role.fetchedAt = snapshot.fetchedAt
+            kept[remote.matchKey] = role
+        }
+        for stale in existing.values where !failedSources.contains(stale.source) {
+            context.delete(stale)
+        }
+
+        // Assignments are updated in place, not deleted and recreated: views and actions holding a row
+        // (popover, Deactivate in flight) keep a live object, and `notifiedAt` keeps its meaning.
+        var current = Dictionary(account.activeAssignments.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var seen = Set<String>()
+        for remote in snapshot.assignments {
+            let id = ActiveAssignment.localId(accountId: account.id, remoteId: remote.id)
+            guard seen.insert(id).inserted else { continue }   // same instance twice in the answer
+            let eligible = snapshot.eligibility(for: remote).flatMap { kept[$0.matchKey] }
+            guard let row = current.removeValue(forKey: id) else {
+                context.insert(ActiveAssignment(id: remote.id, account: account, source: remote.source, roleName: remote.roleName,
+                                                scope: remote.scope, scopeName: remote.scopeName, assignmentType: remote.type,
+                                                startAt: remote.startAt, endAt: remote.endAt, eligibleRole: eligible))
+                continue
+            }
+            if row.endAt != remote.endAt { row.notifiedAt = nil }
+            row.roleName = remote.roleName
+            row.scopeName = remote.scopeName
+            row.assignmentTypeRaw = remote.type.rawValue
+            row.startAt = remote.startAt
+            row.endAt = remote.endAt
+            row.eligibleRole = eligible
+            row.fetchedAt = snapshot.fetchedAt
+        }
+        for stale in current.values where !failedSources.contains(stale.source) {
+            context.delete(stale)
+        }
     }
 }

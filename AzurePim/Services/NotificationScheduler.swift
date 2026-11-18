@@ -13,7 +13,8 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     nonisolated static let prefix = "expiry-"
     nonisolated static let roleKey = "eligibleRoleId"
     private let center = UNUserNotificationCenter.current()
-    var onOpen: (() -> Void)?
+    /// Opens the app on the notification's role (eligible role id, nil for follow-ups).
+    var onOpen: ((String?) -> Void)?
     /// Runs the extension and returns the follow-up text.
     var onExtend: ((String) async -> String)?
 
@@ -28,17 +29,19 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func reschedule(activations: [ActiveAssignment], leadMinutes: Int) async {
-        // Only identifiers (Sendable) cross back: Swift 6.1 rejects sending [UNNotificationRequest].
-        let center = self.center
-        let ids: [String] = await withCheckedContinuation { done in
-            center.getPendingNotificationRequests { requests in done.resume(returning: requests.map(\.identifier)) }
-        }
-        let pending = ids.filter { $0.hasPrefix(Self.prefix) }
-        center.removePendingNotificationRequests(withIdentifiers: pending)
+        // Decided before any `await`: the rows may be deleted meanwhile (account removed). `notifiedAt` holds the
+        // planned fire date; only a date already passed means "delivered" (a lead-time change reschedules).
+        let now = Date.now
+        var requests: [UNNotificationRequest] = []
         for assignment in activations {
-            guard let end = assignment.endAt else { continue }
-            let fireAt = end.addingTimeInterval(-Double(leadMinutes) * 60)
-            guard fireAt > .now else { continue }
+            guard let end = assignment.endAt, end > now else { continue }
+            var fireAt = end.addingTimeInterval(-Double(leadMinutes) * 60)
+            if fireAt <= now {
+                // Already inside the lead window (short activation, late launch): notify now, once.
+                if let planned = assignment.notifiedAt, planned <= now { continue }
+                fireAt = now
+            }
+            assignment.notifiedAt = fireAt
             let content = UNMutableNotificationContent()
             content.title = "\(assignment.roleName) — \(assignment.scopeName)"
             content.body = "Expires at \(end.formatted(date: .omitted, time: .shortened)) (\(leadMinutes) min)."
@@ -47,9 +50,19 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
                 content.categoryIdentifier = Self.category
                 content.userInfo = [Self.roleKey: roleId]
             }
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: fireAt.timeIntervalSinceNow, repeats: false)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, fireAt.timeIntervalSince(now)), repeats: false)
             let id = Self.prefix + (assignment.eligibleRole?.id ?? assignment.id)
-            await Self.schedule(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+            requests.append(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+        // Only identifiers (Sendable) cross back: Swift 6.1 rejects sending [UNNotificationRequest].
+        let center = self.center
+        let ids: [String] = await withCheckedContinuation { done in
+            center.getPendingNotificationRequests { requests in done.resume(returning: requests.map(\.identifier)) }
+        }
+        let pending = ids.filter { $0.hasPrefix(Self.prefix) }
+        center.removePendingNotificationRequests(withIdentifiers: pending)
+        for request in requests {
+            await Self.schedule(request)
         }
     }
 
@@ -85,7 +98,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         case Self.dismissAction, UNNotificationDismissActionIdentifier:
             break
         default:
-            await MainActor.run { onOpen?() }
+            await MainActor.run { onOpen?(roleId) }
         }
     }
 

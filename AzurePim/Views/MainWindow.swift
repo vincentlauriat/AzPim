@@ -35,6 +35,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 
 /// Main window: Roles Window, History Window, Favorites Window (AppFlow).
 struct MainWindow: View {
+    @Environment(RoleStore.self) private var store
     @State private var selection: SidebarItem?
 
     /// Debug snapshots: shows a section without a sidebar highlight (an off-screen window renders it black).
@@ -64,6 +65,9 @@ struct MainWindow: View {
             }
         }
         .background(shortcuts)
+        .onChange(of: store.focusedRoleId, initial: true) { _, id in
+            if id != nil { selection = .roles }
+        }
         .onAppear { DockPolicy.mainWindowDidOpen() }
         .onDisappear { DockPolicy.mainWindowDidClose() }
     }

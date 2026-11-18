@@ -69,6 +69,9 @@ public enum TokenError: Error, Equatable, Sendable {
     case cliNotSignedIn(command: String)
     /// MFA / authentication context needed (claims challenge). Carries the claims JSON when known.
     case interactionRequired(claims: String?)
+    /// The Azure CLI must sign in again to answer a claims challenge (MFA, authentication context).
+    /// Carries the `az login` command to show (TRD › Authentication, AppFlow › blocked states).
+    case cliStepUp(command: String)
     /// Directory scopes not consented in this tenant (Admin consent helper).
     case consentRequired
     /// MSAL is not configured (no client id in this build or in Settings).

@@ -13,10 +13,16 @@ struct ErrorKindTests {
         #expect(ErrorKind.classify(PIMError.http(status: 403, code: "AuthorizationFailed", message: "denied"))
             == .forbidden("denied"))
         #expect(ErrorKind.classify(PIMError.http(status: 400, code: nil, message: "bad")) == .other("bad"))
+        // A slow answer is one account's problem, not "Offline" for every account.
+        #expect(ErrorKind.classify(URLError(.timedOut)) == .timedOut)
+        #expect(ErrorKind.classify(TokenError.timedOut) == .timedOut)
+        #expect(ErrorKind.classify(TokenError.cliStepUp(command: "az login --tenant t")) == .cliStepUp(command: "az login --tenant t"))
+        #expect(ErrorKind.cliStepUp(command: "c").command == "c")
+        #expect(ErrorKind.interactionRequired.command == nil)
     }
 
     @Test func messages() {
-        #expect(ErrorKind.throttled(retryAfter: nil).message == "Microsoft is throttling requests — retrying in 30 s.")
+        #expect(ErrorKind.throttled(retryAfter: nil).message == "Microsoft is throttling requests — try again in 30 s.")
         #expect(ErrorKind.forbidden("x").message == "Not allowed by your tenant policy: x")
         #expect(ErrorKind.cliExpired(command: "az login").message.contains("az login"))
     }

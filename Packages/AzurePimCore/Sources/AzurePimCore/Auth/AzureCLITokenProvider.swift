@@ -14,6 +14,8 @@ public actor AzureCLITokenProvider: TokenProvider {
     private nonisolated let files: UncheckedFileManager
     private nonisolated var fileManager: FileManager { files.value }
     private var cache: [String: AccessToken] = [:]
+    /// Token requests in flight: concurrent sources share one `az` process instead of each starting one.
+    private var inFlight: [String: Task<AccessToken, Error>] = [:]
 
     public init(configuredPath: String? = nil, runner: ProcessRunning = ProcessRunner(), fileManager: FileManager = .default) {
         self.configuredPath = configuredPath
@@ -31,22 +33,39 @@ public actor AzureCLITokenProvider: TokenProvider {
     }
 
     public func token(for resource: Resource, tenantId: String?, claims: String?) async throws -> AccessToken {
-        if claims != nil {
-            // The CLI cannot answer a claims challenge silently: the user must sign in again.
-            throw TokenError.interactionRequired(claims: claims)
+        if let claims {
+            // The CLI cannot answer a claims challenge silently: the user signs in again with the challenge.
+            throw TokenError.cliStepUp(command: Self.stepUpCommand(resource: resource, tenantId: tenantId, claims: claims))
         }
         let key = "\(resource.rawValue)|\(tenantId ?? "default")"
         if let cached = cache[key], cached.isValid() { return cached }
+        if let running = inFlight[key] { return try await running.value }
 
         var args = ["account", "get-access-token", "--resource", resource.resourceURI, "--output", "json"]
         if let tenantId { args += ["--tenant", tenantId] }
-        let output = try await runAZ(args)
-        let token = try Self.parseToken(output.stdout)
+        let request = Task { try Self.parseToken(try await self.runAZ(args).stdout) }
+        inFlight[key] = request
+        defer { inFlight[key] = nil }
+        let token = try await request.value
         cache[key] = token
         return token
     }
 
+    /// `az login` command answering a claims challenge for this tenant (`--claims-challenge` takes base64).
+    public static func stepUpCommand(resource: Resource, tenantId: String?, claims: String) -> String {
+        let scope = switch resource {
+        case .arm: "https://management.core.windows.net//.default"
+        case .graph: "https://graph.microsoft.com//.default"
+        }
+        var parts = ["az login"]
+        if let tenantId { parts.append("--tenant \(tenantId)") }
+        parts += ["--scope \(scope)", "--claims-challenge \(Data(claims.utf8).base64EncodedString())"]
+        return parts.joined(separator: " ")
+    }
+
     public func identity(tenantId: String?) async throws -> SignedInIdentity {
+        // Never from the cache: after `az login` as someone else the cached token still names the previous user.
+        cache["\(Resource.arm.rawValue)|\(tenantId ?? "default")"] = nil
         let token = try await token(for: .arm, tenantId: tenantId, claims: nil)
         guard let claims = JWTClaims(token: token.value), let oid = claims.objectId, let tid = claims.tenantId else {
             throw TokenError.failed("Unreadable Azure CLI token")
