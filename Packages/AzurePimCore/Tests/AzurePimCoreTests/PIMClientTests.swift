@@ -89,6 +89,18 @@ struct ARMClientTests {
         #expect(end.timeIntervalSince(assignment.startAt) == 8 * 3600)
     }
 
+    /// A permanent Reader and an activated Reader on the same scope are two rows: dropping the activation
+    /// would hide its countdown, notification and Deactivate.
+    @Test func keepsActivationNextToPermanentAssignment() async throws {
+        func item(_ name: String, _ type: String) -> [String: Any] {
+            ["name": name, "properties": ["roleDefinitionId": readerDef, "scope": rootScope, "assignmentType": type,
+                                          "startDateTime": "2026-11-03T16:47:41Z"]]
+        }
+        let answer = ["value": [item("perm", "Assigned"), item("act", "Activated"), item("act-dup", "Activated")]]
+        let list = try await ARMClient(client: client(FakeTransport([.init(status: 200, json: answer)]))).assignments()
+        #expect(list.map(\.type) == [.assigned, .activated])
+    }
+
     @Test func readsPolicyRules() async throws {
         let rules: [[String: Any]] = [
             ["id": "Expiration_EndUser_Assignment", "maximumDuration": "PT8H", "isExpirationRequired": true],

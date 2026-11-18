@@ -129,7 +129,7 @@ public final class ActiveAssignment {
 
     public init(id: String, account: Account, source: RoleSource, roleName: String, scope: String, scopeName: String,
                 assignmentType: AssignmentType, startAt: Date, endAt: Date?, eligibleRole: EligibleRole? = nil) {
-        self.id = "\(account.id.uuidString)|\(id)"
+        self.id = Self.localId(accountId: account.id, remoteId: id)
         self.account = account
         self.eligibleRole = eligibleRole
         self.sourceRaw = source.rawValue
@@ -144,6 +144,9 @@ public final class ActiveAssignment {
 
     public var source: RoleSource { RoleSource(rawValue: sourceRaw) ?? .azureResource }
     public var assignmentType: AssignmentType { AssignmentType(rawValue: assignmentTypeRaw) ?? .assigned }
+
+    /// Local id of a remote instance: the same instance under two accounts must not collide.
+    public static func localId(accountId: UUID, remoteId: String) -> String { "\(accountId.uuidString)|\(remoteId)" }
 
     /// False once the end date has passed: the cached row may outlive the activation until the next refresh,
     /// and longer while its source keeps failing.

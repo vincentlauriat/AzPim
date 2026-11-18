@@ -123,11 +123,27 @@ struct AzureCLITokenProviderTests {
         }
     }
 
-    @Test func claimsChallengeNeedsInteraction() async {
+    /// A claims challenge (MFA) becomes the `az login` command to copy (TRD, AppFlow › blocked states).
+    @Test func claimsChallengeGivesStepUpCommand() async {
         let provider = AzureCLITokenProvider(configuredPath: fakeAZ, runner: FakeRunner([]))
-        await #expect(throws: TokenError.interactionRequired(claims: "{}")) {
-            try await provider.token(for: .arm, tenantId: nil, claims: "{}")
+        let claims = #"{"access_token":{"acrs":{"essential":true,"value":"c1"}}}"#
+        let command = "az login --tenant t1 --scope https://management.core.windows.net//.default --claims-challenge "
+            + Data(claims.utf8).base64EncodedString()
+        await #expect(throws: TokenError.cliStepUp(command: command)) {
+            try await provider.token(for: .arm, tenantId: "t1", claims: claims)
         }
+    }
+
+    /// Concurrent sources share one `az` process (it takes 1–2 s to start).
+    @Test func concurrentRequestsShareOneProcess() async throws {
+        let json = #"{"accessToken":"abc","expires_on":4102444800}"#
+        let runner = FakeRunner([ProcessOutput(status: 0, stdout: json, stderr: "")])
+        let provider = AzureCLITokenProvider(configuredPath: fakeAZ, runner: runner)
+        async let first = provider.token(for: .arm, tenantId: "t1", claims: nil)
+        async let second = provider.token(for: .arm, tenantId: "t1", claims: nil)
+        let tokens = try await [first, second]
+        #expect(tokens.map(\.value) == ["abc", "abc"])
+        #expect(runner.calls.count == 1)
     }
 
     @Test func unknownErrorKeepsFirstLine() {

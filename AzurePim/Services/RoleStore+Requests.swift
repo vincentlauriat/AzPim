@@ -179,12 +179,13 @@ extension RoleStore {
     /// Requests still waiting for a decision, polled for 7 days at most (older ones may hold a name-only ARM id).
     static func needsPolling(_ record: ActivationRecord) -> Bool {
         (record.status == .pendingApproval || record.status == .sent) && record.remoteRequestId != nil
-            && Date.now.timeIntervalSince(record.sentAt) < 7 * 86_400
+            && Date.now.timeIntervalSince(record.sentAt) < Double(Retention.pollDays) * 86_400
     }
 
     /// Deletes history older than the retention setting (pending requests are kept).
     func purgeHistory() {
         let records = (try? context.fetch(FetchDescriptor<ActivationRecord>())) ?? []
+        Retention.markAbandoned(records)
         let expired = Retention.expired(records, days: accounts.settings.historyRetentionDays)
         for record in expired {
             context.delete(record)

@@ -21,7 +21,11 @@ struct AzurePimApp: App {
         let notifications = NotificationScheduler()
         let roleStore = RoleStore(context: container.mainContext, accounts: accountService, notifications: notifications)
         notifications.onExtend = { roleId in await roleStore.extend(eligibleRoleId: roleId) }
-        notifications.onOpen = { NSApp.activate(ignoringOtherApps: true) }
+        notifications.onOpen = { roleId in
+            NSApp.activate(ignoringOtherApps: true)
+            // Routed like a deep link: opens the main window on that role in the Roles Window.
+            if let url = DeepLinkHandler.roleURL(roleId) { NSWorkspace.shared.open(url) }
+        }
         _store = State(initialValue: roleStore)
         // Started at launch, independent of any view (a menu bar label is not guaranteed to run `.task`).
         DeepLinkHandler.store = roleStore
@@ -54,7 +58,7 @@ struct AzurePimApp: App {
                 .modelContainer(container)
         }
         .defaultSize(width: 980, height: 640)
-        .handlesExternalEvents(matching: ["open", "activate"])
+        .handlesExternalEvents(matching: ["open", "activate", "role"])
         .commands {
             CommandGroup(replacing: .newItem) {}
         }

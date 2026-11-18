@@ -209,7 +209,7 @@ struct ErrorBanner: View {
                 Image(systemName: icon).foregroundStyle(Theme.warning)
             }
             .textSelection(.enabled)
-            if case .cliExpired(let command) = kind {
+            if let command = kind.command {
                 Button(copied ? "Copied" : "Copy “\(command)”") {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(command, forType: .string)
@@ -229,7 +229,7 @@ struct ErrorBanner: View {
     private var icon: String {
         switch kind {
         case .throttled: "hourglass"
-        case .cliExpired, .cliNotFound, .interactionRequired: "person.crop.circle.badge.exclamationmark"
+        case .cliExpired, .cliStepUp, .cliNotFound, .interactionRequired: "person.crop.circle.badge.exclamationmark"
         case .forbidden: "hand.raised.fill"
         default: "exclamationmark.triangle.fill"
         }

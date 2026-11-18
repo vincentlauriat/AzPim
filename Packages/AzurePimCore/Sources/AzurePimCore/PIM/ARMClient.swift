@@ -43,7 +43,9 @@ public struct ARMClient: PIMSource {
                   let scope = props["scope"] as? String,
                   let start = PIMDates.parse(props["startDateTime"]) else { return nil }
             let id = (item["name"] as? String) ?? (item["id"] as? String) ?? UUID().uuidString
-            guard seen.insert("\(roleDefinitionId.lowercased())|\(scope.lowercased())").inserted else { return nil }
+            // A permanent and an activated instance of the same role and scope are two rows: both are kept.
+            let kind = (props["assignmentType"] as? String) ?? ""
+            guard seen.insert("\(roleDefinitionId.lowercased())|\(scope.lowercased())|\(kind)").inserted else { return nil }
             let expanded = props["expandedProperties"] as? [String: Any]
             let role = expanded?["roleDefinition"] as? [String: Any]
             let scopeInfo = expanded?["scope"] as? [String: Any]

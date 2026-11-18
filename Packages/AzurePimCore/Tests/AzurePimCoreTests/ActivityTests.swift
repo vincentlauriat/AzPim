@@ -50,6 +50,23 @@ struct ActivityTests {
         #expect(expired.map(\.id) == [old.id])
     }
 
+    /// Undecided past the polling window: failed with an explanation, so the row stops saying "Pending".
+    @Test func abandonedRequestsAreMarkedFailed() throws {
+        let container = try AzurePimStore.makeContainer(inMemory: true)
+        let context = container.mainContext
+        let account = Account(mode: .azureCLI, upn: "a@b", objectId: "o", tenantId: "t")
+        context.insert(account)
+        let now = Date(timeIntervalSince1970: 100 * 86_400)
+        let stale = record(context, account: account, opened: nil, completed: nil, status: .pendingApproval,
+                           sent: now.addingTimeInterval(-8 * 86_400))
+        let fresh = record(context, account: account, opened: nil, completed: nil, status: .pendingApproval,
+                           sent: now.addingTimeInterval(-2 * 86_400))
+        let marked = Retention.markAbandoned([stale, fresh], now: now)
+        #expect(marked.map(\.id) == [stale.id])
+        #expect(stale.status == .failed && stale.errorMessage?.contains("7 days") == true)
+        #expect(fresh.status == .pendingApproval)
+    }
+
     @Test func csvEscapesQuotesCommasAndFormulas() {
         #expect(HistoryCSV.escape("plain") == "plain")
         #expect(HistoryCSV.escape("a,b") == "\"a,b\"")

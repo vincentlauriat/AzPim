@@ -13,7 +13,8 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     nonisolated static let prefix = "expiry-"
     nonisolated static let roleKey = "eligibleRoleId"
     private let center = UNUserNotificationCenter.current()
-    var onOpen: (() -> Void)?
+    /// Opens the app on the notification's role (eligible role id, nil for follow-ups).
+    var onOpen: ((String?) -> Void)?
     /// Runs the extension and returns the follow-up text.
     var onExtend: ((String) async -> String)?
 
@@ -36,9 +37,12 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         let pending = ids.filter { $0.hasPrefix(Self.prefix) }
         center.removePendingNotificationRequests(withIdentifiers: pending)
         for assignment in activations {
-            guard let end = assignment.endAt else { continue }
+            guard let end = assignment.endAt, end > .now else { continue }
             let fireAt = end.addingTimeInterval(-Double(leadMinutes) * 60)
-            guard fireAt > .now else { continue }
+            // Already inside the lead window (short activation, late launch): notify now, once. `notifiedAt`
+            // survives refreshes and is reset when the end date changes (extension).
+            if fireAt <= .now, assignment.notifiedAt != nil { continue }
+            assignment.notifiedAt = .now
             let content = UNMutableNotificationContent()
             content.title = "\(assignment.roleName) — \(assignment.scopeName)"
             content.body = "Expires at \(end.formatted(date: .omitted, time: .shortened)) (\(leadMinutes) min)."
@@ -47,7 +51,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
                 content.categoryIdentifier = Self.category
                 content.userInfo = [Self.roleKey: roleId]
             }
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: fireAt.timeIntervalSinceNow, repeats: false)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, fireAt.timeIntervalSinceNow), repeats: false)
             let id = Self.prefix + (assignment.eligibleRole?.id ?? assignment.id)
             await Self.schedule(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
@@ -85,7 +89,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         case Self.dismissAction, UNNotificationDismissActionIdentifier:
             break
         default:
-            await MainActor.run { onOpen?() }
+            await MainActor.run { onOpen?(roleId) }
         }
     }
 

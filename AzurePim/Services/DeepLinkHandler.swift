@@ -18,9 +18,24 @@ enum DeepLinkHandler {
             Task { await runFavorite(named: name) }
         case "open":
             NSApp.activate(ignoringOtherApps: true)
+        case "role":
+            // Shows a role (read-only navigation, nothing is activated).
+            let id = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "id" }?.value
+            NSApp.activate(ignoringOtherApps: true)
+            if let id, !id.isEmpty, store?.eligibleRole(id: id) != nil { store?.focusedRoleId = id }
         default:
             break
         }
+    }
+
+    /// `azurepim://role?id=<eligible role id>`, or nil without an id.
+    static func roleURL(_ roleId: String?) -> URL? {
+        guard let roleId else { return nil }
+        var components = URLComponents()
+        components.scheme = "azurepim"
+        components.host = "role"
+        components.queryItems = [URLQueryItem(name: "id", value: roleId)]
+        return components.url
     }
 
     /// Any local process can open a URL: activating privileged roles always asks the user first.

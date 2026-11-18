@@ -17,8 +17,25 @@ public enum ActivationStats {
     }
 }
 
-/// History retention (AppSettings.historyRetentionDays). Pending requests are kept whatever their age.
+/// History retention (AppSettings.historyRetentionDays). Pending requests are kept while they are polled.
 public enum Retention {
+    /// A request still undecided after this many days is no longer polled.
+    public static let pollDays = 7
+
+    /// Marks requests still undecided after `pollDays` as failed: they expired or were decided while the app
+    /// was not running, and would otherwise show "Pending" forever and block Activate. Returns them.
+    @discardableResult
+    public static func markAbandoned(_ records: [ActivationRecord], now: Date = .now) -> [ActivationRecord] {
+        let limit = now.addingTimeInterval(-Double(pollDays) * 86_400)
+        let abandoned = records.filter { ($0.status == .pendingApproval || $0.status == .sent) && $0.sentAt < limit }
+        for record in abandoned {
+            record.status = .failed
+            record.errorMessage = "No answer after \(pollDays) days: the request expired or was decided while AzurePim was "
+                + "not running. Check the Azure portal."
+        }
+        return abandoned
+    }
+
     public static func cutoff(days: Int, now: Date = .now) -> Date {
         now.addingTimeInterval(-Double(days) * 86_400)
     }
