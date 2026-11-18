@@ -11,7 +11,7 @@
 - `MenuBarExtra` (style `.window`) for the menu bar panel + a regular `Window` / `WindowGroup` for the desktop window and `Settings` scene.
 - App runs as an agent by default (`LSUIElement = YES`, no Dock icon); the Dock icon appears while the main window is open (`NSApp.setActivationPolicy(.regular)` / `.accessory`).
 - Launch at login via `SMAppService.mainApp`.
-- **Distribution:** Developer ID–signed, notarized DMG built with `dmgbuild`, auto-update with **Sparkle 2** (appcast on GitHub Releases), per the `macos-app-release` pipeline. Artifacts in `release/`.
+- **Distribution:** Developer ID–signed, notarized DMG built with `dmgbuild`, auto-update with **Sparkle 2** (appcast `appcast.xml` served from raw `main`, DMG attached to the GitHub release), per the `macos-app-release` pipeline. Artifacts in `release/`.
 - **Mac App Store:** after v1, separate MSAL-only target (sandbox forbids launching `az`).
 
 ## Backend and database
@@ -138,7 +138,9 @@ beyond the local store (Azure is the source of truth).
 - **No staging server** (no backend). Release channel via Sparkle: `stable` only in v1.
 - **CI:** GitHub Actions on macOS runner: build, unit tests (`swift test` for the core package), SwiftLint.
 - **Release:** `Scripts/release.sh` → universal build → sign → `dmgbuild` → `notarytool submit --wait` → staple →
-  appcast → GitHub release.
+  appcast → GitHub release. Notary credentials: an App Store Connect API key when `NOTARY_KEY_ID`, `NOTARY_ISSUER_ID`
+  and `NOTARY_KEY_PATH` are set or found in `~/.config/notarytool/api-key.env` (it survives a keychain reset);
+  otherwise the shared keychain profile.
 
 ## Key technical decisions and trade-offs
 
