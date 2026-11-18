@@ -52,14 +52,45 @@ struct SecurityHardeningTests {
         #expect(recorder.durations == [.seconds(30)])
     }
 
-    @Test func azEnvironmentIsAllowlisted() {
+    @Test func azEnvironmentIsAllowlisted() throws {
+        let own = FileManager.default.temporaryDirectory.appendingPathComponent("azcfg-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: own, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: own) }
         let env = AzureCLITokenProvider.environment(
             executable: URL(fileURLWithPath: "/opt/homebrew/bin/az"),
-            inherited: ["HOME": "/Users/x", "PYTHONPATH": "/tmp/evil", "HTTPS_PROXY": "http://evil", "AZURE_CONFIG_DIR": "/c"])
+            inherited: ["HOME": "/Users/x", "PYTHONPATH": "/tmp/evil", "HTTPS_PROXY": "http://evil", "AZURE_CONFIG_DIR": own.path])
         #expect(env["PYTHONPATH"] == nil)
         #expect(env["HTTPS_PROXY"] == nil)
-        #expect(env["AZURE_CONFIG_DIR"] == "/c")
+        #expect(env["AZURE_CONFIG_DIR"] == own.path)
         #expect(env["PATH"]?.hasPrefix("/opt/homebrew/bin:") == true)
+    }
+
+    /// `az` loads extensions from AZURE_CONFIG_DIR: a missing or world-writable folder is not passed on.
+    @Test func untrustedAzureConfigDirIsDropped() throws {
+        let open = FileManager.default.temporaryDirectory.appendingPathComponent("azcfg-open-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: open, withIntermediateDirectories: true)
+        try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: open.path)
+        defer { try? FileManager.default.removeItem(at: open) }
+        for dir in [open.path, "/nonexistent-azure-config"] {
+            let env = AzureCLITokenProvider.environment(executable: URL(fileURLWithPath: "/opt/homebrew/bin/az"),
+                                                        inherited: ["AZURE_CONFIG_DIR": dir])
+            #expect(env["AZURE_CONFIG_DIR"] == nil)
+        }
+    }
+
+    /// The bearer token must not follow a redirect to another host or to http.
+    @Test func redirectsStayOnTheSameHttpsHost() {
+        let arm = URL(string: "https://management.azure.com/a")
+        #expect(SameHostRedirects.allows(from: arm, to: URL(string: "https://management.azure.com/b")))
+        #expect(!SameHostRedirects.allows(from: arm, to: URL(string: "https://evil.example/b")))
+        #expect(!SameHostRedirects.allows(from: arm, to: URL(string: "http://management.azure.com/b")))
+        #expect(!SameHostRedirects.allows(from: nil, to: URL(string: "https://management.azure.com/b")))
+    }
+
+    /// Known install locations still resolve after the trusted-chain check (Homebrew is admin-writable).
+    @Test(.enabled(if: FileManager.default.fileExists(atPath: "/opt/homebrew/bin/az")))
+    func homebrewAzStillFound() {
+        #expect(AzureCLITokenProvider().locateCLI() != nil)
     }
 }
 

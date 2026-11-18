@@ -10,10 +10,10 @@ packages:
     path: Packages/AzurePimCore
   MSAL:
     url: https://github.com/AzureAD/microsoft-authentication-library-for-objc
-    exactVersion: "2.17.1"
+    revision: 7fb550e520e21ab2273639a88889cf432fdb71a7   # tag 2.17.1, pinned by commit (a moved tag cannot change a signed build)
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    exactVersion: "2.10.1"
+    revision: ab7d71291238df6e0492143b120c9b696a35f603   # tag 2.10.1
 
 # Explicit scheme (xcodegen does not keep hand-made schemes across regenerations).
 schemes:
@@ -80,6 +80,8 @@ targets:
         SUFeedURL: https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml
         SUPublicEDKey: oGxHAH0aXmMuHBG/E6/PsROoQPDhw3vicDP+FK1S4hA=
         SUEnableAutomaticChecks: true
+        # Check the EdDSA signature before extracting the archive (security review, medium 3).
+        SUVerifyUpdateBeforeExtraction: true
         CFBundleURLTypes:
           - CFBundleURLName: fr.vincentlauriat.azurepim
             CFBundleURLSchemes:

@@ -131,6 +131,7 @@ private struct PreferencesSection: View {
     @Bindable var settings: AppSettings
     @State private var clientIdText = ""
     @State private var azPathError: String?
+    @AppStorage(DeepLinkHandler.activationKey) private var linksMayActivate = true
 
     var body: some View {
         Section("Preferences") {
@@ -155,6 +156,8 @@ private struct PreferencesSection: View {
                 }
             }
             if let azPathError { Text(azPathError).font(.caption).foregroundStyle(.red) }
+            Toggle("Links can ask to activate favorites (azurepim://activate)", isOn: $linksMayActivate)
+                .help("Each request is still confirmed. Turn off if you never start favorites from links or scripts.")
             TextField("Custom client ID", text: $clientIdText, prompt: Text("AzurePim app registration"))
                 .onSubmit(saveClientId)
                 .onAppear { clientIdText = settings.customClientId ?? "" }

@@ -28,7 +28,10 @@ public actor AzureCLITokenProvider: TokenProvider {
         // The configured path lives in a user-writable store: validated again at each use (security review L2).
         // Executes the exact resolved path that was validated, not a link that could be swapped afterwards.
         let configured = configuredPath.flatMap { Validation.trustedAZ($0, fileManager: fileManager) }
-        let candidates = (configured.map { [$0] } ?? []) + Self.knownPaths
+        // Known locations pass the same trusted-chain check as a configured path (security review, low 3).
+        let files = fileManager
+        let known = Self.knownPaths.filter { files.fileExists(atPath: $0) }.compactMap { Validation.trustedAZ($0, fileManager: files) }
+        let candidates = (configured.map { [$0] } ?? []) + known
         return candidates.first { fileManager.isExecutableFile(atPath: $0) }.map(URL.init(fileURLWithPath:))
     }
 
@@ -113,8 +116,12 @@ public actor AzureCLITokenProvider: TokenProvider {
             "AZURE_CORE_ONLY_SHOW_ERRORS": "true",
             "AZURE_CORE_COLLECT_TELEMETRY": "false"
         ]
-        // Users who keep their CLI profile elsewhere (`AZURE_CONFIG_DIR`) still get their session.
-        if let dir = inherited["AZURE_CONFIG_DIR"] { env["AZURE_CONFIG_DIR"] = dir }
+        // Users who keep their CLI profile elsewhere (`AZURE_CONFIG_DIR`) still get their session, if that folder is
+        // theirs: `az` loads extensions from it, so a folder set by `launchctl setenv` must not be another user's or
+        // writable by others (security review, low 2).
+        if let dir = inherited["AZURE_CONFIG_DIR"], Validation.isTrustedChain(URL(fileURLWithPath: dir), fileManager: .default) {
+            env["AZURE_CONFIG_DIR"] = dir
+        }
         return env
     }
 
