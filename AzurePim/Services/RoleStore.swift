@@ -187,9 +187,12 @@ final class RoleStore {
     /// Sends an activation request; returns the outcome status, or nil on failure (error stored per row).
     /// `fromPanel` false for deep links and notification actions: no `panelOpenedAt`, so the record stays out of
     /// the time-to-activation median. `refreshAfter` false when the caller refreshes once after a batch.
+    /// `discardIfAlreadyActive` true for an attempt the caller will retry when Azure still reports the role as
+    /// active: that refusal is removed instead of staying in History as a failure.
     @discardableResult
     func activate(_ role: EligibleRole, input: ActivationInput, viaFavorite: String? = nil, fromPanel: Bool = true,
-                  action: ActivationAction = .activate, refreshAfter: Bool = true) async -> RequestStatus? {
+                  action: ActivationAction = .activate, refreshAfter: Bool = true,
+                  discardIfAlreadyActive: Bool = false) async -> RequestStatus? {
         guard let account = role.account else { return nil }
         busy.insert(role.id)
         rowErrors[role.id] = nil
@@ -214,10 +217,15 @@ final class RoleStore {
             if refreshAfter { await refresh() }
             return outcome.status
         } catch {
-            record.status = .failed
-            record.errorMessage = Self.message(for: error)
-            rowErrors[role.id] = record.errorMessage
-            lastActivationError[role.id] = (Self.message(for: error), ExtendPlan.isAlreadyActive(error))
+            let alreadyActive = ExtendPlan.isAlreadyActive(error)
+            lastActivationError[role.id] = (Self.message(for: error), alreadyActive)
+            if discardIfAlreadyActive && alreadyActive {
+                context.delete(record)
+            } else {
+                record.status = .failed
+                record.errorMessage = Self.message(for: error)
+                rowErrors[role.id] = record.errorMessage
+            }
             try? context.save()
             return nil
         }
