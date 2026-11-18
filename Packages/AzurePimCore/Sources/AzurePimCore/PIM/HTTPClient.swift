@@ -12,13 +12,27 @@ public struct URLSessionTransport: HTTPTransport {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = timeout
         config.httpAdditionalHeaders = ["User-Agent": "AzurePim/\(AzurePimCore.version)"]
-        session = URLSession(configuration: config)
+        session = URLSession(configuration: config, delegate: SameHostRedirects(), delegateQueue: nil)
     }
 
     public func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw PIMError.decoding("non-HTTP response") }
         return (data, http)
+    }
+}
+
+/// Follows a redirect only to the same https host: the bearer token set on the request must never reach another host
+/// (security review, low 4). A refused redirect returns the 3xx response, reported as an HTTP error.
+final class SameHostRedirects: NSObject, URLSessionTaskDelegate, Sendable {
+    static func allows(from original: URL?, to target: URL?) -> Bool {
+        guard let original, let target, target.scheme == "https" else { return false }
+        return original.host()?.lowercased() == target.host()?.lowercased()
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest) async -> URLRequest? {
+        Self.allows(from: task.originalRequest?.url, to: request.url) ? request : nil
     }
 }
 
