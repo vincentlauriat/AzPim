@@ -60,6 +60,10 @@ enum DeepLinkHandler {
         let lines = favorite.items.compactMap { item -> String? in
             guard let role = store.eligibleRole(id: item.eligibleRoleId) else { return nil }
             let account = role.account.map { "\($0.upn) (tenant \($0.tenantName ?? $0.tenantId))" } ?? "unknown account"
+            // Same skip as the run: a request still waiting is not sent again.
+            if store.waitingRequest(for: role) != nil {
+                return "• \(role.roleName) — \(role.scopeName)\n   \(account): skipped (already requested, waiting)"
+            }
             // Same computation as the run itself: what is shown is what will be sent (capped duration, fallback reason).
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
             case .success(let input):

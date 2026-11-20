@@ -101,7 +101,7 @@ final class RoleStore {
     /// Settings › Refresh interval: the new interval applies at once, counted from the last refresh.
     func restartAutoRefresh() {
         let interval = Double(accounts.settings.refreshIntervalMinutes * 60)
-        let elapsed = lastRefresh.map { Date.now.timeIntervalSince($0) } ?? 0
+        let elapsed = lastRefresh.map { Date.now.timeIntervalSince($0) } ?? interval   // never refreshed: now
         startAutoRefresh(after: max(0, interval - elapsed))
     }
 
@@ -214,8 +214,13 @@ final class RoleStore {
     func activate(_ role: EligibleRole, input: ActivationInput, viaFavorite: String? = nil, fromPanel: Bool = true,
                   action: ActivationAction = .activate, refreshAfter: Bool = true,
                   discardIfAlreadyActive: Bool = false) async -> RequestStatus? {
-        // One request per row: a second tap (or a second sheet) must not submit it twice.
-        guard let account = role.account, inFlight.insert(role.id).inserted else { return nil }
+        guard let account = role.account else { return nil }
+        // One request per row: a second tap, a second sheet or a favorite during an Extend must not submit it twice.
+        guard action == .extend || !extending.contains(role.id), inFlight.insert(role.id).inserted else {
+            rowErrors[role.id] = "A request for this role is already in progress."
+            lastActivationError[role.id] = nil
+            return nil
+        }
         defer { inFlight.remove(role.id) }
         rowErrors[role.id] = nil
         lastActivationError[role.id] = nil
@@ -231,9 +236,10 @@ final class RoleStore {
             }
             let outcome = try await source.activate(role.remote, principalId: account.objectId, input: input)
             record.remoteRequestId = outcome.requestId
-            // Azure answered but refused the request: a failure, shown on the row (the role can be activated again).
-            if outcome.status == .failed { throw RequestRefused() }
+            // Azure answered but did not apply the request: a failure, shown on the row (the role can be activated again).
+            if [.failed, .denied, .canceled].contains(outcome.status) { throw RequestRefused(status: outcome.status) }
             record.status = outcome.status
+            rowErrors[role.id] = nil   // a refused duplicate meanwhile left its message
             if outcome.status == .provisioned { record.completedAt = .now }
             role.lastJustification = input.justification
             try? context.save()
@@ -245,7 +251,7 @@ final class RoleStore {
             if discardIfAlreadyActive && alreadyActive {
                 context.delete(record)
             } else {
-                record.status = .failed
+                record.status = (error as? RequestRefused)?.status ?? .failed
                 record.errorMessage = Self.message(for: error)
                 rowErrors[role.id] = record.errorMessage
             }
@@ -277,7 +283,7 @@ final class RoleStore {
             record.status = outcome.status == .failed ? .failed : .provisioned
             record.completedAt = .now
             if record.status == .failed {
-                record.errorMessage = RequestRefused.message
+                record.errorMessage = RequestRefused(status: .failed).errorDescription
                 rowErrors[rowId] = record.errorMessage
             }
             try? context.save()

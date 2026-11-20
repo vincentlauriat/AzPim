@@ -76,6 +76,21 @@ public enum HistoryCSV {
     }
 }
 
+extension ActivationRecord {
+    /// A sent request whose outcome could not be read counts as waiting this long, then the role can be asked again.
+    public static let sentWaitSeconds: TimeInterval = 15 * 60
+
+    /// A request still waiting for its outcome: pending approval (until `Retention.markAbandoned`), or sent with a
+    /// request id in the last 15 minutes. The panel shows Pending and a favorite run does not send it again.
+    public func isWaiting(at now: Date = .now) -> Bool {
+        switch status {
+        case .pendingApproval: true
+        case .sent: remoteRequestId != nil && now.timeIntervalSince(sentAt) < Self.sentWaitSeconds
+        default: false
+        }
+    }
+}
+
 /// Result of one role of a favorite run (T4.2).
 public struct FavoriteRoleResult: Sendable, Equatable {
     public let roleName: String

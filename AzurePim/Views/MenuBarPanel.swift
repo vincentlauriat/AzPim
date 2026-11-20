@@ -57,10 +57,9 @@ struct MenuBarPanel: View {
     @Query(sort: \Account.sortOrder) private var accountList: [Account]
     @Query(sort: \ActiveAssignment.endAt) private var assignments: [ActiveAssignment]
     @Query(sort: \Favorite.sortOrder) private var favorites: [Favorite]
-    /// Requests waiting for an approver, or sent and not confirmed yet: the row shows Pending, not Activate.
-    @Query(filter: #Predicate<ActivationRecord> {
-        $0.statusRaw == "pendingApproval" || ($0.statusRaw == "sent" && $0.remoteRequestId != nil)
-    }) private var pendingRecords: [ActivationRecord]
+    /// Requests that may still be waiting; `isWaiting` decides (a sent one stops blocking the row after 15 min).
+    @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" || $0.statusRaw == "sent" })
+    private var pendingRecords: [ActivationRecord]
     @State private var activating: EligibleRole?
     @State private var contentHeight: CGFloat = 0
     @AppStorage("panel.showActive") private var showActive = true
@@ -307,7 +306,7 @@ struct MenuBarPanel: View {
                 ForEach(Array(roles.enumerated()), id: \.element.id) { index, role in
                     if index > 0 { RowDivider() }
                     EligibleRow(role: role, isActive: activations.contains { $0.eligibleRole?.id == role.id },
-                                isPending: pendingRecords.contains { $0.eligibleRoleId == role.id }) {
+                                pending: pendingRecords.first { $0.eligibleRoleId == role.id && $0.isWaiting(at: store.now) }?.status) {
                         activating = role
                     }
                 }

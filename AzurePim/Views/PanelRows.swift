@@ -64,7 +64,8 @@ struct EligibleRow: View {
     @Environment(RoleStore.self) private var store
     let role: EligibleRole
     let isActive: Bool
-    let isPending: Bool
+    /// Status of a request still waiting for this role (pending approval or sent), if any.
+    let pending: RequestStatus?
     let activate: () -> Void
 
     var body: some View {
@@ -83,9 +84,9 @@ struct EligibleRow: View {
                     Text("Active").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.active)
                         .padding(.horizontal, 7).padding(.vertical, 2)
                         .background(Theme.active.opacity(0.14), in: Capsule())
-                } else if isPending {
+                } else if let pending {
                     Label("Pending", systemImage: "clock").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.warning)
-                        .help("Waiting for approval — see History")
+                        .help(pending == .sent ? "Not confirmed yet — refreshes in a moment" : "Waiting for approval — see History")
                 } else {
                     Button("Activate", action: activate)
                         .buttonStyle(.borderedProminent)

@@ -192,17 +192,20 @@ struct AuthorizedClientTests {
     }
 
     /// A write that failed with a 5xx may have been applied: sending it again could activate twice.
-    @Test func writesAreNotRetried() async {
+    @Test func writesAreNotRetriedOn5xx() async {
         let post = FakeTransport([.init(status: 503, json: nil), .init(status: 200, json: ["ok": true])])
         await #expect(throws: PIMError.self) {
             try await client(post).json("POST", URL(string: "https://x.test")!, body: ["a": 1])
         }
         #expect(post.requests.count == 1)
+    }
+
+    /// A 429 means the request was not processed: a write is retried (Extend must not lose the role to throttling).
+    @Test func writesAreRetriedOn429() async throws {
         let put = FakeTransport([.init(status: 429, json: nil), .init(status: 200, json: ["ok": true])])
-        await #expect(throws: PIMError.throttled(retryAfter: nil)) {
-            try await client(put).json("PUT", URL(string: "https://x.test")!, body: ["a": 1])
-        }
-        #expect(put.requests.count == 1)
+        let result = try await client(put).json("PUT", URL(string: "https://x.test")!, body: ["a": 1])
+        #expect(result["ok"] as? Bool == true)
+        #expect(put.requests.count == 2)
     }
 
     /// A 401 claims challenge means the request was not processed: retried once whatever the method.

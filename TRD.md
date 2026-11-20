@@ -128,7 +128,9 @@ flowchart LR
 | Idle CPU | < 0.5 % average; memory < 80 MB |
 | Offline | Cached data shown with "last updated" time; actions disabled |
 
-Reliability: retries with exponential backoff (1 s, 2 s, 4 s) on 429/5xx, honoring `Retry-After`. No backups needed
+Reliability: retries with exponential backoff (1 s, 2 s, 4 s) on 429 for every request and on 5xx for reads (GET)
+only, honoring `Retry-After` (capped at 30 s); a write that failed with a 5xx may have been applied, so it is never
+sent twice. No backups needed
 beyond the local store (Azure is the source of truth).
 
 ## Environments and release

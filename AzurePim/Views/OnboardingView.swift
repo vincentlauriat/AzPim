@@ -96,6 +96,7 @@ struct OnboardingView: View {
         Form {
             Toggle("Notify me before an activation expires", isOn: $notifications)
             Toggle("Launch AzurePim at login", isOn: $launchAtLogin)
+                .onChange(of: launchAtLogin) { loginItemError = nil }   // Done tries again with the new choice
             if let loginItemError { Text(loginItemError).foregroundStyle(.red) }
         }
         .formStyle(.grouped)

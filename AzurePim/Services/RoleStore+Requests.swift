@@ -71,10 +71,12 @@ extension RoleStore {
         }
     }
 
-    /// A request Microsoft answered with the status Failed.
+    /// A request Microsoft answered with Failed, Denied or Canceled: nothing was activated.
     struct RequestRefused: LocalizedError {
-        static let message = "Microsoft refused the request (status Failed). Check the role in the Azure portal."
-        var errorDescription: String? { Self.message }
+        let status: RequestStatus
+        var errorDescription: String? {
+            "Microsoft answered “\(status.rawValue)”: the request was not applied. Check the role in the Azure portal."
+        }
     }
 
     func eligibleRole(id: String) -> EligibleRole? {
@@ -105,7 +107,7 @@ extension RoleStore {
                 continue
             }
             // A request still waiting (approval, or sent and not confirmed) is not submitted a second time.
-            if let waiting = role.account?.records.first(where: { $0.eligibleRoleId == role.id && Self.needsPolling($0) }) {
+            if let waiting = waitingRequest(for: role) {
                 results.append(.init(roleName: role.roleName, status: waiting.status))
                 continue
             }
@@ -123,6 +125,11 @@ extension RoleStore {
         let text = FavoriteRun.summary(results)
         favoriteToast = (favoriteId, text)
         return text
+    }
+
+    /// The request of this role still waiting for its outcome, if any (`ActivationRecord.isWaiting`).
+    func waitingRequest(for role: EligibleRole) -> ActivationRecord? {
+        role.account?.records.first { $0.eligibleRoleId == role.id && $0.isWaiting() }
     }
 
     func favorite(named name: String) -> Favorite? {
