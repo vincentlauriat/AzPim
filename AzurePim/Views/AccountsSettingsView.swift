@@ -128,6 +128,7 @@ private struct AccountRow: View {
 }
 
 private struct PreferencesSection: View {
+    @Environment(RoleStore.self) private var store
     @Bindable var settings: AppSettings
     @State private var clientIdText = ""
     @State private var azPathError: String?
@@ -137,6 +138,7 @@ private struct PreferencesSection: View {
         Section("Preferences") {
             Stepper("Refresh every \(settings.refreshIntervalMinutes) min",
                     value: $settings.refreshIntervalMinutes, in: 1...30)
+                .onChange(of: settings.refreshIntervalMinutes) { store.restartAutoRefresh() }
             Stepper("Notify \(settings.notificationLeadMinutes) min before expiry",
                     value: $settings.notificationLeadMinutes, in: 5...60, step: 5)
             Stepper("Keep history \(settings.historyRetentionDays) days",

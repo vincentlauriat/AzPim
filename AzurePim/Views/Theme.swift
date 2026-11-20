@@ -7,7 +7,6 @@ enum Theme {
     // MARK: Layout
     static let panelWidth: CGFloat = 360
     static let cardRadius: CGFloat = 14
-    static let tileRadius: CGFloat = 12
 
     // MARK: Colours
     /// Azure blue — primary emphasis.

@@ -107,8 +107,7 @@ private struct FavoriteEditor: View {
                 TextField("Name", text: $name)
                     .onSubmit(rename)
                 if let nameError { Text(nameError).font(.caption).foregroundStyle(.red) }
-                let encoded = favorite.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                Text("Deep link: azurepim://activate?favorite=\(encoded)")
+                Text("Deep link: \(DeepLink.activate(favorite: favorite.name)?.absoluteString ?? "—")")
                     .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             }
             Section("Roles") {
@@ -131,7 +130,7 @@ private struct FavoriteEditor: View {
             Section {
                 HStack {
                     Button("Run now") { Task { await store.run(favorite, fromPanel: false) } }
-                        .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id))
+                        .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id) || store.isOffline)
                     if store.runningFavorites.contains(favorite.id) { ProgressView().controlSize(.small) }
                     if let toast = store.favoriteToast, toast.favoriteId == favorite.id {
                         Text(toast.text).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
@@ -208,6 +207,8 @@ private struct FavoriteEditor: View {
     }
 
     private func rename() {
+        // Deleting the favorite closes the editor: `onDisappear` must not write to a deleted model.
+        guard favorite.modelContext != nil, !favorite.isDeleted else { return }
         switch Validation.favoriteName(name, existing: others) {
         case .success(let valid):
             nameError = nil

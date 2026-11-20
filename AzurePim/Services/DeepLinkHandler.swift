@@ -18,14 +18,13 @@ enum DeepLinkHandler {
         switch url.host() {
         case "activate":
             guard UserDefaults.standard.object(forKey: activationKey) as? Bool ?? true, !confirming else { return }
-            let name = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
-                .first { $0.name == "favorite" }?.value ?? ""
+            let name = DeepLink.value(of: "favorite", in: url) ?? ""
             Task { await runFavorite(named: name) }
         case "open":
             NSApp.activate(ignoringOtherApps: true)
         case "role":
             // Shows a role (read-only navigation, nothing is activated).
-            let id = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "id" }?.value
+            let id = DeepLink.value(of: "id", in: url)
             NSApp.activate(ignoringOtherApps: true)
             if let id, !id.isEmpty, store?.eligibleRole(id: id) != nil { store?.focusedRoleId = id }
         default:
@@ -35,12 +34,7 @@ enum DeepLinkHandler {
 
     /// `azurepim://role?id=<eligible role id>`, or nil without an id.
     static func roleURL(_ roleId: String?) -> URL? {
-        guard let roleId else { return nil }
-        var components = URLComponents()
-        components.scheme = "azurepim"
-        components.host = "role"
-        components.queryItems = [URLQueryItem(name: "id", value: roleId)]
-        return components.url
+        roleId.flatMap(DeepLink.role(id:))
     }
 
     /// Any local process can open a URL: activating privileged roles always asks the user first.
@@ -69,8 +63,7 @@ enum DeepLinkHandler {
             // Same computation as the run itself: what is shown is what will be sent (capped duration, fallback reason).
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
             case .success(let input):
-                let hours = (ISODuration.seconds(input.duration) ?? 0) / 3600
-                let duration = hours.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(hours)) h" : String(format: "%.1f h", hours)
+                let duration = ISODuration.label(ISODuration.seconds(input.duration) ?? 0)
                 return "• \(role.roleName) — \(role.scopeName)\n   \(account), \(duration), “\(input.justification)”"
             case .failure(let failure):
                 return "• \(role.roleName) — \(role.scopeName)\n   \(account): not sent (\(failure.userMessage))"

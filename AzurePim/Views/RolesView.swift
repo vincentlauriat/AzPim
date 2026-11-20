@@ -98,12 +98,20 @@ struct RolesView: View {
                 if let row = rows.first(where: { $0.id == selection }) {
                     RoleDetail(row: row)
                 } else {
-                    ContentUnavailableView(roles.isEmpty ? "No eligible role" : "Select a role", systemImage: "key.horizontal",
+                    ContentUnavailableView(roles.isEmpty ? emptyTitle : "Select a role", systemImage: "key.horizontal",
                                            description: Text(accounts.isEmpty ? "Add an account to get started." : ""))
                 }
             }
             .frame(minWidth: 260, idealWidth: 300, maxWidth: 380, maxHeight: .infinity)
         }
+    }
+
+    /// No eligible role at all: say why (error, first load) before claiming there is none.
+    private var emptyTitle: String {
+        if accounts.isEmpty { return "No account" }
+        if store.refreshErrors.values.contains(where: { !$0.isEmpty }) { return "Eligible roles couldn't be loaded" }
+        if accounts.allSatisfy({ $0.lastRefreshAt == nil }) { return "Loading eligible roles…" }
+        return "No eligible role"
     }
 
     @ToolbarContentBuilder private var toolbarItems: some ToolbarContent {
@@ -251,7 +259,7 @@ private struct RoleDetail: View {
                 Text("Policy unavailable").font(.callout).foregroundStyle(.secondary)
             } else {
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 4) {
-                    detail("Maximum", role.maxDuration.flatMap(ISODuration.seconds).map { "\(Int($0 / 3600)) h" } ?? "—")
+                    detail("Maximum", role.maxDuration.flatMap(ISODuration.seconds).map(ISODuration.label) ?? "—")
                     detail("Justification", role.requiresJustification ? "Required" : "Optional")
                     detail("Ticket", role.requiresTicket ? "Required" : "No")
                     detail("MFA", role.requiresMFA ? "Required" : "No")
@@ -271,7 +279,7 @@ private struct RoleDetail: View {
                 ProgressView().controlSize(.small)
             } else if let assignment = row.assignment {
                 Button("Deactivate", role: .destructive) { confirmingDeactivate = true }
-                    .disabled(Date.now.timeIntervalSince(assignment.startAt) < 300)
+                    .disabled(Date.now.timeIntervalSince(assignment.startAt) < 300 || store.isOffline)
                     .help("Azure refuses deactivation within 5 minutes of activation")
                     .confirmationDialog("Deactivate \(assignment.roleName)?", isPresented: $confirmingDeactivate) {
                         Button("Deactivate", role: .destructive) { Task { await store.deactivate(assignment) } }
@@ -280,6 +288,7 @@ private struct RoleDetail: View {
                     }
             } else {
                 Button("Activate…") { activating = true }.buttonStyle(.borderedProminent).tint(Theme.accent)
+                    .disabled(store.isOffline)
             }
             Menu("Add to favorite") { AddToFavoriteMenu(role: role) }.fixedSize()
         }
