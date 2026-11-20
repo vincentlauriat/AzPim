@@ -121,6 +121,43 @@ Debug builds can render the panel and windows to PNG files, with demo data, with
 AZUREPIM_SNAPSHOT=/tmp/shots build/Build/Products/Debug/AzurePim.app/Contents/MacOS/AzurePim
 ```
 
+## Releasing
+
+```bash
+./Scripts/release.sh 0.9.3                    # from a clean main, with release/release-notes-0.9.3.md
+gh release create v0.9.3 ./release/AzurePim-0.9.3.dmg --title "v0.9.3" --notes-file release/release-notes-0.9.3.md
+./Scripts/release.sh --publish-appcast 0.9.3  # checks the DMG URL answers, prepends the item to appcast.xml
+```
+
+The build run refuses to start without release notes, off `main` or with a dirty tree, and refuses a build number
+that is not greater than every build in `appcast.xml`. It checks the Developer ID signature and Hardened Runtime
+before notarizing, and Gatekeeper on the app inside the stapled DMG. `appcast.xml` then goes to `main` through a PR.
+
+## Rollback and withdrawal
+
+Sparkle has no downgrade: an installed app only moves to a higher build number. A bad release is withdrawn, and
+fixed by the next build.
+
+1. **Stop the offer.** Remove the bad `<item>` from `appcast.xml` and merge that through a PR. Apps still on the
+   previous version stop being offered the bad one once raw.githubusercontent.com refreshes (about 5 minutes).
+   Leave the other items alone.
+2. **Mark the GitHub release.** Edit it: add "Withdrawn: do not install, see vX.Y.Z" at the top of the notes and
+   mark it as a pre-release (`gh release edit vX.Y.Z --prerelease`), so it is not "Latest" on the releases page and
+   the landing page. Keep the DMG attached unless it is harmful: deleting it breaks links for people who already
+   installed it. Delete the asset only for a security issue.
+3. **Never reuse a build number.** The withdrawn `CURRENT_PROJECT_VERSION` is burnt: the fix gets a higher build
+   number (and a new marketing version), or Sparkle would not offer it to anyone who installed the bad build.
+   `Scripts/release.sh` and CI refuse a build number that is not above every one in `appcast.xml`.
+4. **Ship the fix.** Users on the bad version get the next fixed build through the normal update check. If the bad
+   build cannot update itself (broken updater or crash on launch), say so in the GitHub release and the issue, and
+   point to the DMG of the fixed version for a manual reinstall.
+
+**Monitoring after a release:**
+
+- Download counts per asset: `gh release view vX.Y.Z --json assets --jq '.assets[] | "\(.name) \(.downloadCount)"'`.
+- New [issues](https://github.com/vincentlauriat/AzurePim/issues) in the first days, and the Sparkle feed itself:
+  `curl -fsS https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml` shows what clients see.
+
 ## Project layout
 
 | Path | Content |
