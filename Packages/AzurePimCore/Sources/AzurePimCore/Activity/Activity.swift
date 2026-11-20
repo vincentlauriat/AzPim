@@ -88,7 +88,8 @@ public struct FavoriteRoleResult: Sendable, Equatable {
         self.error = error
     }
 
-    public var succeeded: Bool { status == .provisioned || status == .pendingApproval }
+    /// Sent counts as success: the request reached Azure, so it must not be reported as failed (nor sent again).
+    public var succeeded: Bool { status == .provisioned || status == .pendingApproval || status == .sent }
 }
 
 public enum FavoriteRun {
@@ -98,6 +99,8 @@ public enum FavoriteRun {
         let pending = results.filter { $0.status == .pendingApproval }.count
         var text = "\(activated) of \(results.count) activated"
         if pending > 0 { text += ", \(pending) pending approval" }
+        let sent = results.filter { $0.status == .sent }.count
+        if sent > 0 { text += ", \(sent) sent, not confirmed yet" }
         let failures = results.filter { !$0.succeeded }
         if !failures.isEmpty {
             text += " — " + failures.map { "\($0.roleName): \($0.error ?? "failed")" }.joined(separator: "; ")

@@ -191,6 +191,32 @@ struct AuthorizedClientTests {
         #expect(recorder.seen == [nil, claims])
     }
 
+    /// A write that failed with a 5xx may have been applied: sending it again could activate twice.
+    @Test func writesAreNotRetried() async {
+        let post = FakeTransport([.init(status: 503, json: nil), .init(status: 200, json: ["ok": true])])
+        await #expect(throws: PIMError.self) {
+            try await client(post).json("POST", URL(string: "https://x.test")!, body: ["a": 1])
+        }
+        #expect(post.requests.count == 1)
+        let put = FakeTransport([.init(status: 429, json: nil), .init(status: 200, json: ["ok": true])])
+        await #expect(throws: PIMError.throttled(retryAfter: nil)) {
+            try await client(put).json("PUT", URL(string: "https://x.test")!, body: ["a": 1])
+        }
+        #expect(put.requests.count == 1)
+    }
+
+    /// A 401 claims challenge means the request was not processed: retried once whatever the method.
+    @Test func writeIsRetriedOnceWithClaimsChallenge() async throws {
+        let claims = #"{"access_token":{"acrs":{"essential":true,"value":"c1"}}}"#
+        let transport = FakeTransport([
+            .init(status: 401, json: nil, headers: ["WWW-Authenticate": #"Bearer error="insufficient_claims", claims="\#(claims)""#]),
+            .init(status: 201, json: ["ok": true])
+        ])
+        let result = try await client(transport).json("POST", URL(string: "https://x.test")!, body: ["a": 1])
+        #expect(result["ok"] as? Bool == true)
+        #expect(transport.requests.count == 2)
+    }
+
     @Test func mapsARMErrorMessage() async {
         let transport = FakeTransport([.init(status: 400, json: ["error": ["code": "RoleAssignmentExists",
                                                                            "message": "The Role assignment already exists."]])])

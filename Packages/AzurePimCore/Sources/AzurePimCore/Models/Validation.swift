@@ -128,6 +128,17 @@ public enum ISODuration {
         case (let hrs, let mins): return "PT\(hrs)H\(mins)M"
         }
     }
+
+    /// Short label for a duration: « 45 min », « 2 h », « 1 h 30 min » (never « 0 h » for a policy under one hour).
+    public static func label(_ seconds: TimeInterval) -> String {
+        let total = Int((seconds / 60).rounded())
+        let hours = total / 60, minutes = total % 60
+        switch (hours, minutes) {
+        case (0, let mins): return "\(mins) min"
+        case (let hrs, 0): return "\(hrs) h"
+        case (let hrs, let mins): return "\(hrs) h \(mins) min"
+        }
+    }
 }
 
 extension Validation.Failure {
@@ -139,7 +150,7 @@ extension Validation.Failure {
         case .outOfRange(let field, let range): "\(field.capitalized) must be between \(range.lowerBound) and \(range.upperBound)"
         case .invalidFormat(let field): "Invalid \(field)"
         case .duplicate(let field): "This \(field) is already used"
-        case .exceedsPolicy(let max): "Longer than the policy maximum (\(Int(max / 3600)) h)"
+        case .exceedsPolicy(let max): "Longer than the policy maximum (\(ISODuration.label(max)))"
         }
     }
 }
