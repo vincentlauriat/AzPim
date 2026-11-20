@@ -28,3 +28,6 @@ brag-output/
 # Local tool output (archify, graphify)
 .archify/
 graphify-out/
+
+# CI: SwiftPM checkouts (cached)
+SourcePackages/
