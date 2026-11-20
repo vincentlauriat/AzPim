@@ -129,9 +129,14 @@ gh release create v0.9.3 ./release/AzurePim-0.9.3.dmg --title "v0.9.3" --notes-f
 ./Scripts/release.sh --publish-appcast 0.9.3  # checks the DMG URL answers, prepends the item to appcast.xml
 ```
 
-The build run refuses to start without release notes, off `main` or with a dirty tree, and refuses a build number
-that is not greater than every build in `appcast.xml`. It checks the Developer ID signature and Hardened Runtime
-before notarizing, and Gatekeeper on the app inside the stapled DMG. `appcast.xml` then goes to `main` through a PR.
+The build run refuses to start without release notes, off `main`, with a dirty tree, when HEAD is not `origin/main`
+or when tag `vX.Y.Z` already exists. It refuses a build number that is not strictly greater than every build in
+`appcast.xml` and in the `project.yml` of every `v*` tag. It checks the Developer ID signature and Hardened Runtime
+before notarizing, and Gatekeeper on the app inside the stapled DMG. `--publish-appcast` downloads the uploaded
+asset and refuses it unless its SHA-256 matches the signed DMG. `appcast.xml` then goes to `main` through a PR.
+
+CI checks on every PR that `appcast.xml` is well-formed, is not ahead of `project.yml` (build and marketing
+version) and has no duplicate build numbers.
 
 ## Rollback and withdrawal
 
@@ -147,7 +152,8 @@ fixed by the next build.
    installed it. Delete the asset only for a security issue.
 3. **Never reuse a build number.** The withdrawn `CURRENT_PROJECT_VERSION` is burnt: the fix gets a higher build
    number (and a new marketing version), or Sparkle would not offer it to anyone who installed the bad build.
-   `Scripts/release.sh` and CI refuse a build number that is not above every one in `appcast.xml`.
+   Removing the item lowers the highest build in `appcast.xml`, so keep the `vX.Y.Z` tag: `Scripts/release.sh`
+   refuses a build number that is not above every one in `appcast.xml` and in the `project.yml` of every `v*` tag.
 4. **Ship the fix.** Users on the bad version get the next fixed build through the normal update check. If the bad
    build cannot update itself (broken updater or crash on launch), say so in the GitHub release and the issue, and
    point to the DMG of the fixed version for a manual reinstall.

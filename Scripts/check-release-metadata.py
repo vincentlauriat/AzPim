@@ -27,7 +27,10 @@ def version_tuple(text):
 
 
 # project.yml: plain regex (PyYAML is not guaranteed on the runner).
-project = (ROOT / "project.yml").read_text(encoding="utf-8")
+try:
+    project = (ROOT / "project.yml").read_text(encoding="utf-8")
+except OSError as exc:
+    sys.exit(f"✗ cannot read project.yml: {exc}")
 
 
 def project_setting(key):
@@ -53,6 +56,8 @@ try:
     channel = ET.parse(ROOT / "appcast.xml").getroot().find("channel")
 except ET.ParseError as exc:
     sys.exit(f"✗ appcast.xml is not well-formed XML: {exc}")
+except OSError as exc:
+    sys.exit(f"✗ cannot read appcast.xml: {exc}")
 items = channel.findall("item") if channel is not None else []
 if not items:
     errors.append("appcast.xml: no <item>")

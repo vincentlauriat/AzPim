@@ -97,16 +97,43 @@ print(items[0].findtext("{%s}version" % ns) or "")
 PY
 }
 
-# Refuse a build number that is not strictly greater than every build in the feed:
-# Sparkle would ignore the update, or two different DMGs would share one number.
+# Highest CURRENT_PROJECT_VERSION across the release tags v*, except v$VERSION
+# (it exists once `gh release create` ran, before --publish-appcast). A withdrawn
+# release leaves the appcast but keeps its tag, so its build number stays burnt.
+tags_max_build() {
+  python3 - "v$VERSION" <<'PY'
+import re
+import subprocess
+import sys
+current = sys.argv[1]
+tags = subprocess.run(["git", "tag", "-l", "v*"], check=True, capture_output=True, text=True).stdout.split()
+builds = [0]
+for tag in tags:
+    if tag == current:
+        continue
+    shown = subprocess.run(["git", "show", f"{tag}:project.yml"], capture_output=True, text=True)
+    if shown.returncode != 0:
+        continue  # tag older than project.yml
+    m = re.search(r'^\s*CURRENT_PROJECT_VERSION:\s*"?(\d+)"?', shown.stdout, re.MULTILINE)
+    if m:
+        builds.append(int(m.group(1)))
+print(max(builds))
+PY
+}
+
+# Refuse a build number that is not strictly greater than every build in the feed
+# and in every release tag: Sparkle would ignore the update, or two different DMGs
+# would share one number.
 require_new_build() {
-  local build="$1" newest
+  local build="$1" newest tagged
   newest="$(appcast_max_build)"
+  tagged="$(tags_max_build)"
+  [ "$tagged" -le "$newest" ] || newest="$tagged"
   case "$build" in
     ''|*[!0-9]*) echo "✗ build number '$build' is not an integer" >&2; exit 1 ;;
   esac
   if [ "$build" -le "$newest" ]; then
-    echo "✗ build number $build is not greater than the newest in appcast.xml ($newest)." >&2
+    echo "✗ build number $build is not greater than the newest in appcast.xml or the v* tags ($newest)." >&2
     echo "  Bump CURRENT_PROJECT_VERSION in project.yml; never reuse a build number." >&2
     exit 1
   fi
@@ -117,11 +144,26 @@ if [ "$MODE" = publish ]; then
   [ -f "$ITEM_FILE" ] || { echo "✗ $ITEM_FILE not found: run ./Scripts/release.sh $VERSION first" >&2; exit 1; }
   ITEM_BUILD="$(item_build)"
   require_new_build "$ITEM_BUILD"
+  LOCAL_DMG="$RELEASE_DIR/AzurePim-$VERSION.dmg"
+  [ -f "$LOCAL_DMG" ] || { echo "✗ $LOCAL_DMG not found: it is the DMG the item was signed for" >&2; exit 1; }
   echo "→ Checking the enclosure is downloadable: $ENCLOSURE_URL"
   # -L: GitHub answers 302 to its object storage; check the asset itself.
   if ! curl -fsIL -o /dev/null "$ENCLOSURE_URL"; then
     echo "✗ $ENCLOSURE_URL does not answer. Upload the DMG first:" >&2
     echo "  gh release create v$VERSION ./release/AzurePim-$VERSION.dmg --title \"v$VERSION\" --notes-file release/release-notes-$VERSION.md" >&2
+    exit 1
+  fi
+  # The item's EdDSA signature covers the local DMG: the uploaded asset must be that file.
+  echo "→ Checking the uploaded asset is the signed DMG (SHA-256)"
+  DL_DIR="$(mktemp -d)"
+  curl -fsSL -o "$DL_DIR/enclosure.dmg" "$ENCLOSURE_URL"
+  REMOTE_SHA="$(shasum -a 256 "$DL_DIR/enclosure.dmg" | cut -d ' ' -f1)"
+  LOCAL_SHA="$(shasum -a 256 "$LOCAL_DMG" | cut -d ' ' -f1)"
+  rm -rf "$DL_DIR"
+  if [ "$REMOTE_SHA" != "$LOCAL_SHA" ]; then
+    echo "✗ the uploaded asset differs from $LOCAL_DMG" >&2
+    echo "  remote $REMOTE_SHA" >&2
+    echo "  local  $LOCAL_SHA" >&2
     exit 1
   fi
   echo "→ Prepending v$VERSION (build $ITEM_BUILD) to appcast.xml"
@@ -174,6 +216,15 @@ fi
 if [ -n "$(git status --porcelain)" ]; then
   echo "✗ Working tree is not clean: commit or discard changes first." >&2
   git status --short >&2
+  exit 1
+fi
+git fetch -q origin main
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+  echo "✗ HEAD is not origin/main: pull (or push through a PR) first." >&2
+  exit 1
+fi
+if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+  echo "✗ Tag v$VERSION already exists: a released version is never rebuilt." >&2
   exit 1
 fi
 appcast_max_build >/dev/null
@@ -289,8 +340,8 @@ codesign --verify --strict --deep "$STAGING"
 # check both here rather than after a 5-minute round trip to Apple.
 SIGN_INFO="$(codesign -dvv "$STAGING" 2>&1)"
 case "$SIGN_INFO" in
-  *"flags=0x10000(runtime)"*) ;;
-  *) echo "✗ the app is not signed with Hardened Runtime (flags=0x10000(runtime))" >&2; exit 1 ;;
+  *" flags=0x"*"("*runtime*")"*) ;;
+  *) echo "✗ the app is not signed with Hardened Runtime (no 'runtime' in the CodeDirectory flags)" >&2; exit 1 ;;
 esac
 case "$SIGN_INFO" in
   *"Authority=Developer ID Application"*) ;;
