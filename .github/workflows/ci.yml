@@ -13,16 +13,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: macos-15
+  # Cheap checks that need no Mac: the appcast and project.yml must agree, and the
+  # release script must at least parse.
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+
+      - name: Release metadata (appcast vs project.yml, pinned packages)
+        run: python3 Scripts/check-release-metadata.py
+
+      - name: release.sh syntax
+        run: bash -n Scripts/release.sh
+
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      # Explicit toolchain: the runner's default Xcode can change under us.
+      XCODE_APP: /Applications/Xcode_16.4.app
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s "$XCODE_APP/Contents/Developer"
 
       - name: Show toolchain
         run: |
           ls -d /Applications/Xcode*.app
+          xcode-select -p
           xcodebuild -version
           swift --version
+
+      # No Package.resolved is committed (the xcodeproj is generated and the core
+      # package has no dependencies): MSAL and Sparkle are pinned by revision in
+      # project.yml, so key on that file and the core manifest.
+      - name: Cache SwiftPM
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        with:
+          path: |
+            Packages/AzurePimCore/.build
+            SourcePackages
+          key: spm-${{ runner.os }}-xcode16.4-${{ hashFiles('project.yml', 'Packages/AzurePimCore/Package.swift', '**/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-xcode16.4-
 
       - name: Install tools
         run: brew install xcodegen swiftlint
@@ -31,7 +66,7 @@ jobs:
         run: swiftlint --strict
 
       - name: Core tests
-        run: swift test --package-path Packages/AzurePimCore
+        run: swift test --parallel --package-path Packages/AzurePimCore
 
       - name: Generate project
         run: xcodegen generate
@@ -39,4 +74,24 @@ jobs:
       - name: Build app
         run: |
           xcodebuild -project AzurePim.xcodeproj -scheme AzurePim -configuration Debug \
-            -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
+            -destination 'platform=macOS' -clonedSourcePackagesDirPath SourcePackages \
+            CODE_SIGNING_ALLOWED=NO build
+
+      # Same build as Scripts/release.sh, without signing, notarization or DMG.
+      - name: Release dry-run build
+        run: |
+          xcodebuild -project AzurePim.xcodeproj -scheme AzurePim -configuration Release \
+            -destination 'generic/platform=macOS' -derivedDataPath build \
+            -clonedSourcePackagesDirPath SourcePackages \
+            CODE_SIGNING_ALLOWED=NO build
+          APP=build/Build/Products/Release/AzurePim.app
+          plist() { /usr/libexec/PlistBuddy -c "Print :$1" "$APP/Contents/Info.plist"; }
+          echo "Built $(plist CFBundleShortVersionString) ($(plist CFBundleVersion))"
+          test "$(plist SUFeedURL)" = "https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml"
+          test -n "$(plist SUPublicEDKey)"
+          ARCHS="$(lipo -archs "$APP/Contents/MacOS/AzurePim")"
+          echo "Architectures: $ARCHS"
+          case "$ARCHS" in
+            *x86_64*arm64*|*arm64*x86_64*) ;;
+            *) echo "::error::not a universal binary: $ARCHS"; exit 1 ;;
+          esac

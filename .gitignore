@@ -28,3 +28,11 @@ brag-output/
 # Local tool output (archify, graphify)
 .archify/
 graphify-out/
+
+# CI: SwiftPM checkouts (cached)
+SourcePackages/
+
+# Claude Code agent worktrees and local settings: they would dirty the
+# clean-tree check of Scripts/release.sh
+.claude/worktrees/
+.claude/settings.local.json
