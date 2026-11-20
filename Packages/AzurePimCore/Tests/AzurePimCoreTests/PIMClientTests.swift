@@ -208,13 +208,15 @@ struct AuthorizedClientTests {
     /// A 401 claims challenge means the request was not processed: retried once whatever the method.
     @Test func writeIsRetriedOnceWithClaimsChallenge() async throws {
         let claims = #"{"access_token":{"acrs":{"essential":true,"value":"c1"}}}"#
+        let encoded = Data(claims.utf8).base64EncodedString()
         let transport = FakeTransport([
-            .init(status: 401, json: nil, headers: ["WWW-Authenticate": #"Bearer error="insufficient_claims", claims="\#(claims)""#]),
+            .init(status: 401, json: nil, headers: ["WWW-Authenticate": #"Bearer error="insufficient_claims", claims="\#(encoded)""#]),
             .init(status: 201, json: ["ok": true])
         ])
-        let result = try await client(transport).json("POST", URL(string: "https://x.test")!, body: ["a": 1])
+        let recorder = ClaimsRecorder()
+        let result = try await client(transport, recorder: recorder).json("POST", URL(string: "https://x.test")!, body: ["a": 1])
         #expect(result["ok"] as? Bool == true)
-        #expect(transport.requests.count == 2)
+        #expect(recorder.seen == [nil, claims])
     }
 
     @Test func mapsARMErrorMessage() async {

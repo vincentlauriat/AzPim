@@ -88,6 +88,26 @@ struct ModelTests {
         #expect(try context.fetchCount(FetchDescriptor<EligibleRole>()) == 0)
     }
 
+    /// Same predicate as the panel's Pending badge: waiting for approval, or sent with a request id.
+    @Test func waitingRequestPredicate() throws {
+        let account = Account(mode: .azureCLI, upn: "a@x.com", objectId: "o1", tenantId: "t1")
+        context.insert(account)
+        // "c" was sent but never got a request id (app quit mid-flight): not waiting.
+        let rows: [(String, RequestStatus)] = [("a", .pendingApproval), ("b", .sent), ("c", .sent), ("d", .failed)]
+        for (role, status) in rows {
+            let record = ActivationRecord(account: account, eligibleRoleId: role, roleName: role, scopeName: "s",
+                                          source: .azureResource, action: .activate)
+            record.status = status
+            record.remoteRequestId = role == "c" ? nil : "req-\(role)"
+            context.insert(record)
+        }
+        try context.save()
+        let waiting = try context.fetch(FetchDescriptor<ActivationRecord>(predicate: #Predicate {
+            $0.statusRaw == "pendingApproval" || ($0.statusRaw == "sent" && $0.remoteRequestId != nil)
+        }))
+        #expect(Set(waiting.map(\.eligibleRoleId)) == ["a", "b"])
+    }
+
     /// A cached activation past its end date must not count as active (panel, favorites, Extend).
     @Test func expiredActivationIsNotLive() {
         let account = Account(mode: .azureCLI, upn: "a@x.com", objectId: "o1", tenantId: "t1")

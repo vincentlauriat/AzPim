@@ -104,6 +104,11 @@ extension RoleStore {
                 results.append(.init(roleName: role.roleName, status: .provisioned))
                 continue
             }
+            // A request still waiting (approval, or sent and not confirmed) is not submitted a second time.
+            if let waiting = role.account?.records.first(where: { $0.eligibleRoleId == role.id && Self.needsPolling($0) }) {
+                results.append(.init(roleName: role.roleName, status: waiting.status))
+                continue
+            }
             await ensurePolicy(for: role)
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
             case .failure(let failure):
