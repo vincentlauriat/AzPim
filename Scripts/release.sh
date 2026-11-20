@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build a universal Release AzurePim.app, sign it with Developer ID and Hardened
 # Runtime, package it as a DMG, notarize and staple it, then sign it for Sparkle
-# and write appcast.xml.
+# and prepare its appcast.xml item.
 #
 # +--------------------------------------------------------------------------+
 # | SPARKLE SIGNING KEY: DO NOT REGENERATE                                     |
@@ -15,11 +15,19 @@
 # | `generate_keys -x <absolute path outside this repo> --account AzurePim`.   |
 # +--------------------------------------------------------------------------+
 #
-# Usage: ./Scripts/release.sh <version>      e.g. ./Scripts/release.sh 0.9.0
-# Bump MARKETING_VERSION and CURRENT_PROJECT_VERSION in project.yml first.
+# Usage:
+#   ./Scripts/release.sh <version>                    e.g. ./Scripts/release.sh 0.9.3
+#   ./Scripts/release.sh --publish-appcast <version>  after `gh release create`
 #
-# Outputs release/AzurePim-<version>.dmg and appcast.xml.
-# Does NOT publish: prints the `gh release create` command to run next.
+# Before a build run: bump MARKETING_VERSION and CURRENT_PROJECT_VERSION in
+# project.yml, write release/release-notes-<version>.md, commit, and run from a
+# clean `main`.
+#
+# The build run outputs release/AzurePim-<version>.dmg and the signed appcast item
+# release/appcast-item-<version>.xml. It does NOT publish and does NOT touch
+# appcast.xml: Sparkle must never be offered an enclosure that does not exist yet.
+# --publish-appcast checks that the uploaded DMG answers (curl -fsIL), then prepends
+# the item to appcast.xml; older items are always kept.
 
 set -euo pipefail
 
@@ -37,9 +45,138 @@ notary_run() {
   fi
 }
 
-VERSION="${1:?Usage: ./Scripts/release.sh <version>  (e.g. ./Scripts/release.sh 0.3.0)}"
+USAGE="Usage: ./Scripts/release.sh [--publish-appcast] <version>  (e.g. ./Scripts/release.sh 0.9.3)"
+MODE=build
+if [ "${1:-}" = "--publish-appcast" ]; then
+  MODE=publish
+  shift
+fi
+VERSION="${1:?$USAGE}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+APPCAST="$ROOT/appcast.xml"
+RELEASE_DIR="$ROOT/release"
+NOTES="$RELEASE_DIR/release-notes-$VERSION.md"
+ITEM_FILE="$RELEASE_DIR/appcast-item-$VERSION.xml"
+ENCLOSURE_URL="https://github.com/vincentlauriat/AzurePim/releases/download/v$VERSION/AzurePim-$VERSION.dmg"
+
+# Highest sparkle:version across every item of appcast.xml (0 when there is none).
+# Fails if the feed is not well-formed XML or a build number is not an integer.
+appcast_max_build() {
+  python3 - "$APPCAST" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+ns = "{http://www.andymatuschak.org/xml-namespaces/sparkle}"
+try:
+    channel = ET.parse(sys.argv[1]).getroot().find("channel")
+    builds = [int(i.findtext(ns + "version") or "") for i in channel.findall("item")]
+except (ET.ParseError, AttributeError, ValueError) as exc:
+    sys.exit(f"✗ cannot read build numbers from {sys.argv[1]}: {exc}")
+print(max(builds, default=0))
+PY
+}
+
+# sparkle:version of the item fragment written by the build run. The fragment
+# has no namespace declaration of its own: parse it inside a wrapper that has one.
+item_build() {
+  python3 - "$ITEM_FILE" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+ns = "http://www.andymatuschak.org/xml-namespaces/sparkle"
+with open(sys.argv[1], encoding="utf-8") as f:
+    fragment = f.read()
+try:
+    root = ET.fromstring(f'<channel xmlns:sparkle="{ns}">{fragment}</channel>')
+except ET.ParseError as exc:
+    sys.exit(f"✗ {sys.argv[1]} is not a well-formed appcast item: {exc}")
+items = root.findall("item")
+if len(items) != 1:
+    sys.exit(f"✗ {sys.argv[1]} must hold exactly one <item>")
+print(items[0].findtext("{%s}version" % ns) or "")
+PY
+}
+
+# Refuse a build number that is not strictly greater than every build in the feed:
+# Sparkle would ignore the update, or two different DMGs would share one number.
+require_new_build() {
+  local build="$1" newest
+  newest="$(appcast_max_build)"
+  case "$build" in
+    ''|*[!0-9]*) echo "✗ build number '$build' is not an integer" >&2; exit 1 ;;
+  esac
+  if [ "$build" -le "$newest" ]; then
+    echo "✗ build number $build is not greater than the newest in appcast.xml ($newest)." >&2
+    echo "  Bump CURRENT_PROJECT_VERSION in project.yml; never reuse a build number." >&2
+    exit 1
+  fi
+}
+
+if [ "$MODE" = publish ]; then
+  # 8. Publish the appcast item, only once the DMG it points at is downloadable.
+  [ -f "$ITEM_FILE" ] || { echo "✗ $ITEM_FILE not found: run ./Scripts/release.sh $VERSION first" >&2; exit 1; }
+  ITEM_BUILD="$(item_build)"
+  require_new_build "$ITEM_BUILD"
+  echo "→ Checking the enclosure is downloadable: $ENCLOSURE_URL"
+  # -L: GitHub answers 302 to its object storage; check the asset itself.
+  if ! curl -fsIL -o /dev/null "$ENCLOSURE_URL"; then
+    echo "✗ $ENCLOSURE_URL does not answer. Upload the DMG first:" >&2
+    echo "  gh release create v$VERSION ./release/AzurePim-$VERSION.dmg --title \"v$VERSION\" --notes-file release/release-notes-$VERSION.md" >&2
+    exit 1
+  fi
+  echo "→ Prepending v$VERSION (build $ITEM_BUILD) to appcast.xml"
+  python3 - "$APPCAST" "$ITEM_FILE" "$ITEM_BUILD" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+feed_path, item_path, build = sys.argv[1], sys.argv[2], int(sys.argv[3])
+ns = "{http://www.andymatuschak.org/xml-namespaces/sparkle}"
+with open(feed_path, encoding="utf-8") as f:
+    feed = f.read()
+with open(item_path, encoding="utf-8") as f:
+    item = f.read().strip()
+before = len(ET.fromstring(feed).find("channel").findall("item"))
+# Text insertion keeps the existing items byte for byte; the result is re-parsed below.
+anchor = feed.find("<item>")
+if anchor != -1:
+    new_feed = feed[:anchor] + item + "\n    " + feed[anchor:]
+else:
+    anchor = feed.find("</channel>")
+    if anchor == -1:
+        sys.exit("✗ appcast.xml has no </channel>")
+    new_feed = feed[:anchor] + "  " + item + "\n  " + feed[anchor:]
+items = ET.fromstring(new_feed).find("channel").findall("item")
+first = int(items[0].findtext(ns + "version"))
+newest = max(int(i.findtext(ns + "version")) for i in items)
+if len(items) != before + 1 or first != build or newest != build:
+    sys.exit("✗ prepending the item did not give the expected feed; appcast.xml left unchanged")
+with open(feed_path, "w", encoding="utf-8") as f:
+    f.write(new_feed)
+print(f"  appcast.xml: {len(items)} item(s), newest build {newest}")
+PY
+  echo ""
+  echo "✅ appcast.xml updated for v$VERSION. Publish it through a PR (never push to main):"
+  echo "  git switch -c chore/appcast-$VERSION && git add appcast.xml"
+  echo "  git commit -m 'chore: publish appcast for v$VERSION' && git push -u origin chore/appcast-$VERSION"
+  echo "  gh pr create --fill   # squash-merge once CI is green"
+  exit 0
+fi
+
+# 0. Preflight, before anything slow: release notes, branch, clean tree.
+if [ ! -s "$NOTES" ]; then
+  echo "✗ Release notes $NOTES are missing or empty. Write them first." >&2
+  exit 1
+fi
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$BRANCH" != "main" ]; then
+  echo "✗ Releases are built from main (current branch: $BRANCH)." >&2
+  exit 1
+fi
+if [ -n "$(git status --porcelain)" ]; then
+  echo "✗ Working tree is not clean: commit or discard changes first." >&2
+  git status --short >&2
+  exit 1
+fi
+appcast_max_build >/dev/null
 
 # 1. Sanity check: project.yml must declare the same MARKETING_VERSION
 if ! grep -q "MARKETING_VERSION: \"$VERSION\"" project.yml; then
@@ -87,6 +224,15 @@ case "$BUILT_ARCHS" in
   *x86_64*arm64*|*arm64*x86_64*) ;;
   *) echo "✗ not a universal binary: $BUILT_ARCHS" >&2; exit 1 ;;
 esac
+
+# Sparkle compares <sparkle:version> against the running app's CFBundleVersion
+# (a monotonically increasing build number), NOT against the marketing version.
+# If we put "0.7.0" here while the installed app reports CFBundleVersion="1",
+# Sparkle's standard comparator sees [0,7,0] < [1] and concludes "up to date".
+# Read the actual CFBundleVersion baked into the .app, and check it before the
+# slow signing and notarization steps.
+BUILD_NUMBER="$(plist_value CFBundleVersion)"
+require_new_build "$BUILD_NUMBER"
 
 # 5. Stage to a clean directory, Developer ID sign with Hardened Runtime, package.
 # Direct in-place codesign fails because Xcode's post-build `lsregister`
@@ -139,8 +285,18 @@ done
 echo "→ Codesigning the app itself with Developer ID + Hardened Runtime"
 codesign_ts "$STAGING" --entitlements "$ROOT/AzurePim/AzurePim.entitlements"
 codesign --verify --strict --deep "$STAGING"
+# Notarization rejects an app without Hardened Runtime or a Developer ID signature;
+# check both here rather than after a 5-minute round trip to Apple.
+SIGN_INFO="$(codesign -dvv "$STAGING" 2>&1)"
+case "$SIGN_INFO" in
+  *"flags=0x10000(runtime)"*) ;;
+  *) echo "✗ the app is not signed with Hardened Runtime (flags=0x10000(runtime))" >&2; exit 1 ;;
+esac
+case "$SIGN_INFO" in
+  *"Authority=Developer ID Application"*) ;;
+  *) echo "✗ the app is not signed with a Developer ID Application certificate" >&2; exit 1 ;;
+esac
 
-RELEASE_DIR="$ROOT/release"
 mkdir -p "$RELEASE_DIR"
 DMG="$RELEASE_DIR/AzurePim-$VERSION.dmg"
 rm -f "$DMG"
@@ -241,6 +397,13 @@ echo "→ Stapling notarization ticket to the DMG"
 xcrun stapler staple "$DMG"
 xcrun stapler validate "$DMG"
 
+# Gatekeeper's verdict on the app exactly as users get it: inside the stapled DMG.
+GK_MOUNT="$(hdiutil attach -nobrowse -readonly -noverify -noautoopen "$DMG" | awk -F '\t' 'END {print $NF}')"
+GK_OK=1
+spctl -a -t exec -vv "$GK_MOUNT/AzurePim.app" || GK_OK=0
+detach_retry "$GK_MOUNT"
+[ "$GK_OK" = 1 ] || { echo "✗ Gatekeeper rejects the app inside $DMG" >&2; exit 1; }
+
 # 7. Sign the DMG with the Sparkle EdDSA key and generate / refresh
 # `appcast.xml` so the in-app updater (Sparkle 2) can serve this version.
 # Keep in step with the Sparkle.framework version pinned in project.yml.
@@ -282,24 +445,12 @@ echo "→ Signing $DMG with Sparkle EdDSA key"
 # (so we don't add `length=` ourselves on the <enclosure> — that would duplicate).
 SPARKLE_SIG_LINE=$("$SPARKLE_TOOLS/bin/sign_update" --account "AzurePim" "$DMG")
 
-# Sparkle compares <sparkle:version> against the running app's CFBundleVersion
-# (a monotonically increasing build number), NOT against the marketing version.
-# If we put "0.7.0" here while the installed app reports CFBundleVersion="1",
-# Sparkle's standard comparator sees [0,7,0] < [1] and concludes "up to date".
-# Read the actual CFBundleVersion baked into the .app and use that.
-BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Contents/Info.plist")
-
-echo "→ Writing $ROOT/appcast.xml (sparkle:version=$BUILD_NUMBER, shortVersionString=$VERSION)"
+# Written as a fragment, not into appcast.xml: `--publish-appcast` prepends it
+# once the enclosure is downloadable, keeping every older item.
+echo "→ Writing $ITEM_FILE (sparkle:version=$BUILD_NUMBER, shortVersionString=$VERSION)"
 PUB_DATE=$(LC_ALL=C date -R)
-cat > "$ROOT/appcast.xml" <<APPCAST
-<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-  <channel>
-    <title>AzurePim</title>
-    <link>https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml</link>
-    <description>AzurePim release feed</description>
-    <language>en</language>
-    <item>
+cat > "$ITEM_FILE" <<APPCAST
+<item>
       <title>v$VERSION</title>
       <pubDate>$PUB_DATE</pubDate>
       <sparkle:version>$BUILD_NUMBER</sparkle:version>
@@ -307,21 +458,21 @@ cat > "$ROOT/appcast.xml" <<APPCAST
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <sparkle:releaseNotesLink>https://github.com/vincentlauriat/AzurePim/releases/tag/v$VERSION</sparkle:releaseNotesLink>
       <enclosure
-        url="https://github.com/vincentlauriat/AzurePim/releases/download/v$VERSION/AzurePim-$VERSION.dmg"
+        url="$ENCLOSURE_URL"
         type="application/octet-stream"
         $SPARKLE_SIG_LINE />
     </item>
-  </channel>
-</rss>
 APPCAST
+[ "$(item_build)" = "$BUILD_NUMBER" ] || { echo "✗ $ITEM_FILE does not carry build $BUILD_NUMBER" >&2; exit 1; }
 
 DMG_SIZE=$(ls -lh "$DMG" | awk '{print $5}')
 echo ""
 echo "✅ Built, signed, notarized, stapled and Sparkle-signed: $DMG ($DMG_SIZE)"
-echo "✅ appcast.xml written for v$VERSION"
+echo "✅ Appcast item written to $ITEM_FILE (appcast.xml not modified yet)"
 echo ""
-echo "Next steps to publish on GitHub:"
+echo "Next steps to publish:"
 echo "  1. gh release create v$VERSION ./release/AzurePim-$VERSION.dmg --title \"v$VERSION\" --notes-file release/release-notes-$VERSION.md"
-echo "  2. git add appcast.xml && git commit -m 'docs: appcast for v$VERSION' && git push"
+echo "  2. ./Scripts/release.sh --publish-appcast $VERSION   # checks the DMG URL, prepends the item"
+echo "  3. Commit appcast.xml on a branch and merge it through a PR (step 2 prints the commands)."
 echo ""
-echo "After both, Sparkle clients on older versions will be offered the update on next check."
+echo "After step 3, Sparkle clients on older versions will be offered the update on next check."
