@@ -6,7 +6,10 @@
   sparkle:version <= CURRENT_PROJECT_VERSION and
   sparkle:shortVersionString <= MARKETING_VERSION;
 - build numbers in the appcast are unique (a build number is never reused);
-- MSAL and Sparkle are pinned by `revision:` in project.yml.
+- MSAL and Sparkle are pinned by `revision:` in project.yml;
+- every AzPim item (sparkle:version >= FIRST_AZPIM_BUILD) is informational below FIRST_AZPIM_BUILD and has a
+  <link>: GitHub serves this feed to AzurePim 0.9.x too (builds <= 5, other bundle id), which must be sent
+  to the web page, never offered the AzPim DMG.
 
 Usage: Scripts/check-release-metadata.py [repo root]
 """
@@ -16,6 +19,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 SPARKLE_NS = "{http://www.andymatuschak.org/xml-namespaces/sparkle}"
+FIRST_AZPIM_BUILD = 6  # keep in sync with Scripts/release.sh
 ROOT = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent)
 errors = []
 
@@ -70,6 +74,17 @@ for item in items:
         entries.append((int(v), version_tuple(s), v, s))
     except (TypeError, ValueError):
         errors.append(f"appcast.xml: item has bad sparkle:version {v!r} / shortVersionString {s!r}")
+
+for item in items:
+    v = item.findtext(f"{SPARKLE_NS}version") or ""
+    if not v.isdigit() or int(v) < FIRST_AZPIM_BUILD:
+        continue  # historical AzurePim items stay as published
+    below = item.findtext(f"{SPARKLE_NS}informationalUpdate/{SPARKLE_NS}belowVersion")
+    if below != str(FIRST_AZPIM_BUILD):
+        errors.append(f"appcast.xml: item build {v} must be informational below {FIRST_AZPIM_BUILD} "
+                      f"(sparkle:informationalUpdate/belowVersion is {below!r})")
+    if not (item.findtext("link") or "").startswith("https://"):
+        errors.append(f"appcast.xml: item build {v} has no <link> for the informational update")
 
 builds = [e[0] for e in entries]
 if len(builds) != len(set(builds)):

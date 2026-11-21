@@ -11,16 +11,35 @@ struct AzPimApp: App {
     @State private var store: RoleStore
 
     init() {
-        let migrated: Bool
+        let migrating = AzPimStore.needsLegacyMigration()
+        // A store being written by AzurePim could be copied half-way: ask to quit it first.
+        if migrating, !NSRunningApplication.runningApplications(withBundleIdentifier: PreferenceKeys.legacyDomain).isEmpty {
+            Self.stop("Quit AzurePim, then open AzPim again.",
+                      info: "AzPim copies AzurePim's favorites and history once, on its first launch, "
+                        + "and cannot do it while AzurePim is running.", code: 0)
+        }
         do {
             // 0.9.x shipped as AzurePim: copy its store once, so favorites and history survive the rename.
-            migrated = try AzPimStore.migrateLegacyStore()
+            try AzPimStore.migrateLegacyStore()
+        } catch {
+            Self.stop("AzPim could not copy AzurePim's data.",
+                      info: "From \(AzPimStore.legacyURL.path) to \(AzPimStore.defaultURL.path): \(error)\n"
+                        + "AzurePim's data was not changed.")
+        }
+        do {
             container = try AzPimStore.makeContainer()
         } catch {
+            if migrating {
+                // Do not keep a copy that cannot open: remove it (only the AzPim files); the next launch retries.
+                AzPimStore.storeFiles(AzPimStore.defaultURL).forEach { try? FileManager.default.removeItem(at: $0) }
+                Self.stop("AzPim could not open the data copied from AzurePim.",
+                          info: "The copy at \(AzPimStore.defaultURL.path) was removed; AzurePim's data at "
+                            + "\(AzPimStore.legacyURL.path) was not changed.\n\(error)")
+            }
             // The local store is required; failing silently to memory would lose favorites and history.
             fatalError("AzPim could not open its local store at \(AzPimStore.defaultURL.path): \(error)")
         }
-        if migrated { Self.adoptLegacySetup(context: container.mainContext) }
+        Self.adoptLegacySetup(context: container.mainContext)
         let accountService = AccountService(context: container.mainContext)
         _accounts = State(initialValue: accountService)
         let notifications = NotificationScheduler()
@@ -40,20 +59,49 @@ struct AzPimApp: App {
         #endif
     }
 
-    /// First launch after the AzurePim → AzPim rename (the store was just copied): carries over the app's own
-    /// preferences (so "links may activate favorites" stays off for whoever turned it off) and, when the user had
-    /// launch at login, registers AzPim itself, since onboarding will not run again.
+    /// Shows a launch error and quits: used before any window exists, so it cannot be a sheet.
+    private static func stop(_ message: String, info: String, code: Int32 = 1) -> Never {
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.alertStyle = code == 0 ? .informational : .critical
+        alert.messageText = message
+        alert.informativeText = info
+        alert.addButton(withTitle: "Quit")
+        alert.runModal()
+        exit(code)
+    }
+
+    /// Once, after the AzurePim -> AzPim rename: carries over the app's own preferences (so "links may activate
+    /// favorites" stays off for whoever turned it off) and, when the user had launch at login, registers AzPim
+    /// itself, since onboarding will not run again. Runs while AzurePim's data exists and the marker is not set;
+    /// safe to retry, `copyLegacy` never overwrites.
     private static func adoptLegacySetup(context: ModelContext) {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: PreferenceKeys.legacyAdopted),
+              defaults.persistentDomain(forName: PreferenceKeys.legacyDomain) != nil
+                || FileManager.default.fileExists(atPath: AzPimStore.legacyURL.path) else { return }
         if let domain = Bundle.main.bundleIdentifier {
-            PreferenceKeys.copyLegacy(into: .standard, domain: domain)
+            PreferenceKeys.copyLegacy(into: defaults, domain: domain)
         }
-        guard let settings = try? AzPimStore.settings(in: context),
-              settings.onboardingCompleted, settings.launchAtLogin else { return }
-        // Unsigned debug builds cannot register; the status below then records it as off.
-        try? SMAppService.mainApp.register()
-        // What macOS actually registered, not what was asked (as in onboarding).
-        settings.launchAtLogin = SMAppService.mainApp.status == .enabled
-        try? context.save()
+        if let settings = try? AzPimStore.settings(in: context), settings.onboardingCompleted, settings.launchAtLogin {
+            // Unsigned debug builds cannot register; the status below then records it as off.
+            try? SMAppService.mainApp.register()
+            // What macOS actually registered, not what was asked (as in onboarding).
+            settings.launchAtLogin = SMAppService.mainApp.status == .enabled
+            guard (try? context.save()) != nil else { return }
+        }
+        defaults.set(true, forKey: PreferenceKeys.legacyAdopted)
+        if NSWorkspace.shared.urlForApplication(withBundleIdentifier: PreferenceKeys.legacyDomain) != nil {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                NSApp.activate(ignoringOtherApps: true)
+                let alert = NSAlert()
+                alert.messageText = "AzurePim is still installed."
+                alert.informativeText = "AzPim replaces it and has copied its data. Remove AzurePim from "
+                    + "Applications and its entry from System Settings › General › Login Items."
+                alert.runModal()
+            }
+        }
     }
 
     var body: some Scene {

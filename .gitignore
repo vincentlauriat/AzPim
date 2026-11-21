@@ -20,6 +20,10 @@ AzPim.xcodeproj/
 Packages/AzPimCore/.build/
 .swiftpm/
 Config/AzPim.local.xcconfig
+# Pre-rename paths still present in existing checkouts (AzurePim -> AzPim). Remove after 0.9.4.
+AzurePim.xcodeproj/
+Packages/AzurePimCore/.build/
+Config/AzurePim.local.xcconfig
 
 # Contains a named admin and tenant id: kept local (security review L8)
 docs/admin-consent/email-voltalia-admin.md

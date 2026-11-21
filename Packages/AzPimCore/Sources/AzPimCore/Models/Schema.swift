@@ -1,4 +1,5 @@
 import Foundation
+import SQLite3
 import SwiftData
 
 /// Versioned schema (BackendSchema › Migrations). Add `AzPimSchemaV2` + a migration stage for changes.
@@ -28,36 +29,59 @@ public enum AzPimStore {
             .appending(path: "AzurePim.store")
     }
 
-    /// One-time copy of the AzurePim store (and its `-wal` / `-shm` sidecars) to the AzPim location, before the
-    /// container opens. Copies, never moves or deletes: the old app and its data stay as they were. No-op when the
-    /// new store already exists or there is no old one. Returns true when it copied.
+    /// True when the AzurePim store exists and the AzPim one does not yet: the next launch copies it.
+    public static func needsLegacyMigration(from old: URL = legacyURL, to new: URL = defaultURL) -> Bool {
+        let files = FileManager.default
+        return !files.fileExists(atPath: new.path) && files.fileExists(atPath: old.path)
+    }
+
+    /// The files SQLite keeps for a store: the database, its write-ahead log and its shared-memory index.
+    public static func storeFiles(_ store: URL) -> [URL] {
+        ["", "-wal", "-shm"].map { store.deletingLastPathComponent().appending(path: store.lastPathComponent + $0) }
+    }
+
+    /// One-time copy of the AzurePim store to the AzPim location, before the container opens. A consistent snapshot
+    /// through SQLite `VACUUM INTO` (the write-ahead log included), written to a temporary name then renamed, so
+    /// the new store only exists once complete. Never moves, deletes or writes the old store. No-op when the new
+    /// store already exists or there is no old one. Returns true when it copied.
     @discardableResult
     public static func migrateLegacyStore(from old: URL = legacyURL, to new: URL = defaultURL) throws -> Bool {
+        guard needsLegacyMigration(from: old, to: new) else { return false }
         let files = FileManager.default
-        guard !files.fileExists(atPath: new.path), files.fileExists(atPath: old.path) else { return false }
         try files.createDirectory(at: new.deletingLastPathComponent(), withIntermediateDirectories: true,
                                   attributes: [.posixPermissions: 0o700])
-        func sibling(_ store: URL, _ suffix: String) -> URL {
-            store.deletingLastPathComponent().appending(path: store.lastPathComponent + suffix)
-        }
-        var copied: [URL] = []
+        let partial = new.deletingLastPathComponent().appending(path: new.lastPathComponent + ".migrating")
+        let removePartial = { storeFiles(partial).forEach { try? files.removeItem(at: $0) } }
+        removePartial()
         do {
-            // Sidecars first, the store last: the new store file is the "already migrated" marker.
-            for suffix in ["-wal", "-shm", ""] {
-                let source = sibling(old, suffix)
-                guard files.fileExists(atPath: source.path) else { continue }
-                let target = sibling(new, suffix)
-                // A sidecar without its store is a leftover, never live data.
-                if files.fileExists(atPath: target.path) { try files.removeItem(at: target) }
-                try files.copyItem(at: source, to: target)
-                copied.append(target)
-            }
+            try snapshot(old, to: partial)
+            try files.moveItem(at: partial, to: new)
         } catch {
-            // Leave no half-copied store behind: the next launch tries again.
-            copied.forEach { try? files.removeItem(at: $0) }
+            removePartial()
             throw error
         }
+        removePartial()
         return true
+    }
+
+    /// Copies the committed state of the SQLite database at `source`, write-ahead log included, into a new
+    /// self-contained database at `target` (`VACUUM INTO`). The source is opened read-only: no checkpoint, no write.
+    static func snapshot(_ source: URL, to target: URL) throws {
+        var db: OpaquePointer?
+        defer { sqlite3_close(db) }
+        guard sqlite3_open_v2(source.path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+            throw StoreMigrationError(step: "open \(source.path)", handle: db)
+        }
+        // Waits out a short lock (a checkpoint by another reader) instead of failing at once.
+        sqlite3_busy_timeout(db, 5000)
+        var statement: OpaquePointer?
+        defer { sqlite3_finalize(statement) }
+        guard sqlite3_prepare_v2(db, "VACUUM INTO ?", -1, &statement, nil) == SQLITE_OK,
+              sqlite3_bind_text(statement, 1, target.path, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                == SQLITE_OK,
+              sqlite3_step(statement) == SQLITE_DONE else {
+            throw StoreMigrationError(step: "copy \(source.path)", handle: db)
+        }
     }
 
     public static func makeContainer(inMemory: Bool = false, url: URL = defaultURL) throws -> ModelContainer {
@@ -84,5 +108,15 @@ public enum AzPimStore {
         context.insert(settings)
         try context.save()
         return settings
+    }
+}
+
+/// The AzurePim store could not be copied; the message names the step and SQLite's reason.
+public struct StoreMigrationError: Error, CustomStringConvertible {
+    public let description: String
+
+    init(step: String, handle: OpaquePointer?) {
+        let reason = handle.flatMap { sqlite3_errmsg($0) }.map { String(cString: $0) } ?? "unknown error"
+        description = "Could not \(step): \(reason)"
     }
 }

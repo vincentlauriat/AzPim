@@ -12,7 +12,11 @@ public enum PreferenceKeys {
                                        panelShowFavorites, panelShowEligible]
 
     /// Defaults domain of the 0.9.x releases, shipped as AzurePim (non-sandboxed: ~/Library/Preferences/<domain>.plist).
+    /// It is also AzurePim's bundle id.
     public static let legacyDomain = "fr.vincentlauriat.azurepim"
+
+    /// Set once the AzurePim setup (preferences, login item) was carried over. Not a legacy key: never copied.
+    public static let legacyAdopted = "legacy.adopted"
 
     /// The app's keys set in `old` and not yet set in `current`. Sparkle `SU*`, AppKit `NS*` window state and any
     /// other key stay behind.

@@ -61,6 +61,11 @@ RELEASE_DIR="$ROOT/release"
 NOTES="$RELEASE_DIR/release-notes-$VERSION.md"
 ITEM_FILE="$RELEASE_DIR/appcast-item-$VERSION.xml"
 ENCLOSURE_URL="https://github.com/vincentlauriat/AzPim/releases/download/v$VERSION/AzPim-$VERSION.dmg"
+RELEASE_PAGE="https://github.com/vincentlauriat/AzPim/releases/tag/v$VERSION"
+# First build shipped as AzPim (bundle id fr.vincentlauriat.azpim). GitHub serves this feed to AzurePim 0.9.x
+# too (old repository URL, builds <= 5, other bundle id): every new item is informational below this build, so
+# AzurePim is told to download AzPim from the web instead of installing a different app over itself.
+FIRST_AZPIM_BUILD=6
 
 # Highest sparkle:version across every item of appcast.xml (0 when there is none).
 # Fails if the feed is not well-formed XML or a build number is not an integer.
@@ -507,11 +512,13 @@ PUB_DATE=$(LC_ALL=C date -R)
 cat > "$ITEM_FILE" <<APPCAST
 <item>
       <title>v$VERSION</title>
+      <link>$RELEASE_PAGE</link>
       <pubDate>$PUB_DATE</pubDate>
       <sparkle:version>$BUILD_NUMBER</sparkle:version>
       <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://github.com/vincentlauriat/AzPim/releases/tag/v$VERSION</sparkle:releaseNotesLink>
+      <sparkle:informationalUpdate><sparkle:belowVersion>$FIRST_AZPIM_BUILD</sparkle:belowVersion></sparkle:informationalUpdate>
+      <sparkle:releaseNotesLink>$RELEASE_PAGE</sparkle:releaseNotesLink>
       <enclosure
         url="$ENCLOSURE_URL"
         type="application/octet-stream"

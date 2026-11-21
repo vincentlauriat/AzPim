@@ -181,9 +181,15 @@ Business rules: deactivation disabled within 5 minutes of activation (Azure rule
 - Seed: one `AppSettings` row with defaults on first launch; nothing else.
 - Schema changes via SwiftData `VersionedSchema` + `SchemaMigrationPlan`; caches (EligibleRole, ActiveAssignment) may simply be dropped and re-fetched on migration.
 - Rename to AzPim (0.9.4): the store moved from `~/Library/Application Support/AzurePim/AzurePim.store` to
-  `~/Library/Application Support/AzPim/AzPim.store`. At launch, before the container opens,
-  `AzPimStore.migrateLegacyStore()` copies the old store and its `-wal` / `-shm` files once, only when the new store
-  does not exist yet. It never moves or deletes the old folder. After that copy, the app also copies its own
-  preference keys (`PreferenceKeys.all`, never Sparkle `SU*` or AppKit `NS*` keys) from the
-  `fr.vincentlauriat.azurepim` defaults domain when not set yet, and registers the login item when the copied
-  `AppSettings.launchAtLogin` is true, saving the status macOS reports.
+  `~/Library/Application Support/AzPim/AzPim.store`. At launch, before the container opens, and only when the new
+  store does not exist yet:
+  - if AzurePim is running, AzPim asks to quit it and exits without copying;
+  - `AzPimStore.migrateLegacyStore()` takes a consistent snapshot of the old store with SQLite `VACUUM INTO` (old
+    store opened read-only, write-ahead log included) into `AzPim.store.migrating`, then renames it. It never
+    moves, deletes or writes the old store;
+  - if the copy then fails to open, only the AzPim store files are removed and an error names the path (the next
+    launch retries).
+- Then, until the `legacy.adopted` defaults marker is set and while AzurePim's store or defaults exist, the app
+  copies its own preference keys (`PreferenceKeys.all`, never Sparkle `SU*` or AppKit `NS*` keys) from the
+  `fr.vincentlauriat.azurepim` domain when not set yet, registers the login item when `AppSettings.launchAtLogin`
+  is true (saving the status macOS reports), sets the marker, and reminds once to remove AzurePim if installed.
