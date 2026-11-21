@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import AzPimCore
 
@@ -50,6 +51,22 @@ struct StoreMigrationTests {
         #expect((folder[.posixPermissions] as? NSNumber)?.intValue == 0o700)
         // Second launch: nothing to do.
         #expect(try AzPimStore.migrateLegacyStore(from: old, to: new) == false)
+    }
+
+    /// The renamed copy must still open as a SwiftData store, with its rows.
+    @MainActor @Test func copiedStoreOpensWithItsRows() throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        do {
+            let legacy = try AzPimStore.makeContainer(url: old)
+            let settings = try AzPimStore.settings(in: legacy.mainContext)
+            settings.historyRetentionDays = 30
+            try legacy.mainContext.save()
+        }
+        #expect(try AzPimStore.migrateLegacyStore(from: old, to: new))
+        let migrated = try AzPimStore.makeContainer(url: new)
+        let rows = try migrated.mainContext.fetch(FetchDescriptor<AppSettings>())
+        #expect(rows.count == 1)
+        #expect(rows.first?.historyRetentionDays == 30)
     }
 
     @Test func copiesAStoreWithoutSidecars() throws {
