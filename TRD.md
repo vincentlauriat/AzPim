@@ -1,4 +1,4 @@
-# AzurePim — Technical Requirements Document
+# AzPim — Technical Requirements Document
 
 ## Platforms
 
@@ -18,13 +18,13 @@
 
 - **No backend.** The app talks directly to Microsoft APIs (Azure Resource Manager and Microsoft Graph).
 - Local storage only:
-  - **SwiftData** store in `~/Library/Application Support/AzurePim/` for accounts metadata, favorites, history, cached roles.
+  - **SwiftData** store in `~/Library/Application Support/AzPim/` for accounts metadata, favorites, history, cached roles.
   - **Keychain** for MSAL token cache (handled by MSAL) — no secret is ever written to SwiftData or UserDefaults.
   - `UserDefaults` for UI preferences only.
 
 ## Authentication and roles
 
-No AzurePim account. The user signs in to Microsoft with one of two providers, behind a `TokenProvider` protocol
+No AzPim account. The user signs in to Microsoft with one of two providers, behind a `TokenProvider` protocol
 (`func token(for resource: Resource, account: Account, claims: String?) async throws -> AccessToken`):
 
 | Provider | How | Covers | Consent needed |
@@ -52,7 +52,7 @@ Directory scopes are requested **incrementally**, only when the user opens the E
 user consent alone.
 
 App registration: multi-tenant (`AzureADMultipleOrgs`), public client, redirect URI
-`msauth.fr.vincentlauriat.azurepim://auth` *(assumption: bundle id `fr.vincentlauriat.azurepim`)*, publisher
+`msauth.fr.vincentlauriat.azpim://auth` *(assumption: bundle id `fr.vincentlauriat.azpim`)*, publisher
 tenant owned by Vincent *(assumption — PRD open question 2)*, publisher verification via the Microsoft Partner
 Network before public release.
 
@@ -96,7 +96,7 @@ flowchart LR
 
 ## Security and privacy
 
-- Tokens never leave the Mac except to Microsoft endpoints; no AzurePim server, **no telemetry**.
+- Tokens never leave the Mac except to Microsoft endpoints; no AzPim server, **no telemetry**.
 - Tokens live only in memory (CLI mode) or in the MSAL Keychain cache; never logged. Logs use `os.Logger` with
   `privacy: .private` for UPNs, tenant ids and object ids.
 - Hardened Runtime, no `com.apple.security.cs.*` exceptions. `Process` launches only the `az` binary chosen by the user
@@ -135,7 +135,7 @@ beyond the local store (Azure is the source of truth).
 
 ## Environments and release
 
-- **Development:** Xcode (stable, never beta), scheme `AzurePim-Debug`, test tenant = Vincent's dev tenant; Voltalia
+- **Development:** Xcode (stable, never beta), scheme `AzPim-Debug`, test tenant = Vincent's dev tenant; Voltalia
   tenant for real-world checks.
 - **No staging server** (no backend). Release channel via Sparkle: `stable` only in v1.
 - **CI:** GitHub Actions on macOS runner: build, unit tests (`swift test` for the core package), SwiftLint.
@@ -155,4 +155,4 @@ beyond the local store (Azure is the source of truth).
 | Multi-tenant public client app | One app for every tenant | Per-tenant registration (each admin registers their own; supported as fallback via a custom client-id field in Settings) |
 | Polling every 5 min | No push API for PIM schedule changes | Graph change notifications (not available for role schedules) |
 | Sparkle + DMG first | Allows Azure CLI mode (no sandbox) | Mac App Store first (forbids CLI mode) |
-| Core logic in a Swift package `AzurePimCore` | Unit-testable without UI, reused by the App Store target | Everything in the app target |
+| Core logic in a Swift package `AzPimCore` | Unit-testable without UI, reused by the App Store target | Everything in the app target |

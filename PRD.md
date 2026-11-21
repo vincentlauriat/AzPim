@@ -1,8 +1,8 @@
-# AzurePim — Product Requirements Document
+# AzPim — Product Requirements Document
 
 ## Product name and one-line pitch
 
-**AzurePim** — a free macOS menu bar and desktop app to see, activate, extend and revoke your own Microsoft PIM
+**AzPim** — a free macOS menu bar and desktop app to see, activate, extend and revoke your own Microsoft PIM
 (Privileged Identity Management) roles in a couple of clicks, in any Microsoft Entra tenant, without opening the portal.
 
 ## Target users
@@ -63,7 +63,7 @@ Today users rely on the Entra portal (*PIM → My roles*), browser bookmarks, or
 1. **Role list and menu bar countdown** — As a cloud admin, I want to see all my eligible and active roles from the menu bar, so that I know my current privileges at a glance.
 2. **Activate and deactivate** — As a cloud admin, I want to activate a role with a duration and a justification in one sheet, so that I can start working within seconds.
 3. **Activate and deactivate** — As any user, I want to end an activation early, so that I hold privileges no longer than needed.
-4. **Dual sign-in** — As a user who already ran `az login`, I want AzurePim to reuse that session, so that I need no extra setup or admin approval.
+4. **Dual sign-in** — As a user who already ran `az login`, I want AzPim to reuse that session, so that I need no extra setup or admin approval.
 5. **Dual sign-in** — As a user without the Azure CLI, I want to sign in with my Microsoft account inside the app, so that I do not need a terminal.
 6. **Entra roles and PIM groups** — As an identity admin, I want to activate eligible Entra roles and PIM group memberships, so that I can do directory work without the portal.
 7. **Expiry notification** — As any user, I want a notification 15 minutes before an activation ends, so that I am not cut off mid-task.
@@ -93,15 +93,15 @@ Today users rely on the Entra portal (*PIM → My roles*), browser bookmarks, or
 
 ## Open questions
 
-1. **Name and trademark.** "Azure" is a Microsoft trademark; Microsoft's guidelines discourage it in third-party product names. *Recommendation:* keep **AzurePim** as working name for v1 and for internal use; before public release on GitHub, consider a neutral name (e.g. "PimBar") with "for Microsoft Entra / Azure" in the description.
+1. **Name and trademark.** "Azure" is a Microsoft trademark; Microsoft's guidelines discourage it in third-party product names. *Decision (2026-11-21):* renamed from AzurePim to **AzPim** before 0.9.4, technical identifiers included (bundle id, URL scheme, repository). The Entra app registration is also named "AzPim", since Entra rejects display names containing "Azure".
 2. **Publisher tenant of the multi-tenant app registration.** *Assumption:* a tenant owned by Vincent (personal or free Microsoft 365 developer tenant), not Voltalia's. *Recommendation:* use a dedicated dev tenant so the app identity does not depend on an employer.
 3. **Voltalia consent.** *Assumption:* the Voltalia Entra admin is asked to grant admin consent to the multi-tenant app; alternative is a Voltalia-owned single-tenant registration. Drafts in `docs/admin-consent/`. *Recommendation:* ask for consent first; fall back to a Voltalia registration if policy forbids third-party multi-tenant apps.
 4. **License.** *Assumption:* MIT, public GitHub repository. *Recommendation:* MIT.
 5. **Both sign-in modes in v1.** Resolved contradiction: Entra roles need admin consent per tenant, so v1 must stay fully useful for Azure resource roles without it; the Entra section degrades to the **Admin consent helper**.
 6. **Success metric measurability.** Resolved contradiction: no feature measured activation time, so **Activation timing** was added.
 7. **App Store later vs Azure CLI mode.** Resolved contradiction: the sandbox forbids launching `az`; sign-in is behind a `TokenProvider` protocol so an App Store build can ship MSAL only.
-8. **GUI apps do not inherit the shell PATH.** *Assumption:* AzurePim looks for `az` in `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, then lets the user pick the binary.
+8. **GUI apps do not inherit the shell PATH.** *Assumption:* AzPim looks for `az` in `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, then lets the user pick the binary.
 9. **Default notification lead time.** *Assumption:* 15 minutes, configurable 5–60.
 10. **Refresh interval.** *Assumption:* 5 minutes in the background, immediate on panel open if data is older than 60 s.
 11. **What "Extend" does (changed 2026-11-04).** PIM `SelfExtend` / `selfExtend` targets *assignments* expiring within 14 days, with admin approval; it does not lengthen an activation. *Decision:* Extend reads the policy fresh, then deactivates the role and activates it again with its last duration and justification (a few seconds without the role; up to 3 retries while Azure still reports the old activation). Extend is refused — role untouched — when the policy cannot be read, or needs approval, a ticket or MFA, or within 5 minutes of activation. Every follow-up notification says whether the role is still held. *Recommendation:* keep; confirm with a live test. **To be confirmed by Vincent.**
-12. **Deep links can activate roles (added 2026-11-04).** Any local process can open `azurepim://activate?favorite=`. *Decision:* AzurePim always asks for confirmation before running a favorite from a link. *Recommendation:* keep; a setting to skip the confirmation could come later for Shortcuts users.
+12. **Deep links can activate roles (added 2026-11-04).** Any local process can open `azpim://activate?favorite=`. *Decision:* AzPim always asks for confirmation before running a favorite from a link. *Recommendation:* keep; a setting to skip the confirmation could come later for Shortcuts users.

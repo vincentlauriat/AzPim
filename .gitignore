@@ -16,10 +16,10 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 .DS_Store
-AzurePim.xcodeproj/
-Packages/AzurePimCore/.build/
+AzPim.xcodeproj/
+Packages/AzPimCore/.build/
 .swiftpm/
-Config/AzurePim.local.xcconfig
+Config/AzPim.local.xcconfig
 
 # Contains a named admin and tenant id: kept local (security review L8)
 docs/admin-consent/email-voltalia-admin.md

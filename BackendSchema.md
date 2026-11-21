@@ -1,15 +1,15 @@
-# AzurePim — Backend schema
+# AzPim — Backend schema
 
-AzurePim has **no server**. Microsoft (Azure Resource Manager and Microsoft Graph) is the source of truth for roles;
+AzPim has **no server**. Microsoft (Azure Resource Manager and Microsoft Graph) is the source of truth for roles;
 this document describes the **local SwiftData store** on the user's Mac and the remote objects it mirrors.
 
 ## Entities
 
-- **Account** — a Microsoft identity signed in to AzurePim, with its sign-in mode (Azure CLI or MSAL) and tenant.
+- **Account** — a Microsoft identity signed in to AzPim, with its sign-in mode (Azure CLI or MSAL) and tenant.
 - **EligibleRole** — a cached eligible PIM assignment (Azure resource role, Entra role or PIM group) the account can activate.
 - **ActiveAssignment** — a cached currently active PIM activation, with its end time.
 - **Favorite** — a named set of eligible roles activated together, with default duration and justification per role.
-- **ActivationRecord** — one request sent by AzurePim (activate, deactivate, extend), with status and timing.
+- **ActivationRecord** — one request sent by AzPim (activate, deactivate, extend), with status and timing.
 - **AppSettings** — the single row of user preferences (refresh interval, notification lead time, retention, menu bar style).
 
 ## Tables / collections
@@ -115,7 +115,7 @@ Derived: `timeToActivation = completedAt − panelOpenedAt` (only when both exis
 | historyRetentionDays | Int | yes | 90 |
 | menuBarStyle | enum `icon` \| `iconCount` \| `iconCountTime` | yes | `iconCountTime` |
 | azCLIPath | String | no | nil (auto-detect) |
-| customClientId | String | no | nil (use AzurePim multi-tenant app) |
+| customClientId | String | no | nil (use AzPim multi-tenant app) |
 | launchAtLogin | Bool | yes | true |
 
 ## Relations
@@ -137,17 +137,17 @@ erDiagram
 ## Data ownership
 
 Everything belongs to the single macOS user running the app. Remote objects (eligibilities, assignments, requests,
-policies) belong to the user's tenant; AzurePim only caches them.
+policies) belong to the user's tenant; AzPim only caches them.
 
 ## Authentication flow
 
-- No AzurePim account, no sign-up, no password reset.
+- No AzPim account, no sign-up, no password reset.
 - **Azure CLI mode:** token obtained on demand with `az account get-access-token`; session lifetime = the CLI's (refresh token ≈ 90 days, subject to conditional access). Expired → banner "run `az login`".
 - **MSAL mode:** interactive sign-in in the system browser (or Enterprise SSO plug-in), silent token renewal from the Keychain cache; claims challenge → interactive re-auth. Sign-out removes the account from MSAL cache and the store.
 
 ## Authorization rules
 
-No AzurePim accounts or roles: the single local macOS user has full read / create / update / delete access to
+No AzPim accounts or roles: the single local macOS user has full read / create / update / delete access to
 **Account**, **EligibleRole**, **ActiveAssignment**, **Favorite**, **ActivationRecord** and **AppSettings**. This is
 acceptable because the store is in the user's own Library folder, contains no token, and what the user may do in
 Azure / Entra is enforced server-side by Microsoft (RBAC, PIM policies, consent) on every request.
@@ -180,3 +180,7 @@ Business rules: deactivation disabled within 5 minutes of activation (Azure rule
 
 - Seed: one `AppSettings` row with defaults on first launch; nothing else.
 - Schema changes via SwiftData `VersionedSchema` + `SchemaMigrationPlan`; caches (EligibleRole, ActiveAssignment) may simply be dropped and re-fetched on migration.
+- Rename to AzPim (0.9.4): the store moved from `~/Library/Application Support/AzurePim/AzurePim.store` to
+  `~/Library/Application Support/AzPim/AzPim.store`. At launch, before the container opens,
+  `AzPimStore.migrateLegacyStore()` copies the old store and its `-wal` / `-shm` files once, only when the new store
+  does not exist yet. It never moves or deletes the old folder.

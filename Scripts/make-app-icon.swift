@@ -1,12 +1,12 @@
 #!/usr/bin/env swift
-// Generates the AzurePim app icon set (shield + countdown dial) into AppIcon.appiconset,
+// Generates the AzPim app icon set (shield + countdown dial) into AppIcon.appiconset,
 // plus docs/assets/icon-256.png for the README and the landing page.
 // Usage: ./Scripts/make-app-icon.swift
 import AppKit
 
 let canvas: CGFloat = 1024
 let root = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent().deletingLastPathComponent()
-let iconSet = root.appendingPathComponent("AzurePim/Assets.xcassets/AppIcon.appiconset")
+let iconSet = root.appendingPathComponent("AzPim/Assets.xcassets/AppIcon.appiconset")
 let docsIcon = root.appendingPathComponent("docs/assets/icon-256.png")
 
 func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> CGColor {

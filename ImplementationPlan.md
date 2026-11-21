@@ -1,4 +1,4 @@
-# AzurePim — Implementation plan
+# AzPim — Implementation plan
 
 Build order for an AI agent (Claude Code) with Vincent as product owner. Each step ends with a checkpoint.
 Names of features, screens and entities are those of `PRD.md`, `AppFlow.md` and `BackendSchema.md`.
@@ -7,11 +7,11 @@ Names of features, screens and entities are those of `PRD.md`, `AppFlow.md` and 
 
 | Task | Owner | Inputs | Deliverable | Done criterion | Depends on |
 |---|---|---|---|---|---|
-| T1.1 Repo and Xcode project | agent | TRD | Git repo `AzurePim`, Xcode project (macOS 14, Swift 6), app target + Swift package `AzurePimCore`, `.gitignore` (tracking files, `release/`, `*.dmg`) | `xcodebuild -scheme AzurePim build` succeeds | — |
+| T1.1 Repo and Xcode project | agent | TRD | Git repo `AzPim`, Xcode project (macOS 14, Swift 6), app target + Swift package `AzPimCore`, `.gitignore` (tracking files, `release/`, `*.dmg`) | `xcodebuild -scheme AzPim build` succeeds | — |
 | T1.2 App shell | agent | AppFlow navigation rules | `MenuBarExtra(.window)` with placeholder panel, main `Window` with sidebar (Roles, History, Favorites), `Settings` scene, `LSUIElement`, Dock icon toggling | App runs, icon in menu bar, ⌘0 opens window, closing it hides Dock icon | T1.1 |
 | T1.3 Dependencies | agent | TRD | SPM: MSAL (`microsoft-authentication-library-for-objc`), Sparkle 2 | Build green with both linked | T1.1 |
-| T1.4 CI | agent | TRD | GitHub Actions: build + `swift test` on `AzurePimCore` + SwiftLint | CI green on a PR | T1.1 |
-| T1.5 App registration | Vincent | TRD scopes table, PRD open question 2 | Multi-tenant public client in publisher tenant, redirect URI `msauth.fr.vincentlauriat.azurepim://auth`, delegated scopes listed in TRD | Client id recorded in `Config.xcconfig` | — |
+| T1.4 CI | agent | TRD | GitHub Actions: build + `swift test` on `AzPimCore` + SwiftLint | CI green on a PR | T1.1 |
+| T1.5 App registration | Vincent | TRD scopes table, PRD open question 2 | Multi-tenant public client in publisher tenant, redirect URI `msauth.fr.vincentlauriat.azpim://auth`, delegated scopes listed in TRD | Client id recorded in `Config.xcconfig` | — |
 
 **Checkpoint 1:** app launches from Xcode, menu bar icon visible, empty panel and window open/close correctly.
 
@@ -20,7 +20,7 @@ Names of features, screens and entities are those of `PRD.md`, `AppFlow.md` and 
 | Task | Owner | Inputs | Deliverable | Done criterion | Depends on |
 |---|---|---|---|---|---|
 | T2.1 SwiftData schema | agent | BackendSchema | `@Model` Account, EligibleRole, ActiveAssignment, Favorite, ActivationRecord, AppSettings; `VersionedSchema` v1; seed AppSettings | Unit tests create/read each entity; validation rules tested | T1.1 |
-| T2.2 TokenProvider protocol | agent | TRD | `TokenProvider` in `AzurePimCore`, `Resource` enum (arm, graph), `AccessToken`, error types incl. `claimsChallenge` | Protocol + mock provider used by tests | T1.1 |
+| T2.2 TokenProvider protocol | agent | TRD | `TokenProvider` in `AzPimCore`, `Resource` enum (arm, graph), `AccessToken`, error types incl. `claimsChallenge` | Protocol + mock provider used by tests | T1.1 |
 | T2.3 AzureCLITokenProvider | agent | TRD, Open question 8 | `az` discovery (known paths, user override), `Process` with argument array, JSON parsing, tenant selection, `az account show` for UPN/tenant | Test against real `az` returns ARM token; missing `az` / expired session map to typed errors | T2.2 |
 | T2.4 MSALTokenProvider | agent | TRD, T1.5 | Interactive + silent sign-in, multi-account, incremental directory scopes, claims challenge re-auth, sign-out | Sign-in with a Voltalia and a dev-tenant account; silent token after relaunch | T2.2, T1.3, T1.5 |
 | T2.5 Onboarding and Accounts Settings | agent | AppFlow (First use, Accounts Settings) | Onboarding (3 pages), Accounts Settings (add/remove, mode badge, Entra status) | Acceptance criteria 4 and 5 pass | T2.3, T2.4, T2.1 |
@@ -48,7 +48,7 @@ Names of features, screens and entities are those of `PRD.md`, `AppFlow.md` and 
 | Task | Owner | Inputs | Deliverable | Done criterion | Depends on |
 |---|---|---|---|---|---|
 | T4.1 Extend activation | agent | AppFlow notification actions | `SelfExtend` / re-activate fallback, follow-up notification | Acceptance criterion 9 passes | T3.6, T3.9 |
-| T4.2 Favorites | agent | AppFlow Favorites Window | Favorites Window CRUD + reorder, panel chips, run with one or zero sheet, `azurepim://activate?favorite=` | Acceptance criterion 10 passes | T3.6 |
+| T4.2 Favorites | agent | AppFlow Favorites Window | Favorites Window CRUD + reorder, panel chips, run with one or zero sheet, `azpim://activate?favorite=` | Acceptance criterion 10 passes | T3.6 |
 | T4.3 History and pending requests | agent | BackendSchema ActivationRecord | ActivationRecord writes for every request, History Window table, pending fetch + cancel, CSV export, retention cleanup | Acceptance criterion 11 passes | T3.6 |
 | T4.4 Multi-account polish | agent | AppFlow | Account switcher in panel header, per-account errors isolated, ordering | Two tenants side by side; one failing does not hide the other | T3.4 |
 | T4.5 Activation timing | agent | PRD success metric | `panelOpenedAt` capture, `completedAt` on provisioned, median card in History Window | Acceptance criterion 13 passes | T4.3 |
