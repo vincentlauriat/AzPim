@@ -9,7 +9,7 @@ enum DeepLinkHandler {
     /// Set by `AzPimApp.init`, before any URL can arrive.
     static var store: RoleStore?
     /// Settings › Advanced: links may ask to activate favorites (default on). `role` and `open` links always work.
-    static let activationKey = "deepLinks.allowActivation"
+    static let activationKey = PreferenceKeys.allowLinkActivation
     /// A confirmation is on screen: further activation links are ignored, not queued (no prompt flood).
     private static var confirming = false
 

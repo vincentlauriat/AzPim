@@ -61,12 +61,11 @@ Requires macOS 14 or later. Download the signed and notarized DMG from
 Updates arrive automatically through Sparkle, or from Settings › About › Check for Updates.
 
 > **Upgrading from 0.9.x (AzurePim).** Up to 0.9.3 the app was called AzurePim. AzPim has a new bundle id, so
-> AzurePim does not update to it: quit AzurePim, download AzPim once by hand and open it (on first launch it copies
-> its local data, the account list, favorites and history, from `~/Library/Application Support/AzurePim/`, leaving
-> the original in place), then remove AzurePim from Applications and from Login Items. Display preferences go back
-> to their defaults, including *Links can ask to activate favorites* (back on), and Microsoft sign-in accounts may
-> ask you to sign in again. Onboarding does not run again, so add AzPim to System Settings › General › Login Items
-> if you want it at login. Updates then arrive automatically again.
+> AzurePim does not update to it: quit AzurePim, download AzPim once by hand and open it. On first launch it copies
+> its local data (the account list, favorites and history) from `~/Library/Application Support/AzurePim/` and its
+> panel and link preferences, leaving the originals in place, and registers itself at login if AzurePim was. Then
+> remove AzurePim from Applications and its entry from System Settings › General › Login Items. Microsoft sign-in
+> accounts may ask you to sign in again. Updates then arrive automatically again.
 
 To build from source, you need Xcode (stable) and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 

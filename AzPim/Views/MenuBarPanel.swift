@@ -62,10 +62,10 @@ struct MenuBarPanel: View {
     private var pendingRecords: [ActivationRecord]
     @State private var activating: EligibleRole?
     @State private var contentHeight: CGFloat = 0
-    @AppStorage("panel.showActive") private var showActive = true
-    @AppStorage("panel.showPermanent") private var showPermanent = true
-    @AppStorage("panel.showFavorites") private var showFavorites = true
-    @AppStorage("panel.showEligible") private var showEligible = true
+    @AppStorage(PreferenceKeys.panelShowActive) private var showActive = true
+    @AppStorage(PreferenceKeys.panelShowPermanent) private var showPermanent = true
+    @AppStorage(PreferenceKeys.panelShowFavorites) private var showFavorites = true
+    @AppStorage(PreferenceKeys.panelShowEligible) private var showEligible = true
 
     /// Accounts shown, after the account filter (T4.4).
     private var shownAccounts: [Account] {

@@ -1,4 +1,5 @@
 import AzPimCore
+import ServiceManagement
 import SwiftData
 import SwiftUI
 
@@ -10,14 +11,16 @@ struct AzPimApp: App {
     @State private var store: RoleStore
 
     init() {
+        let migrated: Bool
         do {
             // 0.9.x shipped as AzurePim: copy its store once, so favorites and history survive the rename.
-            try AzPimStore.migrateLegacyStore()
+            migrated = try AzPimStore.migrateLegacyStore()
             container = try AzPimStore.makeContainer()
         } catch {
             // The local store is required; failing silently to memory would lose favorites and history.
             fatalError("AzPim could not open its local store at \(AzPimStore.defaultURL.path): \(error)")
         }
+        if migrated { Self.adoptLegacySetup(context: container.mainContext) }
         let accountService = AccountService(context: container.mainContext)
         _accounts = State(initialValue: accountService)
         let notifications = NotificationScheduler()
@@ -35,6 +38,22 @@ struct AzPimApp: App {
         #if DEBUG
         SnapshotRunner.run(container: container, accounts: accountService, store: roleStore)
         #endif
+    }
+
+    /// First launch after the AzurePim → AzPim rename (the store was just copied): carries over the app's own
+    /// preferences (so "links may activate favorites" stays off for whoever turned it off) and, when the user had
+    /// launch at login, registers AzPim itself, since onboarding will not run again.
+    private static func adoptLegacySetup(context: ModelContext) {
+        if let domain = Bundle.main.bundleIdentifier {
+            PreferenceKeys.copyLegacy(into: .standard, domain: domain)
+        }
+        guard let settings = try? AzPimStore.settings(in: context),
+              settings.onboardingCompleted, settings.launchAtLogin else { return }
+        // Unsigned debug builds cannot register; the status below then records it as off.
+        try? SMAppService.mainApp.register()
+        // What macOS actually registered, not what was asked (as in onboarding).
+        settings.launchAtLogin = SMAppService.mainApp.status == .enabled
+        try? context.save()
     }
 
     var body: some Scene {

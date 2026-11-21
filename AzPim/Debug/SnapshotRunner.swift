@@ -19,7 +19,8 @@ enum SnapshotRunner {
             while store.lastRefresh == nil { try? await Task.sleep(for: .milliseconds(300)) }
             try? await Task.sleep(for: .seconds(1))
             // Screenshots show every card expanded; the user's own choices are restored afterwards.
-            let keys = ["panel.showActive", "panel.showPermanent", "panel.showFavorites", "panel.showEligible"]
+            let keys = [PreferenceKeys.panelShowActive, PreferenceKeys.panelShowPermanent,
+                        PreferenceKeys.panelShowFavorites, PreferenceKeys.panelShowEligible]
             let saved = keys.map { UserDefaults.standard.object(forKey: $0) }
             keys.forEach { UserDefaults.standard.set(true, forKey: $0) }
             for scheme in [ColorScheme.dark, .light] {

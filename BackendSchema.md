@@ -183,4 +183,7 @@ Business rules: deactivation disabled within 5 minutes of activation (Azure rule
 - Rename to AzPim (0.9.4): the store moved from `~/Library/Application Support/AzurePim/AzurePim.store` to
   `~/Library/Application Support/AzPim/AzPim.store`. At launch, before the container opens,
   `AzPimStore.migrateLegacyStore()` copies the old store and its `-wal` / `-shm` files once, only when the new store
-  does not exist yet. It never moves or deletes the old folder.
+  does not exist yet. It never moves or deletes the old folder. After that copy, the app also copies its own
+  preference keys (`PreferenceKeys.all`, never Sparkle `SU*` or AppKit `NS*` keys) from the
+  `fr.vincentlauriat.azurepim` defaults domain when not set yet, and registers the login item when the copied
+  `AppSettings.launchAtLogin` is true, saving the status macOS reports.
