@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a universal Release AzurePim.app, sign it with Developer ID and Hardened
+# Build a universal Release AzPim.app, sign it with Developer ID and Hardened
 # Runtime, package it as a DMG, notarize and staple it, then sign it for Sparkle
 # and prepare its appcast.xml item.
 #
@@ -7,7 +7,8 @@
 # | SPARKLE SIGNING KEY: DO NOT REGENERATE                                     |
 # |                                                                            |
 # | Updates are EdDSA-signed with the private key in the login keychain under  |
-# | account "AzurePim". Its public half is SUPublicEDKey in project.yml:       |
+# | account "AzurePim" (historical name of the app, kept on purpose: never     |
+# | rename the account). Its public half is SUPublicEDKey in project.yml:      |
 # |     oGxHAH0aXmMuHBG/E6/PsROoQPDhw3vicDP+FK1S4hA=                           |
 # |                                                                            |
 # | Never import a new key into this account and never change SUPublicEDKey:   |
@@ -23,7 +24,7 @@
 # project.yml, write release/release-notes-<version>.md, commit, and run from a
 # clean `main`.
 #
-# The build run outputs release/AzurePim-<version>.dmg and the signed appcast item
+# The build run outputs release/AzPim-<version>.dmg and the signed appcast item
 # release/appcast-item-<version>.xml. It does NOT publish and does NOT touch
 # appcast.xml: Sparkle must never be offered an enclosure that does not exist yet.
 # --publish-appcast checks that the uploaded DMG answers (curl -fsIL), then prepends
@@ -59,7 +60,12 @@ APPCAST="$ROOT/appcast.xml"
 RELEASE_DIR="$ROOT/release"
 NOTES="$RELEASE_DIR/release-notes-$VERSION.md"
 ITEM_FILE="$RELEASE_DIR/appcast-item-$VERSION.xml"
-ENCLOSURE_URL="https://github.com/vincentlauriat/AzurePim/releases/download/v$VERSION/AzurePim-$VERSION.dmg"
+ENCLOSURE_URL="https://github.com/vincentlauriat/AzPim/releases/download/v$VERSION/AzPim-$VERSION.dmg"
+RELEASE_PAGE="https://github.com/vincentlauriat/AzPim/releases/tag/v$VERSION"
+# First build shipped as AzPim (bundle id fr.vincentlauriat.azpim). GitHub serves this feed to AzurePim 0.9.x
+# too (old repository URL, builds <= 5, other bundle id): every new item is informational below this build, so
+# AzurePim is told to download AzPim from the web instead of installing a different app over itself.
+FIRST_AZPIM_BUILD=6
 
 # Highest sparkle:version across every item of appcast.xml (0 when there is none).
 # Fails if the feed is not well-formed XML or a build number is not an integer.
@@ -144,13 +150,13 @@ if [ "$MODE" = publish ]; then
   [ -f "$ITEM_FILE" ] || { echo "✗ $ITEM_FILE not found: run ./Scripts/release.sh $VERSION first" >&2; exit 1; }
   ITEM_BUILD="$(item_build)"
   require_new_build "$ITEM_BUILD"
-  LOCAL_DMG="$RELEASE_DIR/AzurePim-$VERSION.dmg"
+  LOCAL_DMG="$RELEASE_DIR/AzPim-$VERSION.dmg"
   [ -f "$LOCAL_DMG" ] || { echo "✗ $LOCAL_DMG not found: it is the DMG the item was signed for" >&2; exit 1; }
   echo "→ Checking the enclosure is downloadable: $ENCLOSURE_URL"
   # -L: GitHub answers 302 to its object storage; check the asset itself.
   if ! curl -fsIL -o /dev/null "$ENCLOSURE_URL"; then
     echo "✗ $ENCLOSURE_URL does not answer. Upload the DMG first:" >&2
-    echo "  gh release create v$VERSION ./release/AzurePim-$VERSION.dmg --title \"v$VERSION\" --notes-file release/release-notes-$VERSION.md" >&2
+    echo "  gh release create v$VERSION ./release/AzPim-$VERSION.dmg --title \"v$VERSION\" --notes-file release/release-notes-$VERSION.md" >&2
     exit 1
   fi
   # The item's EdDSA signature covers the local DMG: the uploaded asset must be that file.
@@ -251,15 +257,15 @@ xcodegen generate >/dev/null
 # `com.apple.provenance` xattr that breaks ad-hoc codesign in CLI.
 # We sign manually below after a clean xattr scrub.
 echo "→ xcodebuild Release"
-xcodebuild -project AzurePim.xcodeproj \
-  -scheme AzurePim \
+xcodebuild -project AzPim.xcodeproj \
+  -scheme AzPim \
   -configuration Release \
   -destination "generic/platform=macOS" \
   -derivedDataPath build \
   CODE_SIGNING_ALLOWED=NO \
   build 2>&1 | tail -5
 
-APP="$ROOT/build/Build/Products/Release/AzurePim.app"
+APP="$ROOT/build/Build/Products/Release/AzPim.app"
 if [ ! -d "$APP" ]; then
   echo "✗ Build did not produce $APP" >&2
   exit 1
@@ -269,8 +275,8 @@ fi
 # repair a missing feed or key later. Check what was built, not project.yml.
 plist_value() { /usr/libexec/PlistBuddy -c "Print :$1" "$APP/Contents/Info.plist"; }
 [ "$(plist_value CFBundleShortVersionString)" = "$VERSION" ] || { echo "✗ built version is not $VERSION" >&2; exit 1; }
-[ "$(plist_value SUFeedURL)" = "https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml" ] || { echo "✗ unexpected SUFeedURL" >&2; exit 1; }
-BUILT_ARCHS="$(lipo -archs "$APP/Contents/MacOS/AzurePim")"
+[ "$(plist_value SUFeedURL)" = "https://raw.githubusercontent.com/vincentlauriat/AzPim/main/appcast.xml" ] || { echo "✗ unexpected SUFeedURL" >&2; exit 1; }
+BUILT_ARCHS="$(lipo -archs "$APP/Contents/MacOS/AzPim")"
 case "$BUILT_ARCHS" in
   *x86_64*arm64*|*arm64*x86_64*) ;;
   *) echo "✗ not a universal binary: $BUILT_ARCHS" >&2; exit 1 ;;
@@ -294,7 +300,7 @@ SIGNING_IDENTITY="${SIGNING_IDENTITY:-Developer ID Application: Vincent LAURIAT 
 NOTARY_PROFILE="${NOTARY_PROFILE:-AppliMacVincentGithub}"
 
 STAGING_DIR="$(mktemp -d)"
-STAGING="$STAGING_DIR/AzurePim.app"
+STAGING="$STAGING_DIR/AzPim.app"
 echo "→ Staging to $STAGING_DIR"
 ditto --norsrc --noextattr --noacl "$APP" "$STAGING"
 
@@ -334,7 +340,7 @@ for FW in "$STAGING"/Contents/Frameworks/*; do
 done
 
 echo "→ Codesigning the app itself with Developer ID + Hardened Runtime"
-codesign_ts "$STAGING" --entitlements "$ROOT/AzurePim/AzurePim.entitlements"
+codesign_ts "$STAGING" --entitlements "$ROOT/AzPim/AzPim.entitlements"
 codesign --verify --strict --deep "$STAGING"
 # Notarization rejects an app without Hardened Runtime or a Developer ID signature;
 # check both here rather than after a 5-minute round trip to Apple.
@@ -349,7 +355,7 @@ case "$SIGN_INFO" in
 esac
 
 mkdir -p "$RELEASE_DIR"
-DMG="$RELEASE_DIR/AzurePim-$VERSION.dmg"
+DMG="$RELEASE_DIR/AzPim-$VERSION.dmg"
 rm -f "$DMG"
 
 # 5b. Build the DMG with a custom Finder layout: signed .app on the left,
@@ -357,7 +363,7 @@ rm -f "$DMG"
 # dmgbuild writes the .DS_Store itself. The Finder AppleScript it replaces needs
 # Apple Events, which some shells cannot send, and silently shipped DMGs without
 # a layout (ClaudeCockpit 1.1.3 and 1.1.4).
-DMG_VOLNAME="AzurePim $VERSION"
+DMG_VOLNAME="AzPim $VERSION"
 DMG_BG="$STAGING_DIR/background.png"
 "$ROOT/Scripts/make-dmg-background.swift" "$DMG_BG" >/dev/null
 
@@ -401,10 +407,10 @@ echo "→ Building $DMG with dmgbuild"
 # The layout is deterministic now, so its absence is a bug, not a Finder mood.
 CHECK_MOUNT="$(hdiutil attach -nobrowse -readonly -noverify -noautoopen "$DMG" | awk -F '\t' 'END {print $NF}')"
 LAYOUT_OK=1
-for ITEM in .DS_Store .background.png Applications AzurePim.app; do
+for ITEM in .DS_Store .background.png Applications AzPim.app; do
   [ -e "$CHECK_MOUNT/$ITEM" ] || { echo "✗ DMG is missing $ITEM" >&2; LAYOUT_OK=0; }
 done
-codesign --verify --strict --deep "$CHECK_MOUNT/AzurePim.app" || LAYOUT_OK=0
+codesign --verify --strict --deep "$CHECK_MOUNT/AzPim.app" || LAYOUT_OK=0
 detach_retry "$CHECK_MOUNT"
 [ "$LAYOUT_OK" = 1 ] || exit 1
 
@@ -451,7 +457,7 @@ xcrun stapler validate "$DMG"
 # Gatekeeper's verdict on the app exactly as users get it: inside the stapled DMG.
 GK_MOUNT="$(hdiutil attach -nobrowse -readonly -noverify -noautoopen "$DMG" | awk -F '\t' 'END {print $NF}')"
 GK_OK=1
-spctl -a -t exec -vv "$GK_MOUNT/AzurePim.app" || GK_OK=0
+spctl -a -t exec -vv "$GK_MOUNT/AzPim.app" || GK_OK=0
 detach_retry "$GK_MOUNT"
 [ "$GK_OK" = 1 ] || { echo "✗ Gatekeeper rejects the app inside $DMG" >&2; exit 1; }
 
@@ -485,16 +491,19 @@ if [ ! -x "$SPARKLE_TOOLS/bin/sign_update" ]; then
 fi
 
 # A mismatch would publish an update that every installed app rejects.
-KEYCHAIN_PUBKEY="$("$SPARKLE_TOOLS/bin/generate_keys" --account "AzurePim" -p)"
+# Keychain account of the Sparkle key: "AzurePim", the app's name before the AzPim rename.
+# Historical and deliberate: the key must never be regenerated or moved to another account.
+SPARKLE_KEY_ACCOUNT="AzurePim"
+KEYCHAIN_PUBKEY="$("$SPARKLE_TOOLS/bin/generate_keys" --account "$SPARKLE_KEY_ACCOUNT" -p)"
 if [ "$KEYCHAIN_PUBKEY" != "$(plist_value SUPublicEDKey)" ]; then
-  echo "✗ SUPublicEDKey in the app does not match the keychain key for account AzurePim" >&2
+  echo "✗ SUPublicEDKey in the app does not match the keychain key for account $SPARKLE_KEY_ACCOUNT" >&2
   exit 1
 fi
 
 echo "→ Signing $DMG with Sparkle EdDSA key"
 # `sign_update` returns: sparkle:edSignature="..." length="<bytes>"
 # (so we don't add `length=` ourselves on the <enclosure> — that would duplicate).
-SPARKLE_SIG_LINE=$("$SPARKLE_TOOLS/bin/sign_update" --account "AzurePim" "$DMG")
+SPARKLE_SIG_LINE=$("$SPARKLE_TOOLS/bin/sign_update" --account "$SPARKLE_KEY_ACCOUNT" "$DMG")
 
 # Written as a fragment, not into appcast.xml: `--publish-appcast` prepends it
 # once the enclosure is downloadable, keeping every older item.
@@ -503,11 +512,13 @@ PUB_DATE=$(LC_ALL=C date -R)
 cat > "$ITEM_FILE" <<APPCAST
 <item>
       <title>v$VERSION</title>
+      <link>$RELEASE_PAGE</link>
       <pubDate>$PUB_DATE</pubDate>
       <sparkle:version>$BUILD_NUMBER</sparkle:version>
       <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://github.com/vincentlauriat/AzurePim/releases/tag/v$VERSION</sparkle:releaseNotesLink>
+      <sparkle:informationalUpdate><sparkle:belowVersion>$FIRST_AZPIM_BUILD</sparkle:belowVersion></sparkle:informationalUpdate>
+      <sparkle:releaseNotesLink>$RELEASE_PAGE</sparkle:releaseNotesLink>
       <enclosure
         url="$ENCLOSURE_URL"
         type="application/octet-stream"
@@ -522,7 +533,7 @@ echo "✅ Built, signed, notarized, stapled and Sparkle-signed: $DMG ($DMG_SIZE)
 echo "✅ Appcast item written to $ITEM_FILE (appcast.xml not modified yet)"
 echo ""
 echo "Next steps to publish:"
-echo "  1. gh release create v$VERSION ./release/AzurePim-$VERSION.dmg --title \"v$VERSION\" --notes-file release/release-notes-$VERSION.md"
+echo "  1. gh release create v$VERSION ./release/AzPim-$VERSION.dmg --title \"v$VERSION\" --notes-file release/release-notes-$VERSION.md"
 echo "  2. ./Scripts/release.sh --publish-appcast $VERSION   # checks the DMG URL, prepends the item"
 echo "  3. Commit appcast.xml on a branch and merge it through a PR (step 2 prints the commands)."
 echo ""

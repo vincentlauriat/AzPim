@@ -1,9 +1,9 @@
-# AzurePim — UI/UX design brief
+# AzPim — UI/UX design brief
 
 ## Audience and tone
 
 Cloud and identity administrators who live in the terminal and the Azure portal, and want PIM to stay out of their way.
-Three adjectives: **native, dense, discreet**. AzurePim should feel like a macOS system utility: you glance at it,
+Three adjectives: **native, dense, discreet**. AzPim should feel like a macOS system utility: you glance at it,
 act in one or two clicks, and forget it. Security state must be readable in under a second.
 
 ## Reference products
@@ -59,7 +59,7 @@ San Francisco (system font) only.
 
 ## Layout rules
 
-- **Menu Bar Panel:** width 360 pt, max height 560 pt then scroll; sections in order: header (account switcher, refresh, timestamp), Active, Favorites, Eligible (grouped by account then source), footer (Open AzurePim…, Settings, Quit).
+- **Menu Bar Panel:** width 360 pt, max height 560 pt then scroll; sections in order: header (account switcher, refresh, timestamp), Active, Favorites, Eligible (grouped by account then source), footer (Open AzPim…, Settings, Quit).
 - **Main window:** `NavigationSplitView`, sidebar 180 pt, list column min 320 pt, detail min 360 pt; default size 980 × 640 pt, min 760 × 480 pt.
 - **Spacing scale:** 4 / 8 / 12 / 16 / 24 pt; row padding 8 pt horizontal, 6 pt vertical; section spacing 12 pt.
 - No responsive breakpoints (desktop only); content adapts to window width via the split view.

@@ -1,13 +1,13 @@
 {
- "name": "AzurePim",
+ "name": "AzPim",
  "no": "33",
- "repo": "vincentlauriat/AzurePim",
- "url": "https://vincentlauriat.github.io/AzurePim/",
+ "repo": "vincentlauriat/AzPim",
+ "url": "https://vincentlauriat.github.io/AzPim/",
  "accent": "#0F6CBD",
  "meta": {
-  "title": "AzurePim — your PIM roles in the macOS menu bar",
+  "title": "AzPim — your PIM roles in the macOS menu bar",
   "description": "Free, open-source macOS menu bar app to see, activate, extend and deactivate your own Microsoft PIM roles: Azure resources, Entra roles and PIM groups. No portal, no telemetry.",
-  "og_image": "https://vincentlauriat.github.io/AzurePim/screenshots/panel-light.png",
+  "og_image": "https://vincentlauriat.github.io/AzPim/screenshots/panel-light.png",
   "favicon": "assets/icon-256.png"
  },
  "role": {
@@ -32,12 +32,12 @@
     "fr": "Télécharger",
     "zh": "下載"
    },
-   "href": "https://github.com/vincentlauriat/AzurePim/releases/latest",
+   "href": "https://github.com/vincentlauriat/AzPim/releases/latest",
    "primary": true
   },
   {
    "label": "GitHub",
-   "href": "https://github.com/vincentlauriat/AzurePim"
+   "href": "https://github.com/vincentlauriat/AzPim"
   }
  ],
  "facts": [
@@ -103,9 +103,9 @@
   "w": 720,
   "h": 1530,
   "alt": {
-   "en": "The AzurePim panel: two active roles, the next expiry in 41 minutes with a progress bar, then active roles, favorites and eligible roles.",
-   "fr": "Le panneau d'AzurePim : deux rôles actifs, la prochaine expiration dans 41 minutes avec une barre de progression, puis les rôles actifs, les favoris et les rôles activables.",
-   "zh": "AzurePim 面板：兩個已啟用角色，下一個在 41 分鐘後到期並附進度條，接著是已啟用角色、我的最愛與可啟用角色。"
+   "en": "The AzPim panel: two active roles, the next expiry in 41 minutes with a progress bar, then active roles, favorites and eligible roles.",
+   "fr": "Le panneau d'AzPim : deux rôles actifs, la prochaine expiration dans 41 minutes avec une barre de progression, puis les rôles actifs, les favoris et les rôles activables.",
+   "zh": "AzPim 面板：兩個已啟用角色，下一個在 41 分鐘後到期並附進度條，接著是已啟用角色、我的最愛與可啟用角色。"
   },
   "caption": {
    "en": "The menu bar panel. Screenshots use demo data.",
@@ -120,9 +120,9 @@
    "zh": "完整 PIM，無需入口網站"
   },
   "p": {
-   "en": "AzurePim reads your eligible and active roles in the background and keeps the menu bar honest about what you hold right now.",
-   "fr": "AzurePim lit vos rôles activables et actifs en arrière-plan, et la barre de menus dit toujours ce que vous détenez à l'instant.",
-   "zh": "AzurePim 在背景讀取你可啟用與已啟用的角色，讓選單列如實顯示你此刻持有的權限。"
+   "en": "AzPim reads your eligible and active roles in the background and keeps the menu bar honest about what you hold right now.",
+   "fr": "AzPim lit vos rôles activables et actifs en arrière-plan, et la barre de menus dit toujours ce que vous détenez à l'instant.",
+   "zh": "AzPim 在背景讀取你可啟用與已啟用的角色，讓選單列如實顯示你此刻持有的權限。"
   }
  },
  "features": [
@@ -193,9 +193,9 @@
     "zh": "我的最愛"
    },
    "p": {
-    "en": "Activate the roles of your morning deploy in one click, or from a link: <code>azurepim://activate?favorite=…</code>",
-    "fr": "Activez les rôles de votre déploiement du matin en un clic, ou par un lien : <code>azurepim://activate?favorite=…</code>",
-    "zh": "一鍵啟用早晨部署所需的角色，或透過連結：<code>azurepim://activate?favorite=…</code>"
+    "en": "Activate the roles of your morning deploy in one click, or from a link: <code>azpim://activate?favorite=…</code>",
+    "fr": "Activez les rôles de votre déploiement du matin en un clic, ou par un lien : <code>azpim://activate?favorite=…</code>",
+    "zh": "一鍵啟用早晨部署所需的角色，或透過連結：<code>azpim://activate?favorite=…</code>"
    }
   },
   {
@@ -331,9 +331,9 @@
     {
      "type": "p",
      "t": {
-      "en": "AzurePim never grants anything by itself: every activation goes through PIM, which still enforces approval, MFA, tickets and maximum duration.",
-      "fr": "AzurePim n'accorde rien par lui-même : chaque activation passe par PIM, qui applique toujours approbation, MFA, ticket et durée maximale.",
-      "zh": "AzurePim 本身不授予任何權限：每次啟用都經過 PIM，核准、MFA、工單與最長時限依然照常執行。"
+      "en": "AzPim never grants anything by itself: every activation goes through PIM, which still enforces approval, MFA, tickets and maximum duration.",
+      "fr": "AzPim n'accorde rien par lui-même : chaque activation passe par PIM, qui applique toujours approbation, MFA, ticket et durée maximale.",
+      "zh": "AzPim 本身不授予任何權限：每次啟用都經過 PIM，核准、MFA、工單與最長時限依然照常執行。"
      }
     }
    ]
@@ -356,9 +356,9 @@
         "zh": "無伺服器、無遙測"
        },
        "p": {
-        "en": "AzurePim talks only to <code>management.azure.com</code>, <code>graph.microsoft.com</code> and <code>login.microsoftonline.com</code>. No account to create.",
-        "fr": "AzurePim ne parle qu'à <code>management.azure.com</code>, <code>graph.microsoft.com</code> et <code>login.microsoftonline.com</code>. Aucun compte à créer.",
-        "zh": "AzurePim 只與 <code>management.azure.com</code>、<code>graph.microsoft.com</code> 和 <code>login.microsoftonline.com</code> 通訊，無需建立帳號。"
+        "en": "AzPim talks only to <code>management.azure.com</code>, <code>graph.microsoft.com</code> and <code>login.microsoftonline.com</code>. No account to create.",
+        "fr": "AzPim ne parle qu'à <code>management.azure.com</code>, <code>graph.microsoft.com</code> et <code>login.microsoftonline.com</code>. Aucun compte à créer.",
+        "zh": "AzPim 只與 <code>management.azure.com</code>、<code>graph.microsoft.com</code> 和 <code>login.microsoftonline.com</code> 通訊，無需建立帳號。"
        }
       },
       {
@@ -416,7 +416,7 @@
    "blocks": [
     {
      "type": "pre",
-     "code": "git clone https://github.com/vincentlauriat/AzurePim.git && cd AzurePim\nxcodegen generate\nxcodebuild -project AzurePim.xcodeproj -scheme AzurePim -configuration Debug -derivedDataPath build build\nopen build/Build/Products/Debug/AzurePim.app"
+     "code": "git clone https://github.com/vincentlauriat/AzPim.git && cd AzPim\nxcodegen generate\nxcodebuild -project AzPim.xcodeproj -scheme AzPim -configuration Debug -derivedDataPath build build\nopen build/Build/Products/Debug/AzPim.app"
     }
    ]
   }
@@ -439,12 +439,12 @@
      "fr": "Télécharger",
      "zh": "下載"
     },
-    "href": "https://github.com/vincentlauriat/AzurePim/releases/latest",
+    "href": "https://github.com/vincentlauriat/AzPim/releases/latest",
     "primary": true
    },
    {
     "label": "GitHub",
-    "href": "https://github.com/vincentlauriat/AzurePim"
+    "href": "https://github.com/vincentlauriat/AzPim"
    }
   ]
  },

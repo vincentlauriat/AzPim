@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
   <channel>
-    <title>AzurePim</title>
-    <link>https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml</link>
-    <description>AzurePim release feed</description>
+    <title>AzPim</title>
+    <link>https://raw.githubusercontent.com/vincentlauriat/AzPim/main/appcast.xml</link>
+    <description>AzPim release feed</description>
     <language>en</language>
     <item>
       <title>v0.9.3</title>

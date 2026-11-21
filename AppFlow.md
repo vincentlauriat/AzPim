@@ -1,11 +1,11 @@
-# AzurePim — App flow
+# AzPim — App flow
 
 ## Entry points
 
 - **Menu bar icon** (main entry, always present while the app runs; launch at login on by default).
-- **Main window** — from the panel ("Open AzurePim…"), the Dock icon when visible, or `⌘0` in the panel.
+- **Main window** — from the panel ("Open AzPim…"), the Dock icon when visible, or `⌘0` in the panel.
 - **Notification** — expiry or request-status notification; clicking opens the Menu Bar Panel on that role.
-- **URL scheme** `azurepim://` — `azurepim://activate?favorite=<name>` (for Shortcuts / Raycast), `azurepim://open`.
+- **URL scheme** `azpim://` — `azpim://activate?favorite=<name>` (for Shortcuts / Raycast), `azpim://open`.
 - **First launch** after installing the DMG → Onboarding.
 
 ## Screen list
@@ -48,7 +48,7 @@
 | Deactivate | "Deactivate" on active row + confirm | Activation older than 5 min (Azure minimum) — otherwise button disabled with tooltip | Row spinner | Row back to Eligible | Inline error | Menu Bar Panel |
 | Run favorite | Click favorite chip | At least one role still eligible | Chip spinner | Toast "2 of 2 activated" | Toast lists failures per role | Menu Bar Panel |
 | Refresh | ⌘R or header button | — | Header spinner | Timestamp updated | Banner | — |
-| Open main window | "Open AzurePim…" / ⌘0 | — | — | — | — | Roles Window |
+| Open main window | "Open AzPim…" / ⌘0 | — | — | — | — | Roles Window |
 
 ### Activation Sheet
 
@@ -115,7 +115,7 @@
 - Menu bar panel closes on outside click, stays open while the Activation Sheet is shown.
 - Main window: `NavigationSplitView` sidebar — Roles (⌘1), History (⌘2), Favorites (⌘3). Settings in its own window (⌘,).
 - Closing the main window hides the Dock icon; the app keeps running in the menu bar. Quit only from the panel menu (⌘Q).
-- Deep links: `azurepim://open`, `azurepim://activate?favorite=<name>`, `azurepim://role?id=<eligibilityScheduleId>`. Running a favorite from a link always asks for confirmation (PRD open question 12).
+- Deep links: `azpim://open`, `azpim://activate?favorite=<name>`, `azpim://role?id=<eligibilityScheduleId>`. Running a favorite from a link always asks for confirmation (PRD open question 12).
 
 ## Empty and blocked states
 
@@ -132,7 +132,7 @@
 
 ## First use
 
-1. Onboarding page 1 — what AzurePim does, privacy promise (no server, no telemetry).
+1. Onboarding page 1 — what AzPim does, privacy promise (no server, no telemetry).
 2. Page 2 — sign-in: if `az` is detected and signed in, preselect "Use Azure CLI session (detected: <user>, <tenant>)"; second option "Sign in with Microsoft".
 3. Page 3 — allow notifications, launch at login (both on by default, can be skipped).
 4. Done → Menu Bar Panel opens attached to the icon, roles loading.

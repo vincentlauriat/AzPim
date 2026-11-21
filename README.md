@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/assets/icon-256.png" width="128" alt="AzurePim icon">
+  <img src="docs/assets/icon-256.png" width="128" alt="AzPim icon">
 </p>
 
-<h1 align="center">AzurePim</h1>
+<h1 align="center">AzPim</h1>
 
 <p align="center">
   Your Microsoft PIM roles in the macOS menu bar: see what is active, activate, extend and end roles,
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://vincentlauriat.github.io/AzurePim/">Website</a> ·
+  <a href="https://vincentlauriat.github.io/AzPim/">Website</a> ·
   <a href="#install">Install</a> ·
   <a href="#sign-in">Sign-in</a> ·
   <a href="#privacy-and-security">Privacy</a> ·
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/panel-dark.png" width="340" alt="AzurePim menu bar panel with two active roles">
+  <img src="docs/screenshots/panel-dark.png" width="340" alt="AzPim menu bar panel with two active roles">
 </p>
 
 > **Status: 0.9, pre-1.0.** The signed DMG works with Azure CLI. It ships without a client ID, so Microsoft sign-in
@@ -28,7 +28,7 @@
 
 Privileged Identity Management (PIM) gives you roles *just in time*: you activate a role for a few hours, with a
 justification, then it expires. In the portal that is 6 to 10 clicks per role, and nothing tells you that a role is
-about to end in the middle of a deployment. AzurePim keeps all of it one click away in the menu bar.
+about to end in the middle of a deployment. AzPim keeps all of it one click away in the menu bar.
 
 ## Features
 
@@ -39,7 +39,7 @@ about to end in the middle of a deployment. AzurePim keeps all of it one click a
 | **One-click activation** | Duration capped by the role policy, last justification pre-filled, ticket field when the policy asks for one. |
 | **Deactivate** | End a role as soon as you are done (Azure refuses it in the first 5 minutes; the button says so). |
 | **Expiry notifications** | A reminder before the end, with an **Extend** button. |
-| **Favorites** | Activate several roles in one click, from the panel or `azurepim://activate?favorite=<name>` (always confirmed). |
+| **Favorites** | Activate several roles in one click, from the panel or `azpim://activate?favorite=<name>` (always confirmed). |
 | **History** | Every request, pending approvals (including ones sent from the portal) with **Cancel**, CSV export, median time to activate. |
 | **Roles window** | Search and filter every role, see its policy: maximum duration, justification, ticket, MFA, approval. |
 | **Several accounts and tenants** | One panel, filter per account. |
@@ -57,20 +57,29 @@ Screenshots use demo data (Contoso).
 ## Install
 
 Requires macOS 14 or later. Download the signed and notarized DMG from
-[GitHub Releases](https://github.com/vincentlauriat/AzurePim/releases/latest) and drag AzurePim to Applications.
+[GitHub Releases](https://github.com/vincentlauriat/AzPim/releases/latest) and drag AzPim to Applications.
 Updates arrive automatically through Sparkle, or from Settings › About › Check for Updates.
+
+> **Upgrading from 0.9.x (AzurePim).** Up to 0.9.3 the app was called AzurePim. AzPim has a new bundle id, so
+> AzurePim does not update to it: its update check points to this page instead. Quit AzurePim, download AzPim once
+> by hand and open it (it asks you to quit AzurePim if it is still running). On first launch it copies its local
+> data (the account list, favorites and history) from `~/Library/Application Support/AzurePim/` and its panel and
+> link preferences, leaving the originals in place, and registers itself at login if AzurePim was. Then remove
+> AzurePim from Applications and its entry from System Settings › General › Login Items; AzPim reminds you once if
+> AzurePim is still installed. Microsoft sign-in accounts may ask you to sign in again. Updates then arrive
+> automatically again.
 
 To build from source, you need Xcode (stable) and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
 ```bash
-git clone https://github.com/vincentlauriat/AzurePim.git && cd AzurePim
+git clone https://github.com/vincentlauriat/AzPim.git && cd AzPim
 xcodegen generate
-xcodebuild -project AzurePim.xcodeproj -scheme AzurePim -configuration Debug \
+xcodebuild -project AzPim.xcodeproj -scheme AzPim -configuration Debug \
   -derivedDataPath build build
-open build/Build/Products/Debug/AzurePim.app
+open build/Build/Products/Debug/AzPim.app
 ```
 
-AzurePim lives in the menu bar, with no Dock icon. On a notched MacBook with a full menu bar, the key icon may be
+AzPim lives in the menu bar, with no Dock icon. On a notched MacBook with a full menu bar, the key icon may be
 hidden: free some room or use a menu bar manager.
 
 ## Sign-in
@@ -91,16 +100,16 @@ Microsoft sign-in. Delegated permissions, always on behalf of the signed-in user
 A ready-to-send email for your tenant admin is in
 [docs/admin-consent/email-template-tenant-admin.md](docs/admin-consent/email-template-tenant-admin.md).
 
-AzurePim never grants anything by itself: every activation goes through PIM, which still enforces approval, MFA,
+AzPim never grants anything by itself: every activation goes through PIM, which still enforces approval, MFA,
 ticket and maximum duration.
 
 ## Privacy and security
 
-- **No server, no telemetry, no account.** AzurePim talks only to `management.azure.com`, `graph.microsoft.com`
+- **No server, no telemetry, no account.** AzPim talks only to `management.azure.com`, `graph.microsoft.com`
   and `login.microsoftonline.com`.
-- **AzurePim stores no token.** The Azure CLI keeps its own; the Microsoft sign-in uses the Keychain cache of
+- **AzPim stores no token.** The Azure CLI keeps its own; the Microsoft sign-in uses the Keychain cache of
   Microsoft's MSAL library.
-- **Local data** (roles, policies, history, favorites) sits in `~/Library/Application Support/AzurePim/`, a folder
+- **Local data** (roles, policies, history, favorites) sits in `~/Library/Application Support/AzPim/`, a folder
   only your user can read. *Settings › Accounts › Privacy › Delete All Local Data* signs out and wipes it.
 - **`az` is run safely:** explicit arguments, no shell, a minimal environment; a custom path must be owned by you or
   root and not writable by others.
@@ -110,22 +119,22 @@ ticket and maximum duration.
 ## Build and test
 
 ```bash
-swift test --package-path Packages/AzurePimCore                  # logic tests
+swift test --package-path Packages/AzPimCore                  # logic tests
 swiftlint lint                                                    # style
-AZUREPIM_LIVE=1 swift test --package-path Packages/AzurePimCore   # read-only live tests, needs `az login`
+AZPIM_LIVE=1 swift test --package-path Packages/AzPimCore   # read-only live tests, needs `az login`
 ```
 
 Debug builds can render the panel and windows to PNG files, with demo data, without clicking the menu bar:
 
 ```bash
-AZUREPIM_SNAPSHOT=/tmp/shots build/Build/Products/Debug/AzurePim.app/Contents/MacOS/AzurePim
+AZPIM_SNAPSHOT=/tmp/shots build/Build/Products/Debug/AzPim.app/Contents/MacOS/AzPim
 ```
 
 ## Releasing
 
 ```bash
 ./Scripts/release.sh 0.9.3                    # from a clean main, with release/release-notes-0.9.3.md
-gh release create v0.9.3 ./release/AzurePim-0.9.3.dmg --title "v0.9.3" --notes-file release/release-notes-0.9.3.md
+gh release create v0.9.3 ./release/AzPim-0.9.3.dmg --title "v0.9.3" --notes-file release/release-notes-0.9.3.md
 ./Scripts/release.sh --publish-appcast 0.9.3  # checks the DMG URL answers, prepends the item to appcast.xml
 ```
 
@@ -161,15 +170,15 @@ fixed by the next build.
 **Monitoring after a release:**
 
 - Download counts per asset: `gh release view vX.Y.Z --json assets --jq '.assets[] | "\(.name) \(.downloadCount)"'`.
-- New [issues](https://github.com/vincentlauriat/AzurePim/issues) in the first days, and the Sparkle feed itself:
-  `curl -fsS https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml` shows what clients see.
+- New [issues](https://github.com/vincentlauriat/AzPim/issues) in the first days, and the Sparkle feed itself:
+  `curl -fsS https://raw.githubusercontent.com/vincentlauriat/AzPim/main/appcast.xml` shows what clients see.
 
 ## Project layout
 
 | Path | Content |
 |---|---|
-| `AzurePim/` | SwiftUI app: menu bar panel, Roles / History / Favorites windows, settings, services |
-| `Packages/AzurePimCore/` | UI-free logic: token providers, ARM and Graph PIM clients, models, validation, tests |
+| `AzPim/` | SwiftUI app: menu bar panel, Roles / History / Favorites windows, settings, services |
+| `Packages/AzPimCore/` | UI-free logic: token providers, ARM and Graph PIM clients, models, validation, tests |
 | `docs/` | Website (GitHub Pages), screenshots, admin consent email template |
 | `project.yml` | XcodeGen spec (MSAL and Sparkle pinned to exact versions) |
 | `Scripts/release.sh` | Builds, signs, notarizes (App Store Connect API key, or keychain profile) and packages the DMG, and writes `appcast.xml` |
@@ -196,4 +205,4 @@ fixed by the next build.
 
 ## License
 
-[MIT](LICENSE). AzurePim is not affiliated with Microsoft. Azure, Entra and Microsoft are trademarks of Microsoft.
+[MIT](LICENSE). AzPim is not affiliated with Microsoft. Azure, Entra and Microsoft are trademarks of Microsoft.

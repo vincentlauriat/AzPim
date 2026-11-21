@@ -1,9 +1,9 @@
 included:
-  - AzurePim
-  - Packages/AzurePimCore/Sources
-  - Packages/AzurePimCore/Tests
+  - AzPim
+  - Packages/AzPimCore/Sources
+  - Packages/AzPimCore/Tests
 excluded:
-  - Packages/AzurePimCore/.build
+  - Packages/AzPimCore/.build
 line_length:
   warning: 140
   error: 200

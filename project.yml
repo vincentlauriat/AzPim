@@ -1,4 +1,4 @@
-name: AzurePim
+name: AzPim
 options:
   bundleIdPrefix: fr.vincentlauriat
   deploymentTarget:
@@ -6,8 +6,8 @@ options:
   createIntermediateGroups: true
 
 packages:
-  AzurePimCore:
-    path: Packages/AzurePimCore
+  AzPimCore:
+    path: Packages/AzPimCore
   MSAL:
     url: https://github.com/AzureAD/microsoft-authentication-library-for-objc
     revision: 7fb550e520e21ab2273639a88889cf432fdb71a7   # tag 2.17.1, pinned by commit (a moved tag cannot change a signed build)
@@ -17,36 +17,36 @@ packages:
 
 # Explicit scheme (xcodegen does not keep hand-made schemes across regenerations).
 schemes:
-  AzurePim:
+  AzPim:
     build:
       targets:
-        AzurePim: all
+        AzPim: all
     run:
       config: Debug
     archive:
       config: Release
 
 targets:
-  AzurePim:
+  AzPim:
     type: application
     platform: macOS
     deploymentTarget: "14.0"
     sources:
-      - path: AzurePim
+      - path: AzPim
         excludes:
           - "**/*.entitlements"
           - "Info.plist"
     configFiles:
-      Debug: Config/AzurePim.xcconfig
-      Release: Config/AzurePim.xcconfig
+      Debug: Config/AzPim.xcconfig
+      Release: Config/AzPim.xcconfig
     dependencies:
-      - package: AzurePimCore
+      - package: AzPimCore
       - package: MSAL
       - package: Sparkle
     settings:
       base:
-        PRODUCT_NAME: AzurePim
-        PRODUCT_BUNDLE_IDENTIFIER: fr.vincentlauriat.azurepim
+        PRODUCT_NAME: AzPim
+        PRODUCT_BUNDLE_IDENTIFIER: fr.vincentlauriat.azpim
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_VERSION: "6.0"
@@ -56,35 +56,35 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         ARCHS: "$(ARCHS_STANDARD)"
         ENABLE_HARDENED_RUNTIME: YES
-        CODE_SIGN_ENTITLEMENTS: AzurePim/AzurePim.entitlements
+        CODE_SIGN_ENTITLEMENTS: AzPim/AzPim.entitlements
         # Debug builds are unsigned; Scripts/release.sh signs with Developer ID (Step 6).
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
     info:
-      path: AzurePim/Info.plist
+      path: AzPim/Info.plist
       properties:
-        CFBundleName: AzurePim
-        CFBundleDisplayName: AzurePim
-        CFBundleIdentifier: fr.vincentlauriat.azurepim
+        CFBundleName: AzPim
+        CFBundleDisplayName: AzPim
+        CFBundleIdentifier: fr.vincentlauriat.azpim
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSMinimumSystemVersion: "14.0"
         LSApplicationCategoryType: public.app-category.developer-tools
         # Menu bar agent: no Dock icon until the main window opens.
         LSUIElement: true
-        # MSAL client id (Config/AzurePim.xcconfig); empty = Microsoft sign-in disabled.
-        AzurePimClientID: "$(AZUREPIM_CLIENT_ID)"
+        # MSAL client id (Config/AzPim.xcconfig); empty = Microsoft sign-in disabled.
+        AzPimClientID: "$(AZPIM_CLIENT_ID)"
         NSHumanReadableCopyright: "© 2026 Vincent Lauriat. MIT License."
         # Sparkle. Never change SUPublicEDKey: see the banner in Scripts/release.sh.
-        SUFeedURL: https://raw.githubusercontent.com/vincentlauriat/AzurePim/main/appcast.xml
+        SUFeedURL: https://raw.githubusercontent.com/vincentlauriat/AzPim/main/appcast.xml
         SUPublicEDKey: oGxHAH0aXmMuHBG/E6/PsROoQPDhw3vicDP+FK1S4hA=
         SUEnableAutomaticChecks: true
         # Check the EdDSA signature before extracting the archive (security review, medium 3).
         SUVerifyUpdateBeforeExtraction: true
         CFBundleURLTypes:
-          - CFBundleURLName: fr.vincentlauriat.azurepim
+          - CFBundleURLName: fr.vincentlauriat.azpim
             CFBundleURLSchemes:
-              - azurepim
+              - azpim
               # MSAL redirect URI (TRD): msauth.<bundle id>://auth
-              - msauth.fr.vincentlauriat.azurepim
+              - msauth.fr.vincentlauriat.azpim

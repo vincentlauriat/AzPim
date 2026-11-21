@@ -1,0 +1,9 @@
+// Build configuration shared by Debug and Release.
+//
+// AZPIM_CLIENT_ID: client id of the multi-tenant public-client app registration (ImplementationPlan T1.5),
+// registered as "AzPim" in the Voltalia tenant (Entra rejects display names containing "Azure").
+// A public client id is not a secret. Override it in Config/AzPim.local.xcconfig (git-ignored) or at runtime
+// in Settings › Accounts › Custom client ID.
+AZPIM_CLIENT_ID = 59f46b7e-fe74-4485-a310-350ed92e6617
+
+#include? "AzPim.local.xcconfig"
