@@ -13,6 +13,8 @@ struct OnboardingView: View {
     @State private var error: String?
     @State private var notifications = true
     @State private var launchAtLogin = true
+    /// Login item problem shown on the last page; the next Done closes the window.
+    @State private var loginItemError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -94,7 +96,8 @@ struct OnboardingView: View {
         Form {
             Toggle("Notify me before an activation expires", isOn: $notifications)
             Toggle("Launch AzurePim at login", isOn: $launchAtLogin)
-            if let error { Text(error).foregroundStyle(.red) }
+                .onChange(of: launchAtLogin) { loginItemError = nil }   // Done tries again with the new choice
+            if let loginItemError { Text(loginItemError).foregroundStyle(.red) }
         }
         .formStyle(.grouped)
     }
@@ -127,18 +130,29 @@ struct OnboardingView: View {
     }
 
     private func complete() async {
+        // The problem is on screen: this Done closes the window.
+        guard loginItemError == nil else {
+            dismissWindow(id: WindowID.onboarding)
+            return
+        }
         if notifications {
             _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         }
         do {
             if launchAtLogin { try SMAppService.mainApp.register() } else { try? await SMAppService.mainApp.unregister() }
         } catch {
-            // Unsigned debug builds cannot register; the setting stays editable in Settings.
-            self.error = "Launch at login: \(error.localizedDescription)"
+            // Unsigned debug builds cannot register.
+            loginItemError = "Launch at login: \(error.localizedDescription) "
+                + "You can change it later in System Settings › General › Login Items."
+        }
+        let status = SMAppService.mainApp.status
+        if launchAtLogin, loginItemError == nil, status == .requiresApproval {
+            loginItemError = "Launch at login needs your approval in System Settings › General › Login Items."
         }
         let settings = accounts.settings
-        settings.launchAtLogin = launchAtLogin
+        // What macOS actually registered, not what was asked.
+        settings.launchAtLogin = status == .enabled
         settings.onboardingCompleted = true
-        dismissWindow(id: WindowID.onboarding)
+        if loginItemError == nil { dismissWindow(id: WindowID.onboarding) }
     }
 }

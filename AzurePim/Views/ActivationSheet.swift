@@ -59,6 +59,10 @@ struct ActivationSheet: View {
                 Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
             } else if result == .pendingApproval {
                 Label("Request sent — pending approval.", systemImage: "clock").font(.caption).foregroundStyle(.orange)
+            } else if result != nil {
+                // Accepted but not confirmed yet (or already decided): sending it again would submit a second request.
+                Label("Request sent — not confirmed yet. Check the panel in a moment.", systemImage: "paperplane")
+                    .font(.caption).foregroundStyle(.orange)
             } else if let validationError, !justification.isEmpty || role.requiresTicket {
                 Text(validationError).font(.caption).foregroundStyle(.secondary)
             }
@@ -67,12 +71,13 @@ struct ActivationSheet: View {
                 Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                 Spacer()
                 if store.busy.contains(role.id) { ProgressView().controlSize(.small) }
-                Button(result == .pendingApproval ? "Done" : "Activate") {
-                    if result == .pendingApproval { close() } else { Task { await send() } }
+                // A request Azure accepted (any result) is never sent twice from the same sheet: the button becomes Done.
+                Button(result != nil ? "Done" : "Activate") {
+                    if result != nil { close() } else { Task { await send() } }
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
-                .disabled(result != .pendingApproval && (validationError != nil || store.busy.contains(role.id)))
+                .disabled(result == nil && (validationError != nil || store.busy.contains(role.id) || store.isOffline))
             }
         }
         .padding(14)

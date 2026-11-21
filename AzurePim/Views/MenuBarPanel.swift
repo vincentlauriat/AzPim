@@ -57,7 +57,9 @@ struct MenuBarPanel: View {
     @Query(sort: \Account.sortOrder) private var accountList: [Account]
     @Query(sort: \ActiveAssignment.endAt) private var assignments: [ActiveAssignment]
     @Query(sort: \Favorite.sortOrder) private var favorites: [Favorite]
-    @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" }) private var pendingRecords: [ActivationRecord]
+    /// Requests that may still be waiting; `isWaiting` decides (a sent one stops blocking the row after 15 min).
+    @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" || $0.statusRaw == "sent" })
+    private var pendingRecords: [ActivationRecord]
     @State private var activating: EligibleRole?
     @State private var contentHeight: CGFloat = 0
     @AppStorage("panel.showActive") private var showActive = true
@@ -300,13 +302,11 @@ struct MenuBarPanel: View {
                 let roles = account.eligibleRoles.sorted {
                     ($0.sourceRaw, $0.roleName, $0.scopeName) < ($1.sourceRaw, $1.roleName, $1.scopeName)
                 }
-                if roles.isEmpty, account.lastRefreshAt != nil {
-                    EmptyLine(text: "No eligible PIM role for \(account.upn)")
-                }
+                if roles.isEmpty { EmptyLine(text: noEligibleText(account)) }
                 ForEach(Array(roles.enumerated()), id: \.element.id) { index, role in
                     if index > 0 { RowDivider() }
                     EligibleRow(role: role, isActive: activations.contains { $0.eligibleRole?.id == role.id },
-                                isPending: pendingRecords.contains { $0.eligibleRoleId == role.id }) {
+                                pending: pendingRecords.first { $0.eligibleRoleId == role.id && $0.isWaiting(at: store.now) }?.status) {
                         activating = role
                     }
                 }
@@ -325,6 +325,15 @@ struct MenuBarPanel: View {
         }
     }
 
+}
+
+extension MenuBarPanel {
+    /// "No eligible role" only once a refresh read every source: an error or a first load is not that.
+    fileprivate func noEligibleText(_ account: Account) -> String {
+        if !(store.refreshErrors[account.id] ?? [:]).isEmpty { return "Couldn't load the eligible roles of \(account.upn)" }
+        if account.lastRefreshAt == nil { return "Loading the eligible roles of \(account.upn)…" }
+        return "No eligible PIM role for \(account.upn)"
+    }
 }
 
 private struct NextActivation {

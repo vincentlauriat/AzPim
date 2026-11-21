@@ -76,6 +76,21 @@ public enum HistoryCSV {
     }
 }
 
+extension ActivationRecord {
+    /// A sent request whose outcome could not be read counts as waiting this long, then the role can be asked again.
+    public static let sentWaitSeconds: TimeInterval = 15 * 60
+
+    /// A request still waiting for its outcome: pending approval (until `Retention.markAbandoned`), or sent with a
+    /// request id in the last 15 minutes. The panel shows Pending and a favorite run does not send it again.
+    public func isWaiting(at now: Date = .now) -> Bool {
+        switch status {
+        case .pendingApproval: true
+        case .sent: remoteRequestId != nil && now.timeIntervalSince(sentAt) < Self.sentWaitSeconds
+        default: false
+        }
+    }
+}
+
 /// Result of one role of a favorite run (T4.2).
 public struct FavoriteRoleResult: Sendable, Equatable {
     public let roleName: String
@@ -88,7 +103,8 @@ public struct FavoriteRoleResult: Sendable, Equatable {
         self.error = error
     }
 
-    public var succeeded: Bool { status == .provisioned || status == .pendingApproval }
+    /// Sent counts as success: the request reached Azure, so it must not be reported as failed (nor sent again).
+    public var succeeded: Bool { status == .provisioned || status == .pendingApproval || status == .sent }
 }
 
 public enum FavoriteRun {
@@ -98,6 +114,8 @@ public enum FavoriteRun {
         let pending = results.filter { $0.status == .pendingApproval }.count
         var text = "\(activated) of \(results.count) activated"
         if pending > 0 { text += ", \(pending) pending approval" }
+        let sent = results.filter { $0.status == .sent }.count
+        if sent > 0 { text += ", \(sent) sent, not confirmed yet" }
         let failures = results.filter { !$0.succeeded }
         if !failures.isEmpty {
             text += " — " + failures.map { "\($0.roleName): \($0.error ?? "failed")" }.joined(separator: "; ")

@@ -47,7 +47,7 @@ struct AdminConsentSheet: View {
                 }
             }
 
-            if let link = ConsentRequest.link(tenantId: account.tenantId, clientId: accounts.msalClientId) {
+            if let link = ConsentRequest.link(tenantId: account.tenantId, clientId: account.msalClientId ?? accounts.msalClientId) {
                 Text(link.absoluteString).font(.caption.monospaced()).textSelection(.enabled).lineLimit(3)
                 HStack {
                     Button("Copy consent link") {

@@ -88,6 +88,30 @@ struct ModelTests {
         #expect(try context.fetchCount(FetchDescriptor<EligibleRole>()) == 0)
     }
 
+    /// Pending badge and favorite skip: waiting for approval, or sent with a request id in the last 15 minutes.
+    @Test func waitingRequests() throws {
+        let account = Account(mode: .azureCLI, upn: "a@x.com", objectId: "o1", tenantId: "t1")
+        context.insert(account)
+        // "c" was sent but never got a request id (app quit mid-flight): not waiting.
+        let rows: [(String, RequestStatus)] = [("a", .pendingApproval), ("b", .sent), ("c", .sent), ("d", .failed),
+                                               ("e", .sent)]
+        for (role, status) in rows {
+            let record = ActivationRecord(account: account, eligibleRoleId: role, roleName: role, scopeName: "s",
+                                          source: .azureResource, action: .activate)
+            record.status = status
+            record.remoteRequestId = role == "c" ? nil : "req-\(role)"
+            // "e" was sent 20 minutes ago and its status could never be read: no longer blocks the row.
+            if role == "e" { record.sentAt = Date.now.addingTimeInterval(-20 * 60) }
+            context.insert(record)
+        }
+        try context.save()
+        // Same fetch as the panel's query, then the core rule.
+        let candidates = try context.fetch(FetchDescriptor<ActivationRecord>(predicate: #Predicate {
+            $0.statusRaw == "pendingApproval" || $0.statusRaw == "sent"
+        }))
+        #expect(Set(candidates.filter { $0.isWaiting() }.map(\.eligibleRoleId)) == ["a", "b"])
+    }
+
     /// A cached activation past its end date must not count as active (panel, favorites, Extend).
     @Test func expiredActivationIsNotLive() {
         let account = Account(mode: .azureCLI, upn: "a@x.com", objectId: "o1", tenantId: "t1")

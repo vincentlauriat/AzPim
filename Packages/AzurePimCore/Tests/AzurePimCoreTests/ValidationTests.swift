@@ -34,6 +34,23 @@ struct ValidationTests {
         #expect(ISODuration.string(600) == "PT10M")
     }
 
+    @Test func isoDurationLabel() {
+        #expect(ISODuration.label(1_800) == "30 min")
+        #expect(ISODuration.label(7_200) == "2 h")
+        #expect(ISODuration.label(5_400) == "1 h 30 min")
+        #expect(Validation.Failure.exceedsPolicy(max: 2_700).userMessage == "Longer than the policy maximum (45 min)")
+    }
+
+    @Test func deepLinkEscapesReservedCharacters() throws {
+        let name = "Prod & Ops = 1+1 #50% é"
+        let url = try #require(DeepLink.activate(favorite: name))
+        #expect(url.absoluteString.hasPrefix("azurepim://activate?favorite="))
+        #expect(!url.query!.contains("&") && !url.query!.contains("+") && !url.query!.contains("#"))
+        #expect(DeepLink.value(of: "favorite", in: url) == name)
+        let role = try #require(DeepLink.role(id: "a/b?c=d"))
+        #expect(DeepLink.value(of: "id", in: role) == "a/b?c=d")
+    }
+
     @Test func durationAgainstPolicy() throws {
         #expect(try Validation.duration("PT4H", policyMax: "PT8H").get() == 14_400)
         #expect(Validation.duration("PT9H", policyMax: "PT8H") == .failure(.exceedsPolicy(max: 28_800)))

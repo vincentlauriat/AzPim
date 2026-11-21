@@ -10,6 +10,8 @@ final class RoleStore {
     let accounts: AccountService
     let notifications: NotificationScheduler
     private var autoRefresh: Task<Void, Never>?
+    /// Bumped when the refresh loop is restarted (new interval): an older loop stops at its next wake-up.
+    @ObservationIgnored private var autoRefreshGeneration = 0
 
     private(set) var isRefreshing = false
     private(set) var lastRefresh: Date?
@@ -19,8 +21,11 @@ final class RoleStore {
     private(set) var lastOnline: Date?
     /// The network is unreachable: actions are disabled, cached data stays visible.
     var isOffline: Bool { refreshErrors.values.contains { $0.values.contains(.offline) } }
-    /// Rows with a request in flight, and the last error per row (local EligibleRole / ActiveAssignment id).
-    private(set) var busy: Set<String> = []
+    /// Rows with a request in flight (local EligibleRole / ActiveAssignment id): a second request is refused.
+    private var inFlight: Set<String> = []
+    /// Rows shown busy: a request in flight, or an extension (including its waits between attempts).
+    var busy: Set<String> { inFlight.union(extending) }
+    /// Last error per row (local EligibleRole / ActiveAssignment id).
     var rowErrors: [String: String] = [:]
     /// When the panel was last opened (Activation timing).
     var panelOpenedAt: Date?
@@ -42,7 +47,8 @@ final class RoleStore {
     var lastActivationError: [String: (text: String, alreadyActive: Bool)] = [:]
     /// True while the History window is shown: pending requests are then listed on every refresh.
     var historyVisible = false
-    /// Roles with an extension in flight (a second tap on another notification is refused).
+    /// Roles with an extension in flight (a second tap on another notification is refused), and the active row
+    /// being extended.
     var extending: Set<String> = []
     private var refreshRequested = false
     /// The pending rerun was asked by the user, not by a timer (it may open a sign-in window).
@@ -62,7 +68,7 @@ final class RoleStore {
 
     /// Starts the refresh loop and the countdown clock (once, at launch).
     func start() {
-        startAutoRefresh()
+        if autoRefresh == nil { startAutoRefresh() }
         guard clock == nil else { return }
         // Rows that expired before launch are handled by the launch refresh, not by a second one.
         refreshedForExpiry = expiredActivationEnd()
@@ -77,16 +83,26 @@ final class RoleStore {
         }
     }
 
-    private func startAutoRefresh() {
-        guard autoRefresh == nil else { return }
+    private func startAutoRefresh(after delay: TimeInterval = 0) {
+        autoRefreshGeneration += 1
+        let generation = autoRefreshGeneration
+        // The replaced loop is not cancelled: a cancellation would abort its refresh mid-request.
         autoRefresh = Task { [weak self] in
-            while !Task.isCancelled {
+            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+            while !Task.isCancelled, self?.autoRefreshGeneration == generation {
                 // Background: a token that needs the user surfaces as a banner, never as a sign-in window.
                 await TokenInteraction.$isBackground.withValue(true) { await self?.refresh() }
                 let minutes = self?.accounts.settings.refreshIntervalMinutes ?? 5
                 try? await Task.sleep(for: .seconds(minutes * 60))
             }
         }
+    }
+
+    /// Settings › Refresh interval: the new interval applies at once, counted from the last refresh.
+    func restartAutoRefresh() {
+        let interval = Double(accounts.settings.refreshIntervalMinutes * 60)
+        let elapsed = lastRefresh.map { Date.now.timeIntervalSince($0) } ?? interval   // never refreshed: now
+        startAutoRefresh(after: max(0, interval - elapsed))
     }
 
     /// Refresh when the panel opens and the data is older than 60 s (PRD open question 10).
@@ -199,10 +215,15 @@ final class RoleStore {
                   action: ActivationAction = .activate, refreshAfter: Bool = true,
                   discardIfAlreadyActive: Bool = false) async -> RequestStatus? {
         guard let account = role.account else { return nil }
-        busy.insert(role.id)
+        // One request per row: a second tap, a second sheet or a favorite during an Extend must not submit it twice.
+        guard action == .extend || !extending.contains(role.id), inFlight.insert(role.id).inserted else {
+            rowErrors[role.id] = "A request for this role is already in progress."
+            lastActivationError[role.id] = nil
+            return nil
+        }
+        defer { inFlight.remove(role.id) }
         rowErrors[role.id] = nil
         lastActivationError[role.id] = nil
-        defer { busy.remove(role.id) }
         let record = ActivationRecord(account: account, eligibleRoleId: role.id, roleName: role.roleName,
                                       scopeName: role.scopeName, source: role.source, action: action,
                                       requestedDuration: input.duration, justification: input.justification,
@@ -215,7 +236,10 @@ final class RoleStore {
             }
             let outcome = try await source.activate(role.remote, principalId: account.objectId, input: input)
             record.remoteRequestId = outcome.requestId
+            // Azure answered but did not apply the request: a failure, shown on the row (the role can be activated again).
+            if [.failed, .denied, .canceled].contains(outcome.status) { throw RequestRefused(status: outcome.status) }
             record.status = outcome.status
+            rowErrors[role.id] = nil   // a refused duplicate meanwhile left its message
             if outcome.status == .provisioned { record.completedAt = .now }
             role.lastJustification = input.justification
             try? context.save()
@@ -227,7 +251,7 @@ final class RoleStore {
             if discardIfAlreadyActive && alreadyActive {
                 context.delete(record)
             } else {
-                record.status = .failed
+                record.status = (error as? RequestRefused)?.status ?? .failed
                 record.errorMessage = Self.message(for: error)
                 rowErrors[role.id] = record.errorMessage
             }
@@ -244,9 +268,9 @@ final class RoleStore {
         }
         // The row may be deleted by a refresh while the request runs: use copies after the first `await`.
         let rowId = assignment.id
-        busy.insert(rowId)
+        guard inFlight.insert(rowId).inserted else { return false }
+        defer { inFlight.remove(rowId) }
         rowErrors[rowId] = nil
-        defer { busy.remove(rowId) }
         let record = ActivationRecord(account: account, eligibleRoleId: role.id, roleName: role.roleName,
                                       scopeName: role.scopeName, source: role.source, action: .deactivate)
         context.insert(record)
@@ -258,6 +282,10 @@ final class RoleStore {
             record.remoteRequestId = outcome.requestId
             record.status = outcome.status == .failed ? .failed : .provisioned
             record.completedAt = .now
+            if record.status == .failed {
+                record.errorMessage = RequestRefused(status: .failed).errorDescription
+                rowErrors[rowId] = record.errorMessage
+            }
             try? context.save()
             if refreshAfter { await refresh() }
             return record.status == .provisioned
@@ -286,29 +314,7 @@ final class RoleStore {
     static func message(for error: Error) -> String {
         ErrorKind.classify(error).message
     }
-}
 
-// MARK: - Policies
-
-extension RoleStore {
-    /// Fetches the policy now if it was never read (Activation Sheet needs it before validating).
-    func ensurePolicy(for role: EligibleRole) async {
-        guard role.policyFetchedAt == nil, let account = role.account,
-              let source = try? PIMService(sources: sources(for: account)).source(for: role.source),
-              let policy = try? await source.policy(for: role.remote) else { return }
-        role.policy = policy
-        try? context.save()
-    }
-
-    /// Reads the policy from Azure / Graph now, ignoring the 24 h cache. False if it could not be read.
-    func refreshPolicy(for role: EligibleRole) async -> Bool {
-        guard let account = role.account,
-              let source = try? PIMService(sources: sources(for: account)).source(for: role.source),
-              let policy = try? await source.policy(for: role.remote) else { return false }
-        role.policy = policy
-        try? context.save()
-        return true
-    }
 }
 
 // MARK: - Expiry

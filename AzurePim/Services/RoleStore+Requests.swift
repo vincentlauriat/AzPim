@@ -14,9 +14,14 @@ extension RoleStore {
         extending.insert(eligibleRoleId)
         defer { extending.remove(eligibleRoleId) }
         guard let role = eligibleRole(id: eligibleRoleId) else { return "This role is no longer eligible." }
-        guard let activeSince = activeActivations().first(where: { $0.eligibleRole?.id == eligibleRoleId })?.startAt else {
+        guard let current = activeActivations().first(where: { $0.eligibleRole?.id == eligibleRoleId }) else {
             return "\(role.roleName) is no longer active."
         }
+        let activeSince = current.startAt
+        // The active row stays busy too, through the policy read, the deactivation and the waits between attempts.
+        let currentId = current.id
+        extending.insert(currentId)
+        defer { extending.remove(currentId) }
         let lastDuration = role.account?.records
             .filter { $0.eligibleRoleId == eligibleRoleId && $0.action != .deactivate && $0.requestedDuration != nil }
             .max { $0.sentAt < $1.sentAt }?.requestedDuration
@@ -59,8 +64,18 @@ extension RoleStore {
             return "Extended until \(end.formatted(date: .omitted, time: .shortened))."
         case .pendingApproval?:
             return "Role deactivated; the new activation is waiting for approval."
+        case .sent?:
+            return "Role deactivated; the new activation was sent but not confirmed yet. Check the panel in a moment."
         default:
             return "Role deactivated; re-activation failed: \(rowErrors[roleId] ?? "unknown error"). Activate it from the panel."
+        }
+    }
+
+    /// A request Microsoft answered with Failed, Denied or Canceled: nothing was activated.
+    struct RequestRefused: LocalizedError {
+        let status: RequestStatus
+        var errorDescription: String? {
+            "Microsoft answered “\(status.rawValue)”: the request was not applied. Check the role in the Azure portal."
         }
     }
 
@@ -91,6 +106,11 @@ extension RoleStore {
                 results.append(.init(roleName: role.roleName, status: .provisioned))
                 continue
             }
+            // A request still waiting (approval, or sent and not confirmed) is not submitted a second time.
+            if let waiting = waitingRequest(for: role) {
+                results.append(.init(roleName: role.roleName, status: waiting.status))
+                continue
+            }
             await ensurePolicy(for: role)
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
             case .failure(let failure):
@@ -105,6 +125,11 @@ extension RoleStore {
         let text = FavoriteRun.summary(results)
         favoriteToast = (favoriteId, text)
         return text
+    }
+
+    /// The request of this role still waiting for its outcome, if any (`ActivationRecord.isWaiting`).
+    func waitingRequest(for role: EligibleRole) -> ActivationRecord? {
+        role.account?.records.first { $0.eligibleRoleId == role.id && $0.isWaiting() }
     }
 
     func favorite(named name: String) -> Favorite? {
@@ -198,5 +223,28 @@ extension RoleStore {
                 role.lastJustification = nil
             }
         }
+    }
+}
+
+// MARK: - Policies
+
+extension RoleStore {
+    /// Fetches the policy now if it was never read (Activation Sheet needs it before validating).
+    func ensurePolicy(for role: EligibleRole) async {
+        guard role.policyFetchedAt == nil, let account = role.account,
+              let source = try? PIMService(sources: sources(for: account)).source(for: role.source),
+              let policy = try? await source.policy(for: role.remote) else { return }
+        role.policy = policy
+        try? context.save()
+    }
+
+    /// Reads the policy from Azure / Graph now, ignoring the 24 h cache. False if it could not be read.
+    func refreshPolicy(for role: EligibleRole) async -> Bool {
+        guard let account = role.account,
+              let source = try? PIMService(sources: sources(for: account)).source(for: role.source),
+              let policy = try? await source.policy(for: role.remote) else { return false }
+        role.policy = policy
+        try? context.save()
+        return true
     }
 }

@@ -37,7 +37,9 @@ final class SameHostRedirects: NSObject, URLSessionTaskDelegate, Sendable {
 }
 
 /// Authenticated JSON client with retries on 429 / 5xx (TRD › Reliability: 1 s, 2 s, 4 s, honoring Retry-After)
-/// and claims-challenge detection.
+/// and claims-challenge detection. A 429 is retried for every method (the request was not processed); a 5xx only
+/// for reads (GET): an activation, deactivation or cancel request that failed with a 5xx may still have been applied,
+/// and sending it again could submit it twice.
 public struct AuthorizedClient: Sendable {
     public typealias TokenSource = @Sendable (_ claims: String?) async throws -> AccessToken
 
@@ -83,7 +85,7 @@ public struct AuthorizedClient: Sendable {
                 claims = challenge
                 continue
             }
-            if status == 429 || status >= 500, attempt < maxRetries {
+            if status == 429 || (status >= 500 && method == "GET"), attempt < maxRetries {
                 let retryAfter = response.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
                 // Capped: a huge Retry-After must not hold the refresh (and queued actions) for hours.
                 try await sleep(.seconds(min(retryAfter ?? pow(2, Double(attempt)), 30)))
