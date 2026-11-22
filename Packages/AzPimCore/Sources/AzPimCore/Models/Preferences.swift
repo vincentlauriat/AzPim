@@ -40,10 +40,17 @@ public enum PreferenceKeys {
     @discardableResult
     public static func copyLegacy(from oldDomain: String = legacyDomain, into defaults: UserDefaults,
                                   domain: String) -> [String] {
-        let old = defaults.persistentDomain(forName: oldDomain) ?? [:]
-        let current = defaults.persistentDomain(forName: domain) ?? [:]
+        copyLegacy(old: defaults.persistentDomain(forName: oldDomain) ?? [:],
+                   current: defaults.persistentDomain(forName: domain) ?? [:]) { defaults.set($1, forKey: $0) }
+    }
+
+    /// Same copy on plain dictionaries (tests use no real defaults domain): writes each missing app key through
+    /// `write`. Returns the copied keys, sorted.
+    @discardableResult
+    public static func copyLegacy(old: [String: Any], current: [String: Any],
+                                  write: (_ key: String, _ value: Any) -> Void) -> [String] {
         let values = legacyValues(from: old, notIn: current)
-        values.forEach { defaults.set($0.value, forKey: $0.key) }
+        values.forEach { write($0.key, $0.value) }
         return values.keys.sorted()
     }
 }

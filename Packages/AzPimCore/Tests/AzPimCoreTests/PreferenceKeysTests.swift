@@ -26,31 +26,23 @@ struct PreferenceKeysTests {
         #expect(PreferenceKeys.all.contains(PreferenceKeys.allowLinkActivation))
     }
 
-    @Test func copiesBetweenRealDefaultsDomains() throws {
-        let oldDomain = "azpim-tests-old-\(UUID().uuidString)"
-        let newDomain = "azpim-tests-new-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: newDomain))
-        defer {
-            defaults.removePersistentDomain(forName: oldDomain)
-            defaults.removePersistentDomain(forName: newDomain)
-        }
-        defaults.setPersistentDomain(["deepLinks.allowActivation": false, "panel.showFavorites": false,
-                                      "SUHasLaunchedBefore": true], forName: oldDomain)
-        defaults.set(true, forKey: "panel.showFavorites")
+    /// On dictionaries: a real defaults domain would leave a plist in ~/Library/Preferences after the test.
+    @Test func copiesOnlyMissingAppKeys() {
+        let old: [String: Any] = ["deepLinks.allowActivation": false, "panel.showFavorites": false,
+                                  "SUHasLaunchedBefore": true]
+        var current: [String: Any] = ["panel.showFavorites": true]
 
-        let copied = PreferenceKeys.copyLegacy(from: oldDomain, into: defaults, domain: newDomain)
+        let copied = PreferenceKeys.copyLegacy(old: old, current: current) { current[$0] = $1 }
 
         #expect(copied == ["deepLinks.allowActivation"])
-        #expect(defaults.object(forKey: "deepLinks.allowActivation") as? Bool == false)
-        #expect(defaults.bool(forKey: "panel.showFavorites"))   // already set: not overwritten
-        #expect(defaults.persistentDomain(forName: newDomain)?["SUHasLaunchedBefore"] == nil)
+        #expect(current["deepLinks.allowActivation"] as? Bool == false)
+        #expect(current["panel.showFavorites"] as? Bool == true)   // already set: not overwritten
+        #expect(current["SUHasLaunchedBefore"] == nil)
     }
 
-    @Test func noLegacyDomainCopiesNothing() throws {
-        let newDomain = "azpim-tests-new-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: newDomain))
-        defer { defaults.removePersistentDomain(forName: newDomain) }
-        #expect(PreferenceKeys.copyLegacy(from: "azpim-tests-missing-\(UUID().uuidString)", into: defaults,
-                                          domain: newDomain).isEmpty)
+    @Test func noLegacyDomainCopiesNothing() {
+        var writes = 0
+        #expect(PreferenceKeys.copyLegacy(old: [:], current: [:]) { _, _ in writes += 1 }.isEmpty)
+        #expect(writes == 0)
     }
 }
