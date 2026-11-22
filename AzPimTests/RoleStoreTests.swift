@@ -81,6 +81,7 @@ struct ExtendTests {
         _ = await harness.store.extend(eligibleRoleId: roleId)
         #expect(observed.map(\.id) == ["\(account.id.uuidString)|i1-replaced"])
         #expect(observed.map(\.busy) == [true])
+        #expect(!harness.store.activeActivations().isEmpty)
         #expect(harness.store.activeActivations().allSatisfy { !harness.store.isBusy($0) })
     }
 }

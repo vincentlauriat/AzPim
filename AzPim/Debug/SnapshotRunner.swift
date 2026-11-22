@@ -37,11 +37,21 @@ enum SnapshotRunner {
         return Env(container: demo, accounts: accounts, store: store)
     }
 
+    /// True when the app runs as the host of the unit tests (checked by the tests themselves).
+    private(set) static var isTestHost = false
+
     /// Host of the unit tests: an empty in-memory store and nothing started (no refresh, no `az`, no Keychain, no
     /// migration, no login item). The tests build their own stores. Nil outside a test run.
     static func makeTestHostEnvironment() -> Env? {
-        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil,
-              let memory = try? AzPimStore.makeContainer(inMemory: true) else { return nil }
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil else { return nil }
+        // Never fall through to the user's store under XCTest.
+        let memory: ModelContainer
+        do {
+            memory = try AzPimStore.makeContainer(inMemory: true)
+        } catch {
+            fatalError("test host: in-memory store failed: \(error)")
+        }
+        isTestHost = true
         (try? AzPimStore.settings(in: memory.mainContext))?.onboardingCompleted = true
         let accounts = AccountService(context: memory.mainContext)
         let store = RoleStore(context: memory.mainContext, accounts: accounts, notifications: NotificationScheduler())

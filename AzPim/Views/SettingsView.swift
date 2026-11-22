@@ -82,6 +82,7 @@ struct GeneralSettingsView: View {
         status = SMAppService.mainApp.status
         let settings = accounts.settings
         let enabled = status == .enabled
+        if enabled { error = nil }   // an earlier failure is no longer true (approved in System Settings meanwhile)
         guard settings.launchAtLogin != enabled else { return }
         settings.launchAtLogin = enabled
         try? context.save()

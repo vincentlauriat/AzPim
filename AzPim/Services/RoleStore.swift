@@ -78,7 +78,7 @@ final class RoleStore {
         self.context = context
         self.accounts = accounts
         self.notifications = notifications
-        tokenProvider = { [unowned accounts] in try accounts.provider(for: $0) }
+        tokenProvider = { try accounts.provider(for: $0) }
     }
 
     // MARK: - Refresh

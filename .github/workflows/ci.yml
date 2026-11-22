@@ -81,6 +81,7 @@ jobs:
       # load into the host reports success with zero tests.
       - name: App tests
         run: |
+          rm -rf TestResults.xcresult
           xcodebuild -project AzPim.xcodeproj -scheme AzPim -configuration Debug \
             -destination 'platform=macOS' -clonedSourcePackagesDirPath SourcePackages \
             -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO test
