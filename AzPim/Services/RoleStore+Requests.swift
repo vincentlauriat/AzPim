@@ -86,6 +86,16 @@ extension RoleStore {
         }
     }
 
+    /// Panel open time if recent: a stale value (panel `onAppear` not called again) would inflate the median.
+    var recentPanelOpen: Date? {
+        guard let opened = panelOpenedAt, Date.now.timeIntervalSince(opened) < 600 else { return nil }
+        return opened
+    }
+
+    static func message(for error: Error) -> String {
+        ErrorKind.classify(error).message
+    }
+
     func eligibleRole(id: String) -> EligibleRole? {
         var descriptor = FetchDescriptor<EligibleRole>(predicate: #Predicate { $0.id == id })
         descriptor.fetchLimit = 1

@@ -264,8 +264,7 @@ final class RoleStore {
             rowErrors[role.id] = nil   // a refused duplicate meanwhile left its message
             if outcome.status == .provisioned { record.completedAt = .now }
             role.lastJustification = input.justification
-            // Only a duration the user chose (Activation Sheet): not a favorite's saved one, not an extension.
-            if viaFavorite == nil, action == .activate { rememberDuration(input.duration, for: role) }
+            if viaFavorite == nil, action == .activate { rememberDuration(input.duration, for: role) }   // sheet only
             try? context.save()
             if refreshAfter { await refresh() }
             return outcome.status
@@ -320,18 +319,6 @@ final class RoleStore {
             try? context.save()
             return false
         }
-    }
-
-    // MARK: - Queries
-
-    /// Panel open time if recent: a stale value (panel `onAppear` not called again) would inflate the median.
-    private var recentPanelOpen: Date? {
-        guard let opened = panelOpenedAt, Date.now.timeIntervalSince(opened) < 600 else { return nil }
-        return opened
-    }
-
-    static func message(for error: Error) -> String {
-        ErrorKind.classify(error).message
     }
 
 }
