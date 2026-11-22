@@ -96,12 +96,10 @@ extension RoleStore {
         runningFavorites.insert(favoriteId)
         defer { runningFavorites.remove(favoriteId) }
         let active = Set(activeActivations().compactMap { $0.eligibleRole?.id })
-        // Roles saved under an Azure CLI account now replaced by a Microsoft sign-in run under the latter.
-        let superseded = supersededAccounts()
         var results: [FavoriteRoleResult] = []
         for item in items {
-            let roleId = AccountSupersede.resolve(eligibleRoleId: item.eligibleRoleId, superseded: superseded)
-            guard let role = eligibleRole(id: roleId), role.account.map({ superseded[$0.id] == nil }) == true else {
+            // Roles saved under an Azure CLI account now replaced by a Microsoft sign-in run under the latter.
+            guard let role = favoriteRole(for: item) else {
                 results.append(.init(roleName: "Unknown role", status: nil, error: "no longer eligible"))
                 continue
             }
@@ -130,9 +128,14 @@ extension RoleStore {
         return text
     }
 
-    /// The request of this role still waiting for its outcome, if any (`ActivationRecord.isWaiting`).
+    /// The request of this role still waiting for its outcome, if any (`ActivationRecord.isWaiting`), including one
+    /// sent for the same eligibility through an Azure CLI account the role's account has since superseded.
     func waitingRequest(for role: EligibleRole) -> ActivationRecord? {
-        role.account?.records.first { $0.eligibleRoleId == role.id && $0.isWaiting() }
+        let supersession = supersession()
+        let records = (try? context.fetch(FetchDescriptor<ActivationRecord>())) ?? []
+        return records.first {
+            $0.isWaiting() && supersession.resolve(eligibleRoleId: $0.eligibleRoleId, source: $0.source) == role.id
+        }
     }
 
     func favorite(named name: String) -> Favorite? {

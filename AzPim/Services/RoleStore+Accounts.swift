@@ -4,18 +4,37 @@ import SwiftData
 
 /// One account per identity: what the store reads and acts on leaves out a superseded Azure CLI account.
 extension RoleStore {
-    /// Live activations of the accounts in use (never those of a superseded account): notifications, Extend, favorites.
+    /// Live activations of the accounts in use (never superseded rows): notifications, Extend, favorites.
     func activeActivations() -> [ActiveAssignment] {
         let all = (try? context.fetch(FetchDescriptor<ActiveAssignment>(sortBy: [SortDescriptor(\.endAt)]))) ?? []
-        let superseded = supersededAccounts()
-        return all.filter {
-            $0.assignmentType == .activated && $0.isLive() && $0.account.map { superseded[$0.id] == nil } == true
+        let supersession = supersession()
+        return all.filter { assignment in
+            assignment.assignmentType == .activated && assignment.isLive()
+                && assignment.account.map { !supersession.hides($0.id, assignment.source) } == true
         }
     }
 
-    /// Azure CLI accounts replaced by a Microsoft sign-in of the same identity: `[CLI id: MSAL id]`.
-    func supersededAccounts() -> [UUID: UUID] {
-        AccountSupersede.superseded(((try? context.fetch(FetchDescriptor<Account>())) ?? []).map(\.facts))
+    /// Azure CLI accounts replaced by a Microsoft sign-in of the same identity, source by source.
+    func supersession(_ accounts: [Account]) -> Supersession {
+        AccountSupersede.supersession(accounts.map { $0.facts(loaded: loadedSources[$0.id] ?? []) })
+    }
+
+    func supersession() -> Supersession {
+        supersession((try? context.fetch(FetchDescriptor<Account>())) ?? [])
+    }
+
+    /// The eligible role an id stands for now: a role of a superseded Azure CLI account is the same eligibility under
+    /// the Microsoft sign-in that replaced it (favorites, links, notifications). Nil when it no longer exists.
+    func resolvedRole(id: String) -> EligibleRole? {
+        guard let role = eligibleRole(id: id), let account = role.account else { return nil }
+        let supersession = supersession()
+        guard supersession.hides(account.id, role.source) else { return role }
+        return eligibleRole(id: supersession.resolve(eligibleRoleId: id, source: role.source))
+    }
+
+    /// The role a favorite item activates (see `resolvedRole`): the confirmation and the run read the same one.
+    func favoriteRole(for item: FavoriteItem) -> EligibleRole? {
+        resolvedRole(id: item.eligibleRoleId)
     }
 
     /// PIM sources of one account, acting only with a token of that account's own identity.

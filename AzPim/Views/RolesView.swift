@@ -21,17 +21,20 @@ struct RolesView: View {
 
     /// Accounts in use: an Azure CLI account replaced by a Microsoft sign-in of the same identity is left out.
     private var activeAccounts: [Account] {
-        let superseded = AccountSupersede.superseded(accounts.map(\.facts))
-        return accounts.filter { superseded[$0.id] == nil }
+        let supersession = store.supersession(accounts)
+        return accounts.filter { !supersession.isRetired($0.id) }
     }
+    /// Eligible roles of the accounts in use, without superseded ones.
     private var activeRoles: [EligibleRole] {
-        let ids = Set(activeAccounts.map(\.id))
-        return roles.filter { $0.account.map { ids.contains($0.id) } == true }
+        let supersession = store.supersession(accounts)
+        return roles.filter { role in role.account.map { !supersession.hides($0.id, role.source) } == true }
     }
-    /// Live assignments of the accounts in use.
+    /// Live assignments of the accounts in use, without superseded ones.
     private var liveAssignments: [ActiveAssignment] {
-        let ids = Set(activeAccounts.map(\.id))
-        return assignments.filter { $0.isLive(at: store.now) && $0.account.map { ids.contains($0.id) } == true }
+        let supersession = store.supersession(accounts)
+        return assignments.filter { row in
+            row.isLive(at: store.now) && row.account.map { !supersession.hides($0.id, row.source) } == true
+        }
     }
 
     private var rows: [RoleRow] {
@@ -41,10 +44,16 @@ struct RolesView: View {
             RoleRow(role: role, assignment: live.first { $0.eligibleRole?.id == role.id && $0.assignmentType == .activated },
                     heldPermanently: permanentKeys.contains(role.heldKey))
         }
-        // One row per permanent role; one also held as an activation is that activation's row ("also permanent").
+        // One row per permanent role. One also held as an activation is shown by that activation's eligible row
+        // ("also permanent"), when that row is listed; otherwise it keeps its own permanent row.
         let byId = Dictionary(live.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        list += RoleMerge.merge(live.map(\.facts)).filter { $0.type == .assigned }
-            .compactMap { byId[$0.primaryId] }.map { RoleRow(permanent: $0) }
+        let listed = Set(activeRoles.map(\.id))
+        list += RoleMerge.merge(live.map(\.facts)).compactMap { group -> ActiveAssignment? in
+            guard group.type == .activated else { return byId[group.primaryId] }
+            guard group.alsoPermanent else { return nil }
+            if let role = byId[group.primaryId]?.eligibleRole, listed.contains(role.id) { return nil }
+            return group.memberIds.compactMap { byId[$0] }.first { $0.assignmentType == .assigned }
+        }.map { RoleRow(permanent: $0) }
         return list.filter { row in
             (source == nil || row.source == source)
                 && (accountId == nil || row.account?.id == accountId)

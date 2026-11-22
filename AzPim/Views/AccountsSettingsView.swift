@@ -19,9 +19,9 @@ struct AccountsSettingsView: View {
                 if accounts.isEmpty {
                     Text("No account yet.").foregroundStyle(.secondary)
                 }
-                let superseded = AccountSupersede.superseded(accounts.map(\.facts))
+                let supersession = store.supersession(accounts)
                 ForEach(accounts) { account in
-                    AccountRow(account: account, busy: busy, replaced: superseded[account.id] != nil) {
+                    AccountRow(account: account, busy: busy, replaced: supersession.isRetired(account.id)) {
                         run { try await service.enableDirectoryAccess(for: account) }
                     } remove: {
                         pendingRemoval = account
@@ -63,8 +63,9 @@ struct AccountsSettingsView: View {
             Button("Remove", role: .destructive) {
                 do {
                     try service.remove(account)
-                    // Removing a Microsoft sign-in may bring back the Azure CLI account it replaced: load it now.
-                    Task { await store.refresh() }
+                    // Removing a Microsoft sign-in may bring back the Azure CLI account it replaced: load it now,
+                    // without opening a sign-in window.
+                    Task { await TokenInteraction.$isBackground.withValue(true) { await store.refresh() } }
                 } catch {
                     self.error = AccountService.message(for: error)
                 }

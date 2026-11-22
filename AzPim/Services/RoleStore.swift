@@ -57,6 +57,9 @@ final class RoleStore {
     var focusedRoleId: String?
     /// Account filter of the panel (nil = all accounts, T4.4).
     var accountFilter: UUID?
+    /// Sources each account loaded without error in this launch: a Microsoft sign-in supersedes an Azure CLI account
+    /// source by source, once it has loaded it (stored rows count too, see `Account.facts`).
+    var loadedSources: [UUID: Set<RoleSource>] = [:]
     #if DEBUG
     /// Snapshot fixtures: never refreshed (no `az`, no Keychain).
     @ObservationIgnored var snapshotFrozen = false
@@ -137,12 +140,14 @@ final class RoleStore {
             if !background { await accounts.cliProvider.clearCache() }
             let list = (try? context.fetch(FetchDescriptor<Account>(sortBy: [SortDescriptor(\.sortOrder)]))) ?? []
             forgetRemovedAccounts(keeping: Set(list.map(\.id)))
-            let superseded = AccountSupersede.superseded(list.map(\.facts))
             // A rerun asked by the user (Sign in, ⌘R) may open a sign-in window even if this run started in the background.
             await TokenInteraction.$isBackground.withValue(background) {
                 for account in list {
-                    if superseded[account.id] != nil {
-                        self.retire(account)
+                    // Decided per account: the Microsoft sign-in may have just loaded its sources in this pass.
+                    let supersession = self.supersession(list)
+                    if supersession.isRetired(account.id) {
+                        self.retire(account, into: list.first { $0.id == supersession.replacedBy[account.id] },
+                                    supersession: supersession)
                     } else {
                         await self.refresh(account)
                     }
@@ -181,6 +186,7 @@ final class RoleStore {
             }
         }
         refreshErrors[account.id] = errors
+        loadedSources[account.id, default: []].formUnion(service.sources.map(\.source).filter { snapshot.errors[$0] == nil })
         apply(snapshot, to: account, failedSources: Set(snapshot.errors.keys))
         account.lastRefreshAt = snapshot.fetchedAt
         await refreshPolicies(of: account, service: service)
@@ -342,19 +348,27 @@ extension RoleStore {
         for id in refreshErrors.keys where !ids.contains(id) { refreshErrors[id] = nil }
         for id in pending.keys where !ids.contains(id) { pending[id] = nil }
         for id in pendingErrors.keys where !ids.contains(id) { pendingErrors[id] = nil }
+        for id in loadedSources.keys where !ids.contains(id) { loadedSources[id] = nil }
         if let filter = accountFilter, !ids.contains(filter) { accountFilter = nil }
     }
 
     /// A superseded account is not refreshed: its cached assignments go (they would count, notify and show twice) and
     /// its errors and pending requests are forgotten (a stale Offline would disable every action). Its eligible roles
     /// stay, hidden, so favorites made on it resolve and the account works again at once if the MSAL one is removed.
-    fileprivate func retire(_ account: Account) {
+    /// Requests still waiting move to the superseding account (same identity, same request id) so they keep being polled.
+    fileprivate func retire(_ account: Account, into replacement: Account?, supersession: Supersession) {
         refreshErrors[account.id] = nil
         pending[account.id] = nil
         pendingErrors[account.id] = nil
+        loadedSources[account.id] = nil
         if accountFilter == account.id { accountFilter = nil }
         for assignment in account.activeAssignments {
             context.delete(assignment)
+        }
+        guard let replacement else { return }
+        for record in account.records where Self.needsPolling(record) {
+            record.eligibleRoleId = supersession.resolve(eligibleRoleId: record.eligibleRoleId, source: record.source)
+            record.account = replacement
         }
     }
 }

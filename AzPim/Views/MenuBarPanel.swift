@@ -11,12 +11,12 @@ struct MenuBarLabel: View {
     @Query(sort: \ActiveAssignment.endAt) private var assignments: [ActiveAssignment]
     @Query private var accountList: [Account]
 
-    /// Activations of the accounts in use (a superseded Azure CLI account counts for nothing).
+    /// Activations of the accounts in use, one per role (superseded Azure CLI rows count for nothing).
     private var activations: [ActiveAssignment] {
-        let superseded = AccountSupersede.superseded(accountList.map(\.facts))
-        return assignments.filter {
-            $0.assignmentType == .activated && $0.isLive(at: store.now) && $0.account.map { superseded[$0.id] == nil } == true
-        }
+        let supersession = store.supersession(accountList)
+        let accounts = accountList.filter { !supersession.isRetired($0.id) }
+        return PanelModel(accounts: accounts, assignments: assignments, supersession: supersession, now: store.now)
+            .activations.map(\.assignment)
     }
     private var nextEnd: Date? { activations.compactMap(\.endAt).min() }
 
@@ -69,10 +69,11 @@ struct MenuBarPanel: View {
     @State private var contentHeight: CGFloat = 0
     @AppStorage(PreferenceKeys.panelShowFavorites) private var showFavorites = true
 
+    private var supersession: Supersession { store.supersession(accountList) }
     /// Accounts in use: an Azure CLI account replaced by a Microsoft sign-in of the same identity is left out.
     private var activeAccounts: [Account] {
-        let superseded = AccountSupersede.superseded(accountList.map(\.facts))
-        return accountList.filter { superseded[$0.id] == nil }
+        let supersession = supersession
+        return accountList.filter { !supersession.isRetired($0.id) }
     }
     /// Accounts shown, after the account filter (T4.4).
     private var shownAccounts: [Account] {
@@ -80,7 +81,9 @@ struct MenuBarPanel: View {
         guard let filter = store.accountFilter, active.contains(where: { $0.id == filter }) else { return active }
         return active.filter { $0.id == filter }
     }
-    private var model: PanelModel { PanelModel(accounts: shownAccounts, assignments: assignments, now: store.now) }
+    private var model: PanelModel {
+        PanelModel(accounts: shownAccounts, assignments: assignments, supersession: supersession, now: store.now)
+    }
 
     /// The panel must fit under the menu bar; past ~640 pt the main window is the better place.
     private var maxHeight: CGFloat {

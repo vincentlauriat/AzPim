@@ -26,7 +26,7 @@ public struct ARMClient: PIMSource {
             let role = expanded?["roleDefinition"] as? [String: Any]
             let scopeInfo = expanded?["scope"] as? [String: Any]
             return RemoteEligibility(id: scheduleId, source: .azureResource, roleDefinitionId: roleDefinitionId,
-                                     roleName: role?["displayName"] as? String ?? "Role",
+                                     roleName: role?["displayName"] as? String ?? RoleMerge.fallbackARMName,
                                      scope: scope, scopeName: scopeInfo?["displayName"] as? String ?? scope,
                                      scopeType: scopeInfo?["type"] as? String ?? "resource",
                                      memberType: Self.memberType(props["memberType"]))
@@ -51,7 +51,7 @@ public struct ARMClient: PIMSource {
             let scopeInfo = expanded?["scope"] as? [String: Any]
             let type: AssignmentType = (props["assignmentType"] as? String) == "Activated" ? .activated : .assigned
             return RemoteAssignment(id: id, source: .azureResource, roleDefinitionId: roleDefinitionId,
-                                    roleName: role?["displayName"] as? String ?? "Role", scope: scope,
+                                    roleName: role?["displayName"] as? String ?? RoleMerge.fallbackARMName, scope: scope,
                                     scopeName: scopeInfo?["displayName"] as? String ?? scope, type: type,
                                     startAt: start, endAt: PIMDates.parse(props["endDateTime"]),
                                     linkedEligibilityId: props["linkedRoleEligibilityScheduleId"] as? String)

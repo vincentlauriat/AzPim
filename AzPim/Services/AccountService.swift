@@ -90,9 +90,15 @@ final class AccountService {
     func enableDirectoryAccess(for account: Account) async throws {
         let provider = try msalProvider(for: account)
         do {
-            if (try? await provider.silentDirectoryAccess(tenantId: account.tenantId)) != true {
-                try await provider.requestDirectoryAccess(tenantId: account.tenantId)
+            let cached: Bool
+            do {
+                cached = try await provider.silentDirectoryAccess(tenantId: account.tenantId)
+            } catch TokenError.consentRequired {
+                throw TokenError.consentRequired   // the prompt would not help: admin consent is missing
+            } catch {
+                cached = false
             }
+            if !cached { try await provider.requestDirectoryAccess(tenantId: account.tenantId) }
             account.directoryAccess = .enabled
         } catch TokenError.consentRequired {
             account.directoryAccess = .consentRequired

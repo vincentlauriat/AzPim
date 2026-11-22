@@ -121,11 +121,10 @@ struct ActiveRow: View {
             HStack(spacing: 8) {
                 Image(systemName: SourceIcon.name(assignment.source)).frame(width: 22).foregroundStyle(Theme.active)
                 VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 5) {
-                        Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                        if showTypeTag { TypeTag(source: assignment.source) }
-                    }
+                    // The role name keeps the full width; the type tag and the scope share the second line.
+                    Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
                     HStack(spacing: 4) {
+                        if showTypeTag { TypeTag(source: assignment.source) }
                         Text(assignment.scopeName).lineLimit(1).truncationMode(.middle)
                         if alsoPermanent {
                             Label("also permanent", systemImage: "lock").labelStyle(.titleAndIcon).imageScale(.small)
@@ -135,11 +134,14 @@ struct ActiveRow: View {
                     }
                     .font(.caption).foregroundStyle(.secondary)
                 }
-                Spacer()
+                .layoutPriority(1)   // the name gets the room first; the countdown and button keep their size
+                Spacer(minLength: 4)
                 if let end = assignment.endAt {
                     let remaining = end.timeIntervalSince(store.now)
                     Text(Countdown.hero(remaining))
                         .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
+                        .lineLimit(1)
+                        .fixedSize()
                         .foregroundStyle(Theme.remaining(remaining))
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2)
@@ -196,12 +198,12 @@ struct PermanentRow: View {
         HStack(spacing: 8) {
             Image(systemName: SourceIcon.name(assignment.source)).frame(width: 22).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 5) {
-                    Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                HStack(spacing: 4) {
                     if showTypeTag { TypeTag(source: assignment.source) }
+                    Text(showAccount ? "\(assignment.scopeName) · \(assignment.account?.upn ?? "")" : assignment.scopeName)
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 }
-                Text(showAccount ? "\(assignment.scopeName) · \(assignment.account?.upn ?? "")" : assignment.scopeName)
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             }
             Spacer()
             Image(systemName: "lock").imageScale(.small).foregroundStyle(.tertiary)

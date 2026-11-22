@@ -17,11 +17,17 @@ struct PanelModel {
     let permanents: [PanelAssignment]
     /// Eligible roles not active right now (neither activated nor held permanently).
     let eligible: [EligibleRole]
+    /// Eligible roles left out because they are already held, per account.
+    let heldEligibleCount: [UUID: Int]
+    let supersession: Supersession
 
-    /// `accounts`: the accounts shown (superseded ones already left out).
-    init(accounts: [Account], assignments: [ActiveAssignment], now: Date) {
+    /// `accounts`: the accounts shown (retired ones already left out); superseded rows of the others are left out too.
+    init(accounts: [Account], assignments: [ActiveAssignment], supersession: Supersession, now: Date) {
+        self.supersession = supersession
         let shown = Set(accounts.map(\.id))
-        let live = assignments.filter { $0.isLive(at: now) && $0.account.map { shown.contains($0.id) } == true }
+        let live = assignments.filter { row in
+            row.isLive(at: now) && row.account.map { shown.contains($0.id) && !supersession.hides($0.id, row.source) } == true
+        }
         let byId = Dictionary(live.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let merged = RoleMerge.merge(live.map(\.facts)).compactMap { row in
             byId[row.primaryId].map { PanelAssignment(assignment: $0, alsoPermanent: row.alsoPermanent) }
@@ -32,9 +38,23 @@ struct PanelModel {
             .sorted { ($0.assignment.roleName, $0.assignment.scopeName) < ($1.assignment.roleName, $1.assignment.scopeName) }
         let linked = Set(live.compactMap { $0.eligibleRole?.id })
         let held = Set(live.map(\.facts.key))
-        eligible = accounts.flatMap(\.eligibleRoles)
-            .filter { !RoleMerge.isHeld(eligibleRoleId: $0.id, key: $0.heldKey, linkedEligibleIds: linked, heldKeys: held) }
-            .sorted { ($0.roleName, $0.scopeName) < ($1.roleName, $1.scopeName) }
+        let candidates = accounts.flatMap(\.eligibleRoles).filter { role in
+            role.account.map { !supersession.hides($0.id, role.source) } == true
+        }
+        let isHeld = { (role: EligibleRole) in
+            RoleMerge.isHeld(eligibleRoleId: role.id, key: role.heldKey, linkedEligibleIds: linked, heldKeys: held)
+        }
+        eligible = candidates.filter { !isHeld($0) }.sorted { ($0.roleName, $0.scopeName) < ($1.roleName, $1.scopeName) }
+        heldEligibleCount = candidates.filter(isHeld).reduce(into: [:]) { counts, role in
+            if let id = role.account?.id { counts[id, default: 0] += 1 }
+        }
+    }
+
+    /// The request still waiting for this role, including one sent through a superseded Azure CLI account.
+    func waiting(_ role: EligibleRole, in records: [ActivationRecord], now: Date) -> ActivationRecord? {
+        records.first {
+            $0.isWaiting(at: now) && supersession.resolve(eligibleRoleId: $0.eligibleRoleId, source: $0.source) == role.id
+        }
     }
 }
 
@@ -116,8 +136,9 @@ struct ActiveRolesCard: View {
     @AppStorage(PreferenceKeys.panelShowPermanentGroup) private var showPermanent = false
 
     var body: some View {
+        // The badge counts activations, like the hero card; the Permanent group shows its own count.
         DisclosureCard(title: "Active roles", icon: "bolt.fill", iconColor: Theme.active,
-                       count: model.activations.count + model.permanents.count, expanded: $showActive) {
+                       count: model.activations.count, expanded: $showActive) {
             if model.activations.isEmpty && model.permanents.isEmpty {
                 EmptyLine(text: emptyText)
             }
@@ -194,6 +215,9 @@ struct EligibleRolesCard: View {
             let typed = roles.filter { $0.source == type.source }
             if !typed.isEmpty { group(type, roles: typed) }
         }
+        if roles.isEmpty, tenantAccounts.contains(where: { (model.heldEligibleCount[$0.id] ?? 0) > 0 }) {
+            EmptyLine(text: "All eligible roles are active")
+        }
         ForEach(tenantAccounts) { account in
             // No eligibility at all: say why (error, first load, or truly none).
             if account.eligibleRoles.isEmpty {
@@ -219,8 +243,7 @@ struct EligibleRolesCard: View {
         if expanded.wrappedValue {
             ForEach(Array(roles.enumerated()), id: \.element.id) { index, role in
                 if index > 0 { RowDivider() }
-                EligibleRow(role: role, isActive: false,
-                            pending: pendingRecords.first { $0.eligibleRoleId == role.id && $0.isWaiting(at: store.now) }?.status) {
+                EligibleRow(role: role, isActive: false, pending: model.waiting(role, in: pendingRecords, now: store.now)?.status) {
                     activate(role)
                 }
             }
