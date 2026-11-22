@@ -92,13 +92,14 @@ struct ActivityTests {
 
     @Test func favoriteSummary() {
         #expect(FavoriteRun.summary([.init(roleName: "Reader", status: .provisioned),
-                                     .init(roleName: "Contributor", status: .provisioned)]) == "2 of 2 activated")
+                                     .init(roleName: "Contributor", status: .provisioned)], locale: english) == "2 of 2 activated")
         let mixed = FavoriteRun.summary([.init(roleName: "Reader", status: .provisioned),
                                          .init(roleName: "Owner", status: .pendingApproval),
-                                         .init(roleName: "Contributor", status: nil, error: "Forbidden")])
+                                         .init(roleName: "Contributor", status: nil, error: "Forbidden")], locale: english)
         #expect(mixed == "1 of 3 activated, 1 pending approval — Contributor: Forbidden")
         // Sent but not confirmed: neither activated nor a failure.
-        #expect(FavoriteRun.summary([.init(roleName: "Reader", status: .sent)]) == "0 of 1 activated, 1 sent, not confirmed yet")
+        #expect(FavoriteRun.summary([.init(roleName: "Reader", status: .sent)], locale: english)
+                == "0 of 1 activated, 1 sent, not confirmed yet")
     }
 
     @Test func favoriteInputCapsDurationAndNeedsJustification() {

@@ -123,18 +123,23 @@ public enum ActivationBlock: Equatable, Sendable {
         }
     }
 
-    public var message: String {
+    /// The sentence, in the system language.
+    public var message: String { message(locale: nil) }
+
+    public func message(locale: Locale?) -> String {
         switch self {
-        case .inProgress: "A request for this role is already in progress."
+        case .inProgress: L10n.string("A request for this role is already in progress.", locale: locale)
         case .pending:
-            "A request for this role is already waiting for approval or confirmation. Cancel it in History to send another."
-        case .offline: "You're offline: activation needs a connection to Microsoft."
-        case .durationTooLong(let max): "The policy allows \(ISODuration.label(TimeInterval(max * 60))) at most."
-        case .durationTooShort: "Azure needs at least 5 minutes."
-        case .justificationRequired: "The policy requires a justification."
-        case .justificationTooLong: "The justification is limited to 500 characters."
-        case .ticketRequired: "The policy requires a ticket number."
-        case .ticketTooLong: "The ticket number is limited to 100 characters."
+            L10n.string("A request for this role is already waiting for approval or confirmation. Cancel it in History to send another.",
+                        locale: locale)
+        case .offline: L10n.string("You're offline: activation needs a connection to Microsoft.", locale: locale)
+        case .durationTooLong(let max):
+            L10n.string("The policy allows \(ISODuration.label(TimeInterval(max * 60), locale: locale)) at most.", locale: locale)
+        case .durationTooShort: L10n.string("Azure needs at least 5 minutes.", locale: locale)
+        case .justificationRequired: L10n.string("The policy requires a justification.", locale: locale)
+        case .justificationTooLong: L10n.string("The justification is limited to 500 characters.", locale: locale)
+        case .ticketRequired: L10n.string("The policy requires a ticket number.", locale: locale)
+        case .ticketTooLong: L10n.string("The ticket number is limited to 100 characters.", locale: locale)
         }
     }
 }

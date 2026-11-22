@@ -120,7 +120,7 @@ struct PaletteCommandTests {
     /// Return never extends: on an active row it only shows how to.
     @Test func returnOnAnActiveRowDoesNothing() {
         #expect(command(.returnKey, .active) == .alreadyActive)
-        #expect(PaletteCommand.alreadyActiveHint.contains("⇧↩ Extend"))
+        #expect(PaletteCommand.alreadyActiveHint(locale: english).contains("⇧↩ Extend"))
     }
 
     @Test func shiftReturnExtendsAnActiveRow() {

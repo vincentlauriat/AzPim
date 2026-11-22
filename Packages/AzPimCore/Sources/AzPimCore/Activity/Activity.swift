@@ -30,8 +30,11 @@ public enum Retention {
         let abandoned = records.filter { ($0.status == .pendingApproval || $0.status == .sent) && $0.sentAt < limit }
         for record in abandoned {
             record.status = .failed
-            record.errorMessage = "No answer after \(pollDays) days: the request expired or was decided while AzPim was "
-                + "not running. Check the Azure portal."
+            // Stored: stays in the language of the day it was written.
+            record.errorMessage = L10n.string("""
+                No answer after \(pollDays) days: the request expired or was decided while AzPim was not running. \
+                Check the Azure portal.
+                """, locale: nil)
         }
         return abandoned
     }
@@ -110,16 +113,17 @@ public struct FavoriteRoleResult: Sendable, Equatable {
 
 public enum FavoriteRun {
     /// Toast text: "2 of 2 activated", plus pending and failures per role.
-    public static func summary(_ results: [FavoriteRoleResult]) -> String {
+    public static func summary(_ results: [FavoriteRoleResult], locale: Locale? = nil) -> String {
         let activated = results.filter { $0.status == .provisioned }.count
         let pending = results.filter { $0.status == .pendingApproval }.count
-        var text = "\(activated) of \(results.count) activated"
-        if pending > 0 { text += ", \(pending) pending approval" }
+        var text = L10n.string("\(activated) of \(results.count) activated", locale: locale)
+        if pending > 0 { text += L10n.string(", \(pending) pending approval", locale: locale) }
         let sent = results.filter { $0.status == .sent }.count
-        if sent > 0 { text += ", \(sent) sent, not confirmed yet" }
+        if sent > 0 { text += L10n.string(", \(sent) sent, not confirmed yet", locale: locale) }
         let failures = results.filter { !$0.succeeded }
         if !failures.isEmpty {
-            text += " — " + failures.map { "\($0.roleName): \($0.error ?? "failed")" }.joined(separator: "; ")
+            let failed = L10n.string("failed", locale: locale)
+            text += " — " + failures.map { "\($0.roleName): \($0.error ?? failed)" }.joined(separator: "; ")
         }
         return text
     }
@@ -150,16 +154,24 @@ public enum ExtendPlan: Equatable, Sendable {
     case blocked(String)
 
     public static func decide(policy: RolePolicy, lastJustification: String?, lastDuration: String?,
-                              activeSince: Date, now: Date = .now) -> ExtendPlan {
+                              activeSince: Date, now: Date = .now, locale: Locale? = nil) -> ExtendPlan {
         if policy.requiresApproval {
-            return .blocked("This role needs approval: extending would end the current activation before the approval.")
+            return .blocked(L10n.string("This role needs approval: extending would end the current activation before the approval.",
+                                        locale: locale))
         }
-        if policy.requiresTicket { return .blocked("This role needs a ticket number: open the panel to activate it again.") }
-        if policy.requiresMFA { return .blocked("This role needs MFA: open the panel to activate it again.") }
-        if now.timeIntervalSince(activeSince) < 300 { return .blocked("Azure refuses changes within 5 minutes of activation.") }
+        if policy.requiresTicket {
+            return .blocked(L10n.string("This role needs a ticket number: open the panel to activate it again.", locale: locale))
+        }
+        if policy.requiresMFA {
+            return .blocked(L10n.string("This role needs MFA: open the panel to activate it again.", locale: locale))
+        }
+        if now.timeIntervalSince(activeSince) < 300 {
+            return .blocked(L10n.string("Azure refuses changes within 5 minutes of activation.", locale: locale))
+        }
         let justification = lastJustification ?? ""
         if policy.requiresJustification, Validation.justification(justification, required: true) != nil {
-            return .blocked("No previous justification for this role: open the panel to activate it again.")
+            return .blocked(L10n.string("No previous justification for this role: open the panel to activate it again.",
+                                        locale: locale))
         }
         // The last duration of this role, else 1 h (least privilege, never the policy maximum), capped by the policy.
         let duration = ActivationDuration.iso(ActivationDuration.defaultMinutes(lastUsed: lastDuration,

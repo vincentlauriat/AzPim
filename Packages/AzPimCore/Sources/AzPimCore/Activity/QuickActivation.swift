@@ -179,7 +179,11 @@ public enum PaletteCommand: Sendable, Equatable {
     case pass
 
     /// Hint of Return on an active row.
-    public static let alreadyActiveHint = "Already active · ⇧↩ Extend · ⌫ Deactivate"
+    public static var alreadyActiveHint: String { alreadyActiveHint(locale: nil) }
+
+    public static func alreadyActiveHint(locale: Locale?) -> String {
+        L10n.string("Already active · ⇧↩ Extend · ⌫ Deactivate", locale: locale)
+    }
 
     /// `kind`: the selected row, nil without a selection. `isRepeat`: the key is held; only ↑/↓ repeat, a repeated ⌫
     /// goes back to the search field, the other action keys are swallowed. `queryEmpty`: ⌫ and ⌘⌫ edit the search text
