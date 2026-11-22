@@ -138,7 +138,54 @@ struct RefreshTests {
         await harness.refresh()
         #expect(record.status == .provisioned)
         #expect(!RoleStore.needsPolling(record))
-        #expect(harness.center.immediate.map(\.body) == ["Request approved: the role is active."])
+        #expect(harness.center.immediate.map(\.title) == ["Request approved: Global Reader"])
+        #expect(harness.center.immediate.map(\.body) == ["Directory — the role is active."])
+    }
+
+    /// A request refused by the approver (or failed, or canceled in the portal) is notified once as denied.
+    @Test(arguments: [RequestStatus.denied, .failed, .canceled])
+    func refusedRequestIsNotifiedOnce(status: RequestStatus) async throws {
+        let harness = try Harness()
+        let (account, sources) = harness.addAccount()
+        let arm = sources[0]
+        await arm.set(eligible: [Fixture.eligibility("e1")])
+        await harness.refresh()
+        let record = ActivationRecord(account: account, eligibleRoleId: "\(account.id.uuidString)|e1", roleName: "Owner",
+                                      scopeName: "rg-app", source: .azureResource, action: .activate)
+        record.status = .pendingApproval
+        record.remoteRequestId = "req-e1"
+        harness.context.insert(record)
+
+        await arm.set(requestStatus: .success(status))
+        await harness.refresh()
+        #expect(record.status == status)
+        #expect(record.completedAt == nil)
+        #expect(harness.center.immediate.map(\.title) == ["Request denied: Owner"])
+        #expect(harness.center.immediate.first?.body.hasPrefix("rg-app — ") == true)
+
+        // Decided: no longer polled, never notified again.
+        await harness.refresh()
+        #expect(!RoleStore.needsPolling(record))
+        #expect(harness.center.immediate.count == 1)
+    }
+
+    /// Still waiting: nothing is notified.
+    @Test func undecidedRequestIsNotNotified() async throws {
+        let harness = try Harness()
+        let (account, sources) = harness.addAccount()
+        let arm = sources[0]
+        await arm.set(eligible: [Fixture.eligibility("e1")])
+        await harness.refresh()
+        let record = ActivationRecord(account: account, eligibleRoleId: "\(account.id.uuidString)|e1", roleName: "Owner",
+                                      scopeName: "rg-app", source: .azureResource, action: .activate)
+        record.status = .pendingApproval
+        record.remoteRequestId = "req-e1"
+        harness.context.insert(record)
+
+        await arm.set(requestStatus: .success(.pendingApproval))
+        await harness.refresh()
+        #expect(record.status == .pendingApproval)
+        #expect(harness.center.immediate.isEmpty)
     }
 
     /// One account failing leaves the other's rows and errors alone.

@@ -83,8 +83,45 @@ enum SnapshotRunner {
                            to: directory.appending(path: "window-\(item.rawValue.lowercased())-\(suffix).png"),
                            env: env)
                 }
+                defaults.removePersistentDomain(forName: suiteName)
+                for (name, query) in [("search", "reader"), ("search-none", "nothing like this")] {
+                    render(MenuBarPanel(initialQuery: query), size: NSSize(width: Theme.panelWidth, height: 1400),
+                           scheme: scheme, to: directory.appending(path: "panel-\(name)-\(suffix).png"), env: env)
+                }
+                render(MenuBarLabel(), size: NSSize(width: 160, height: 24), scheme: scheme,
+                       to: directory.appending(path: "menubar-\(suffix).png"), env: env)
             }
+            // A request waiting for approval and a second tenant (account menu), for these renders only.
+            let added = addPendingAndSecondAccount(context: env.container.mainContext)
+            for scheme in [ColorScheme.dark, .light] {
+                let suffix = scheme == .dark ? "dark" : "light"
+                defaults.removePersistentDomain(forName: suiteName)
+                render(MenuBarPanel(), size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
+                       to: directory.appending(path: "panel-pending-\(suffix).png"), env: env)
+                render(MenuBarLabel(), size: NSSize(width: 160, height: 24), scheme: scheme,
+                       to: directory.appending(path: "menubar-pending-\(suffix).png"), env: env)
+            }
+            added.forEach { env.container.mainContext.delete($0) }
         }
+    }
+
+    /// `Security Reader` waiting for an approver, and an account of another tenant. Returns what to delete afterwards.
+    private static func addPendingAndSecondAccount(context: ModelContext) -> [any PersistentModel] {
+        let accounts = (try? context.fetch(FetchDescriptor<Account>())) ?? []
+        guard let msal = accounts.first(where: { $0.mode == .msal }) else { return [] }
+        let record = ActivationRecord(account: msal, eligibleRoleId: "\(msal.id.uuidString)|e-secreader",
+                                      roleName: "Security Reader", scopeName: "Directory", source: .entraRole,
+                                      action: .activate, requestedDuration: "PT1H")
+        record.status = .pendingApproval
+        record.remoteRequestId = "req-secreader"
+        record.sentAt = .now - 4 * 60
+        let other = Account(mode: .azureCLI, upn: "v.admin@fabrikam.com", objectId: "oid-2", tenantId: "tenant-fabrikam",
+                            tenantName: "Fabrikam", sortOrder: 2)
+        other.lastRefreshAt = .now
+        context.insert(record)
+        context.insert(other)
+        try? context.save()
+        return [record, other]
     }
 
     // MARK: Fixtures

@@ -204,10 +204,10 @@ extension RoleStore {
                 // The approver's delay is not app speed: keep it out of the time-to-activation median.
                 if wasPending { record.panelOpenedAt = nil }
             }
-            guard wasPending, Date.now.timeIntervalSince(record.sentAt) < 86_400 else { continue }
-            await notifications.notify(title: "\(record.roleName) — \(record.scopeName)",
-                                       body: status == .provisioned ? "Request approved: the role is active."
-                                           : "Request \(status.rawValue).")
+            guard wasPending, Date.now.timeIntervalSince(record.sentAt) < 86_400,
+                  let text = RequestDecision.notification(status: status, roleName: record.roleName,
+                                                          scopeName: record.scopeName) else { continue }
+            await notifications.notify(title: text.title, body: text.body)
         }
     }
 

@@ -12,11 +12,11 @@ struct PanelAssignment: Identifiable {
 /// What the panel shows, after the one-account-per-identity, one-row-per-role and "already held" rules.
 struct PanelModel {
     /// Activations, the one expiring first on top.
-    let activations: [PanelAssignment]
+    private(set) var activations: [PanelAssignment]
     /// Permanent assignments not already shown as an activation, by name.
-    let permanents: [PanelAssignment]
+    private(set) var permanents: [PanelAssignment]
     /// Eligible roles not active right now (neither activated nor held permanently).
-    let eligible: [EligibleRole]
+    private(set) var eligible: [EligibleRole]
     /// Eligible roles left out because they are already held, per account.
     let heldEligibleCount: [UUID: Int]
     let supersession: Supersession
@@ -55,6 +55,28 @@ struct PanelModel {
         records.first {
             $0.isWaiting(at: now) && supersession.resolve(eligibleRoleId: $0.eligibleRoleId, source: $0.source) == role.id
         }
+    }
+
+    /// Eligible roles whose request waits for an approver (a request just sent is not counted).
+    func pendingApprovalCount(in records: [ActivationRecord], now: Date) -> Int {
+        eligible.filter { waiting($0, in: records, now: now)?.status == .pendingApproval }.count
+    }
+
+    /// No row at all (after a search).
+    var isEmpty: Bool { activations.isEmpty && permanents.isEmpty && eligible.isEmpty }
+
+    /// The rows matching the panel search: role name, scope or group name, role type.
+    func filtered(by query: String) -> PanelModel {
+        guard !RoleSearch.isEmpty(query) else { return self }
+        let matches = { (name: String, scope: String, source: RoleSource) in
+            RoleSearch.matches(query, fields: [name, scope, TypeTag(source: source).text,
+                                               PanelRoleType.allCases.first { $0.source == source }?.title ?? ""])
+        }
+        var copy = self
+        copy.activations = activations.filter { matches($0.assignment.roleName, $0.assignment.scopeName, $0.assignment.source) }
+        copy.permanents = permanents.filter { matches($0.assignment.roleName, $0.assignment.scopeName, $0.assignment.source) }
+        copy.eligible = eligible.filter { matches($0.roleName, $0.scopeName, $0.source) }
+        return copy
     }
 }
 
@@ -132,14 +154,16 @@ struct ActiveRolesCard: View {
     let model: PanelModel
     let emptyText: String
     let showAccount: Bool
+    /// A search is active: every group is open and the empty line is left to the panel.
+    var searching = false
     @AppStorage(PreferenceKeys.panelShowActive) private var showActive = true
     @AppStorage(PreferenceKeys.panelShowPermanentGroup) private var showPermanent = false
 
     var body: some View {
         // The badge counts activations, like the hero card; the Permanent group shows its own count.
         DisclosureCard(title: "Active roles", icon: "bolt.fill", iconColor: Theme.active,
-                       count: model.activations.count, expanded: $showActive) {
-            if model.activations.isEmpty && model.permanents.isEmpty {
+                       count: model.activations.count, expanded: searching ? .constant(true) : $showActive) {
+            if model.activations.isEmpty && model.permanents.isEmpty && !searching {
                 EmptyLine(text: emptyText)
             }
             ForEach(Array(model.activations.enumerated()), id: \.element.id) { index, row in
@@ -148,8 +172,9 @@ struct ActiveRolesCard: View {
             }
             if !model.permanents.isEmpty {
                 if !model.activations.isEmpty { RowDivider(inset: 0) }
-                GroupHeader(title: "Permanent", count: model.permanents.count, expanded: $showPermanent)
-                if showPermanent {
+                GroupHeader(title: "Permanent", count: model.permanents.count,
+                            expanded: searching ? .constant(true) : $showPermanent)
+                if showPermanent || searching {
                     ForEach(Array(model.permanents.enumerated()), id: \.element.id) { index, row in
                         if index > 0 { RowDivider() }
                         PermanentRow(assignment: row.assignment, showAccount: showAccount, showTypeTag: true)
@@ -172,6 +197,8 @@ struct EligibleRolesCard: View {
     let pendingRecords: [ActivationRecord]
     let noAccount: Bool
     let noEligibleText: (Account) -> String
+    /// A search is active: every group is open and only matching rows show (no empty or consent lines).
+    var searching = false
     let activate: (EligibleRole) -> Void
     @AppStorage(PreferenceKeys.panelShowEligible) private var showEligible = true
     @AppStorage(PreferenceKeys.panelShowEligibleEntra) private var showEntra = true
@@ -186,8 +213,8 @@ struct EligibleRolesCard: View {
 
     var body: some View {
         DisclosureCard(title: "Eligible roles", icon: "key.horizontal.fill", iconColor: Theme.accent,
-                       count: model.eligible.count, expanded: $showEligible) {
-            if noAccount {
+                       count: model.eligible.count, expanded: searching ? .constant(true) : $showEligible) {
+            if noAccount && !searching {
                 Button("Add an account…") {
                     NSApp.activate(ignoringOtherApps: true)
                     openSettings()
@@ -204,7 +231,7 @@ struct EligibleRolesCard: View {
         let tenantAccounts = accounts.filter { $0.tenantId.lowercased() == tenant }
         let ids = Set(tenantAccounts.map(\.id))
         let roles = model.eligible.filter { $0.account.map { ids.contains($0.id) } == true }
-        if showHeader {
+        if showHeader && !(searching && roles.isEmpty) {
             HStack {
                 SectionLabel(text: tenantAccounts.first.map { $0.tenantName ?? $0.tenantId } ?? tenant)
                 Spacer()
@@ -215,6 +242,11 @@ struct EligibleRolesCard: View {
             let typed = roles.filter { $0.source == type.source }
             if !typed.isEmpty { group(type, roles: typed) }
         }
+        if !searching { tenantNotes(tenantAccounts, roles: roles) }
+    }
+
+    /// Why a tenant shows no row, and the admin consent link.
+    @ViewBuilder private func tenantNotes(_ tenantAccounts: [Account], roles: [EligibleRole]) -> some View {
         if roles.isEmpty, tenantAccounts.contains(where: { (model.heldEligibleCount[$0.id] ?? 0) > 0 }) {
             EmptyLine(text: "All eligible roles are active")
         }
@@ -238,7 +270,7 @@ struct EligibleRolesCard: View {
     }
 
     @ViewBuilder private func group(_ type: PanelRoleType, roles: [EligibleRole]) -> some View {
-        let expanded = binding(type)
+        let expanded = searching ? .constant(true) : binding(type)
         GroupHeader(title: type.title, count: roles.count, expanded: expanded)
         if expanded.wrappedValue {
             ForEach(Array(roles.enumerated()), id: \.element.id) { index, role in
