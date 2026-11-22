@@ -200,7 +200,7 @@ fixed by the next build.
 - [x] Step 3 — activate, deactivate and track from the menu bar
 - [x] Step 4 — extend, favorites, history, several accounts, Roles window
 - [ ] Step 5 — quality: error states, accessibility, performance, security reviews (in progress)
-- [x] Step 6 — signed and notarized DMG, automatic updates (Sparkle): 0.9.3 shipped, updates verified from 0.9.1
+- [x] Step 6 — signed and notarized DMG, automatic updates (Sparkle): 0.9.4 shipped (first AzPim build), updates verified from 0.9.1
 - [ ] Later — Mac App Store version
 
 ## License
