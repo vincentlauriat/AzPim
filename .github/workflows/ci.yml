@@ -29,7 +29,7 @@ jobs:
 
   build:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       # Explicit toolchain: the runner's default Xcode can change under us.
       XCODE_APP: /Applications/Xcode_16.4.app
@@ -76,6 +76,24 @@ jobs:
           xcodebuild -project AzPim.xcodeproj -scheme AzPim -configuration Debug \
             -destination 'platform=macOS' -clonedSourcePackagesDirPath SourcePackages \
             CODE_SIGNING_ALLOWED=NO build
+
+      # RoleStore tests hosted in the Debug app. The step fails unless tests actually ran: a bundle that does not
+      # load into the host reports success with zero tests.
+      - name: App tests
+        run: |
+          xcodebuild -project AzPim.xcodeproj -scheme AzPim -configuration Debug \
+            -destination 'platform=macOS' -clonedSourcePackagesDirPath SourcePackages \
+            -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO test
+          xcrun xcresulttool get test-results summary --path TestResults.xcresult --format json > test-summary.json
+          python3 - <<'PY'
+          import json
+          summary = json.load(open("test-summary.json"))
+          total = summary.get("totalTestCount", 0)
+          print(f"Hosted app tests: {total} executed, result {summary.get('result')}, "
+                f"{summary.get('passedTests')} passed, {summary.get('failedTests')} failed")
+          if total == 0 or summary.get("result") != "Passed":
+              raise SystemExit("::error::no hosted app test ran, or a test failed")
+          PY
 
       # Same build as Scripts/release.sh, without signing, notarization or DMG.
       - name: Release dry-run build
