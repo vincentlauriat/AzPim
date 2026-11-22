@@ -311,6 +311,7 @@ private struct RoleDetail: View {
     }
 
     @ViewBuilder private func actions(_ role: EligibleRole) -> some View {
+        let block = row.assignment == nil ? activateBlock(role) : nil
         HStack {
             if store.busy.contains(role.id) || row.assignment.map(store.isBusy) == true {
                 ProgressView().controlSize(.small)
@@ -325,19 +326,21 @@ private struct RoleDetail: View {
                     }
             } else {
                 Button("Activate…") { activating = true }.buttonStyle(.borderedProminent).tint(Theme.accent)
-                    .disabled(activateBlock(role) != nil)
+                    .disabled(block != nil)
             }
             Menu("Add to favorite") { AddToFavoriteMenu(role: role) }.fixedSize()
         }
         // Why Activate… cannot be pressed (the form itself is checked in the sheet).
-        if row.assignment == nil, !store.busy.contains(role.id), let block = activateBlock(role) {
+        if !store.busy.contains(role.id), let block {
             Text(block.message).font(.caption).foregroundStyle(.secondary)
         }
     }
 
+    /// Read once per body; `store.now` follows the store clock (a sent request's 15-minute window).
     private func activateBlock(_ role: EligibleRole) -> ActivationBlock? {
         // Duration and form are the sheet's: only the state is checked here.
-        ActivationBlock.reason(.init(inProgress: store.busy.contains(role.id), pending: store.waitingRequest(for: role) != nil,
+        ActivationBlock.reason(.init(inProgress: store.busy.contains(role.id),
+                                     pending: store.waitingRequest(for: role, at: store.now) != nil,
                                      offline: store.isOffline, minutes: ActivationDuration.minMinutes(policyMax: role.maxDuration),
                                      policyMax: role.maxDuration, requiresJustification: false))
     }

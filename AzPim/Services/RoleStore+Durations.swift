@@ -1,18 +1,19 @@
 import AzPimCore
 import Foundation
+import SwiftData
 
 /// Where the last duration per role is kept: `[ActivationDuration.roleKey: ISO 8601 duration]`.
 struct DurationMemory {
     var load: () -> [String: String]
     var save: ([String: String]) -> Void
 
-    /// The preferences, under `PreferenceKeys.lastDurations`.
+    /// The preferences, under `PreferenceKeys.lastDurations`. Values of another type are ignored.
     static func defaults(_ defaults: UserDefaults) -> DurationMemory {
-        DurationMemory(load: { (defaults.dictionary(forKey: PreferenceKeys.lastDurations) as? [String: String]) ?? [:] },
+        DurationMemory(load: { defaults.dictionary(forKey: PreferenceKeys.lastDurations)?.compactMapValues { $0 as? String } ?? [:] },
                        save: { defaults.set($0, forKey: PreferenceKeys.lastDurations) })
     }
 
-    /// Nothing written to disk (tests).
+    /// Nothing written to disk (tests, snapshots).
     static func inMemory() -> DurationMemory {
         final class Box { var values: [String: String] = [:] }
         let box = Box()
@@ -20,15 +21,15 @@ struct DurationMemory {
     }
 }
 
-/// Least-privilege durations (1.0 item 6): the last duration used per role, kept under a key that survives refreshes
-/// and the Azure CLI → Microsoft sign-in supersede (`ActivationDuration.roleKey`).
+/// Least-privilege durations (1.0 item 6): the last duration chosen in the Activation Sheet per role, kept under a key
+/// that survives refreshes and the Azure CLI → Microsoft sign-in supersede (`ActivationDuration.roleKey`).
 extension RoleStore {
-    /// Duration last sent for this role and accepted by Azure (sheet, favorite or Extend), if any.
+    /// Duration last chosen in the sheet for this role and accepted by Azure, if any.
     func lastDuration(for role: EligibleRole) -> String? {
         Self.durationKey(role).flatMap { durationMemory.load()[$0] }
     }
 
-    /// Duration to preselect for this role: the last one used, else 1 h, capped by the policy.
+    /// Duration to preselect for this role: the last one chosen, else 1 h, capped by the policy.
     func defaultDurationMinutes(for role: EligibleRole) -> Int {
         ActivationDuration.defaultMinutes(lastUsed: lastDuration(for: role), policyMax: role.maxDuration)
     }
@@ -45,9 +46,20 @@ extension RoleStore {
         durationMemory.save(all)
     }
 
+    /// Keeps only the durations of roles still cached (after each refresh's history purge, and after an account is
+    /// removed or all local data deleted).
+    func pruneDurations() {
+        let all = durationMemory.load()
+        guard !all.isEmpty else { return }
+        let roles = (try? context.fetch(FetchDescriptor<EligibleRole>())) ?? []
+        let kept = Set(roles.compactMap(Self.durationKey))
+        let pruned = all.filter { kept.contains($0.key) }
+        if pruned.count != all.count { durationMemory.save(pruned) }
+    }
+
     private static func durationKey(_ role: EligibleRole) -> String? {
-        guard let account = role.account else { return nil }
-        return ActivationDuration.roleKey(tenantId: account.tenantId, source: role.source,
+        guard let account = role.account, !account.isDeleted else { return nil }
+        return ActivationDuration.roleKey(identity: account.identity, source: role.source,
                                           roleDefinitionId: role.roleDefinitionId, roleName: role.roleName, scope: role.scope)
     }
 }

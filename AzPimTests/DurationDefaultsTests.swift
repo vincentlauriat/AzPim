@@ -69,6 +69,62 @@ struct DurationDefaultsTests {
         #expect(harness.store.defaultDurationMinutes(for: replacement) == 45)
     }
 
+    /// Only the sheet's choice is remembered: a favorite keeps its own duration and does not change the memory.
+    @Test func aFavoriteRunIsNotRemembered() async throws {
+        let role = try #require(role)
+        await harness.store.activate(role, input: ActivationInput(duration: "PT45M", justification: "Audit"))
+        let favorite = Favorite(name: "Deploy", items: [FavoriteItem(eligibleRoleId: role.id, duration: "PT4H",
+                                                                     justification: "Deploy")])
+        harness.context.insert(favorite)
+        await arm.set(assignments: [])   // the sheet's activation ended: the favorite sends a request
+        await harness.refresh()
+        let text = await harness.store.run(favorite, fromPanel: false)
+        #expect(text.hasPrefix("1 of 1 activated"))
+        #expect(harness.records().compactMap(\.requestedDuration) == ["PT45M", "PT4H"])
+        #expect(harness.store.defaultDurationMinutes(for: try #require(self.role)) == 45)
+    }
+
+    /// Extend after the Microsoft sign-in superseded the Azure CLI account: the records stay under the CLI account,
+    /// so the remembered duration is used, not the policy maximum.
+    @Test func extendAfterTheSupersedeUsesTheRememberedDuration() async throws {
+        let role = try #require(role)
+        await harness.store.activate(role, input: ActivationInput(duration: "PT45M", justification: "Audit"),
+                                     refreshAfter: false)
+        let (msal, msalSources) = harness.addAccount(.msal, sortOrder: 1)
+        await msalSources[0].set(eligible: [eligibility], assignments: [Fixture.activation(eligibility, instance: "i1")])
+        await harness.refresh()
+        let replacement = try #require(harness.role(msal, "e1"))
+        replacement.lastJustification = "Audit"
+        let text = await harness.store.extend(eligibleRoleId: replacement.id)
+        #expect(text.hasPrefix("Extended until"))
+        #expect(harness.records().filter { $0.action == .extend }.map(\.requestedDuration) == ["PT45M"])
+    }
+
+    /// No duration anywhere: Extend asks for 1 h, never the policy maximum.
+    @Test func extendWithoutAnyDurationUsesOneHour() async throws {
+        await arm.set(assignments: [Fixture.activation(eligibility, instance: "i1")])
+        await harness.refresh()
+        harness.role(account, "e1")?.lastJustification = "Audit"
+        let text = await harness.store.extend(eligibleRoleId: try #require(role).id)
+        #expect(text.hasPrefix("Extended until"))
+        #expect(harness.records().filter { $0.action == .extend }.map(\.requestedDuration) == ["PT1H"])
+    }
+
+    /// Roles no longer cached lose their remembered duration; the others keep it.
+    @Test func pruneKeepsOnlyCachedRoles() async throws {
+        let other = Fixture.eligibility("e2")
+        await arm.set(eligible: [eligibility, other])
+        await harness.refresh()
+        await harness.store.activate(try #require(role), input: ActivationInput(duration: "PT2H", justification: "D"),
+                                     refreshAfter: false)
+        await harness.store.activate(try #require(harness.role(account, "e2")),
+                                     input: ActivationInput(duration: "PT3H", justification: "D"), refreshAfter: false)
+        await arm.set(eligible: [other], assignments: [])
+        await harness.refresh()   // e1 is gone; the purge after the refresh prunes it
+        #expect(harness.store.durationMemory.load().count == 1)
+        #expect(harness.store.defaultDurationMinutes(for: try #require(harness.role(account, "e2"))) == 180)
+    }
+
     @Test func anotherRoleKeepsTheDefault() async throws {
         let other = Fixture.eligibility("e2")
         await arm.set(eligible: [eligibility, other])

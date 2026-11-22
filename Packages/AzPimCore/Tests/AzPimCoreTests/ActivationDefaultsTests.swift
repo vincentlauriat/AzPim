@@ -47,26 +47,31 @@ struct ActivationDurationTests {
         #expect(ActivationDuration.iso(135) == "PT2H15M")
     }
 
+    private func id(_ tenant: String, _ oid: String, _ upn: String) -> String {
+        AccountSupersede.identity(tenantId: tenant, objectId: oid, upn: upn)
+    }
+
     /// Stable across the Azure CLI → Microsoft sign-in supersede and refreshes: no account, no row id, no case.
     @Test func roleKeyIgnoresAccountAndCase() {
-        let cli = ActivationDuration.roleKey(tenantId: "TENANT-CONTOSO", source: .azureResource,
-                                             roleDefinitionId: "/Providers/RoleDefinitions/Contrib", roleName: "Contributor",
-                                             scope: "/subs/S1/rg/app-prod")
-        let msal = ActivationDuration.roleKey(tenantId: " tenant-contoso", source: .azureResource,
-                                              roleDefinitionId: "/providers/roledefinitions/contrib", roleName: "Contributor",
-                                              scope: "/subs/s1/rg/app-prod")
+        let cli = ActivationDuration.roleKey(identity: id("TENANT-CONTOSO", "OID-1", "V.Admin@Contoso.com"),
+                                             source: .azureResource, roleDefinitionId: "/Providers/RoleDefinitions/Contrib",
+                                             roleName: "Contributor", scope: "/subs/S1/rg/app-prod")
+        let msal = ActivationDuration.roleKey(identity: id(" tenant-contoso", "oid-1", "v.admin@contoso.com"),
+                                              source: .azureResource, roleDefinitionId: "/providers/roledefinitions/contrib",
+                                              roleName: "Contributor", scope: "/subs/s1/rg/app-prod")
         #expect(cli != nil)
         #expect(cli == msal)
     }
 
     @Test func roleKeyTellsRolesApart() {
-        func key(tenant: String = "t", source: RoleSource = .azureResource, definition: String? = "d",
-                 name: String = "Reader", scope: String = "/s") -> String? {
-            ActivationDuration.roleKey(tenantId: tenant, source: source, roleDefinitionId: definition, roleName: name,
-                                       scope: scope)
+        func key(tenant: String = "t", person: String = "oid", source: RoleSource = .azureResource,
+                 definition: String? = "d", name: String = "Reader", scope: String = "/s") -> String? {
+            ActivationDuration.roleKey(identity: id(tenant, person, "u@x"), source: source,
+                                       roleDefinitionId: definition, roleName: name, scope: scope)
         }
         let base = key()
         #expect(base != key(tenant: "other"))
+        #expect(base != key(person: "someone-else"))
         #expect(base != key(source: .entraRole))
         #expect(base != key(definition: "e"))
         #expect(base != key(scope: "/s2"))
@@ -114,13 +119,15 @@ struct ActivationBlockTests {
                 == .durationTooLong(maxMinutes: 480))
     }
 
-    @Test func messagesAreOneSentence() {
+    @Test func messagesAreShort() {
         let all: [ActivationBlock] = [.inProgress, .pending, .offline, .durationTooLong(maxMinutes: 90), .durationTooShort,
                                       .justificationRequired, .justificationTooLong, .ticketRequired, .ticketTooLong]
-        for block in all {
+        // One sentence each; the pending one also says how to send another.
+        for block in all where block != .pending {
             #expect(block.message.hasSuffix("."))
             #expect(block.message.dropLast().contains(".") == false)
         }
+        #expect(ActivationBlock.pending.message.hasSuffix("Cancel it in History to send another."))
         #expect(ActivationBlock.durationTooLong(maxMinutes: 90).message == "The policy allows 1 h 30 min at most.")
     }
 }

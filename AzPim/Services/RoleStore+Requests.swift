@@ -23,6 +23,9 @@ extension RoleStore {
         let lastDuration = role.account?.records
             .filter { $0.eligibleRoleId == eligibleRoleId && $0.action != .deactivate && $0.requestedDuration != nil }
             .max { $0.sentAt < $1.sentAt }?.requestedDuration
+            // Records stay under the account that sent them: after the Microsoft sign-in superseded the Azure CLI
+            // account, the duration remembered for the role is used; else `ExtendPlan` falls back to 1 h.
+            ?? self.lastDuration(for: role)
         // Never decide on a cached or default policy: ending the activation must be safe to undo.
         guard await refreshPolicy(for: role) else {
             return "Couldn't read the role's policy: not extended, the role is still active."
@@ -134,11 +137,17 @@ extension RoleStore {
 
     /// The request of this role still waiting for its outcome, if any (`ActivationRecord.isWaiting`), including one
     /// sent for the same eligibility through an Azure CLI account the role's account has since superseded.
-    func waitingRequest(for role: EligibleRole) -> ActivationRecord? {
+    /// Only undecided records are fetched (the sheet asks on every clock tick). `now`: the store clock in views, so a
+    /// sent request stops blocking once its 15-minute window is over.
+    func waitingRequest(for role: EligibleRole, at now: Date = .now) -> ActivationRecord? {
         let supersession = supersession()
-        let records = (try? context.fetch(FetchDescriptor<ActivationRecord>())) ?? []
+        let pending = RequestStatus.pendingApproval.rawValue, sent = RequestStatus.sent.rawValue
+        let descriptor = FetchDescriptor<ActivationRecord>(predicate: #Predicate {
+            $0.statusRaw == pending || $0.statusRaw == sent
+        })
+        let records = (try? context.fetch(descriptor)) ?? []
         return records.first {
-            $0.isWaiting() && supersession.resolve(eligibleRoleId: $0.eligibleRoleId, source: $0.source) == role.id
+            $0.isWaiting(at: now) && supersession.resolve(eligibleRoleId: $0.eligibleRoleId, source: $0.source) == role.id
         }
     }
 
@@ -239,6 +248,7 @@ extension RoleStore {
                 role.lastJustification = nil
             }
         }
+        pruneDurations()
     }
 }
 

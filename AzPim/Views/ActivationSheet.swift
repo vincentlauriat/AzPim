@@ -17,19 +17,24 @@ struct ActivationSheet: View {
     @State private var result: RequestStatus?
     /// This sheet's own request is running: the busy state is not shown as a reason.
     @State private var sending = false
+    /// The user changed the duration: a policy read afterwards no longer resets it.
+    @State private var durationTouched = false
     @FocusState private var focused: Bool
 
     private var duration: String { ActivationDuration.iso(minutes) }
 
-    /// Why Activate is disabled, nil when the request can be sent.
+    /// Why Activate is disabled, nil when the request can be sent. Read once per body; `store.now` makes the body
+    /// follow the store clock, so a sent request stops blocking once its 15-minute window is over.
     private var block: ActivationBlock? {
-        ActivationBlock.reason(.init(inProgress: store.busy.contains(role.id), pending: store.waitingRequest(for: role) != nil,
+        ActivationBlock.reason(.init(inProgress: store.busy.contains(role.id),
+                                     pending: store.waitingRequest(for: role, at: store.now) != nil,
                                      offline: store.isOffline, minutes: minutes, policyMax: role.maxDuration,
                                      requiresJustification: role.requiresJustification, justification: justification,
                                      requiresTicket: role.requiresTicket, ticket: ticket))
     }
 
     var body: some View {
+        let block = self.block
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Activate \(role.roleName)").font(.headline)
@@ -37,7 +42,8 @@ struct ActivationSheet: View {
                 Text(policyHint).font(.caption).foregroundStyle(.secondary)
             }
 
-            DurationPicker(minutes: $minutes, policyMax: role.maxDuration)
+            DurationPicker(minutes: Binding(get: { minutes }, set: { minutes = $0; durationTouched = true }),
+                           policyMax: role.maxDuration)
 
             TextField("Justification", text: $justification, prompt: Text("Why do you need this role?"), axis: .vertical)
                 .lineLimit(2...4)
@@ -73,14 +79,17 @@ struct ActivationSheet: View {
                 // One sentence under the button: why it cannot be pressed (not while this sheet's own request runs).
                 if result == nil, !sending, let block {
                     Text(block.message).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
         .padding(14)
         .task {
             justification = role.lastJustification ?? ""
-            await store.ensurePolicy(for: role)
+            // Shown at once from the cached policy; read again once the policy is known, unless already changed.
             minutes = store.defaultDurationMinutes(for: role)
+            await store.ensurePolicy(for: role)
+            if !durationTouched { minutes = store.defaultDurationMinutes(for: role) }
             focused = true
         }
     }

@@ -264,7 +264,8 @@ final class RoleStore {
             rowErrors[role.id] = nil   // a refused duplicate meanwhile left its message
             if outcome.status == .provisioned { record.completedAt = .now }
             role.lastJustification = input.justification
-            rememberDuration(input.duration, for: role)
+            // Only a duration the user chose (Activation Sheet): not a favorite's saved one, not an extension.
+            if viaFavorite == nil, action == .activate { rememberDuration(input.duration, for: role) }
             try? context.save()
             if refreshAfter { await refresh() }
             return outcome.status

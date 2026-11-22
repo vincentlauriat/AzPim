@@ -109,6 +109,11 @@ struct ActivityTests {
         #expect(input == ActivationInput(duration: "PT4H", justification: "deploy"))
         #expect(FavoriteRun.input(for: item, policy: RolePolicy(requiresTicket: true), lastJustification: "x")
             == .failure(.empty("ticket")))
+
+        // Unknown policy maximum: capped at the app's cap, as the sheet would.
+        let long = FavoriteItem(eligibleRoleId: "r", duration: "PT20H")
+        let capped = try? FavoriteRun.input(for: long, policy: RolePolicy(), lastJustification: "d").get()
+        #expect(capped == ActivationInput(duration: "PT8H", justification: "d"))
     }
 
     @Test func extendPlan() {
@@ -119,6 +124,11 @@ struct ActivityTests {
             == .reactivate(ActivationInput(duration: "PT2H", justification: "deploy")))
         #expect(ExtendPlan.decide(policy: RolePolicy(maxDuration: "PT1H"), lastJustification: "d", lastDuration: "PT8H",
                                   activeSince: start, now: now) == .reactivate(ActivationInput(duration: "PT1H", justification: "d")))
+        // No previous duration: 1 h, not the policy maximum; under a 30-minute policy, its maximum.
+        #expect(ExtendPlan.decide(policy: open, lastJustification: "d", lastDuration: nil, activeSince: start, now: now)
+            == .reactivate(ActivationInput(duration: "PT1H", justification: "d")))
+        #expect(ExtendPlan.decide(policy: RolePolicy(maxDuration: "PT30M"), lastJustification: "d", lastDuration: nil,
+                                  activeSince: start, now: now) == .reactivate(ActivationInput(duration: "PT30M", justification: "d")))
         for policy in [RolePolicy(requiresApproval: true), RolePolicy(requiresTicket: true), RolePolicy(requiresMFA: true)] {
             guard case .blocked = ExtendPlan.decide(policy: policy, lastJustification: "d", lastDuration: nil,
                                                     activeSince: start, now: now) else {

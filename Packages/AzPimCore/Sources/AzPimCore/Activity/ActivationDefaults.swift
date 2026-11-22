@@ -7,8 +7,10 @@ public enum ActivationDuration {
     public static let stepMinutes = 15
     /// Default without a remembered duration.
     public static let fallbackMinutes = 60
-    /// Cap when the policy maximum is unknown (not read yet): the app's historical default.
+    /// Cap when the policy maximum is unknown (not read yet): the app's historical default. Shared by the sheet,
+    /// favorites and Extend. Not `Validation.azureMaxActivation`, the hard 24 h ceiling Azure accepts at all.
     public static let unknownPolicyMaxMinutes = 8 * 60
+    public static var unknownPolicyMax: String { iso(unknownPolicyMaxMinutes) }
 
     /// Policy maximum in minutes (`unknownPolicyMaxMinutes` when unknown or unreadable).
     public static func maxMinutes(policyMax: String?) -> Int {
@@ -45,14 +47,14 @@ public enum ActivationDuration {
 
     public static func iso(_ minutes: Int) -> String { ISODuration.string(TimeInterval(minutes * 60)) }
 
-    /// Key of an eligible role across refreshes and sign-ins: tenant + source + role definition (name when missing)
-    /// + scope, ignoring case. Not the row id nor the account: the same role read through an Azure CLI account and
-    /// then through the Microsoft sign-in that supersedes it keeps its remembered duration. Nil when the role has
-    /// neither a definition id nor a meaningful name.
-    public static func roleKey(tenantId: String, source: RoleSource, roleDefinitionId: String?, roleName: String,
+    /// Key of an eligible role across refreshes and sign-ins: person (`AccountSupersede.identity`: tenant + object id,
+    /// UPN when missing) + source + role definition (name when missing) + scope, ignoring case. Not the row id nor the
+    /// account: the same role read through an Azure CLI account and then through the Microsoft sign-in that supersedes
+    /// it keeps its remembered duration. Nil when the role has neither a definition id nor a meaningful name.
+    /// `identity`: `AccountSupersede.identity(tenantId:objectId:upn:)` of the role's account (`Account.identity`).
+    public static func roleKey(identity: String, source: RoleSource, roleDefinitionId: String?, roleName: String,
                                scope: String) -> String? {
-        RoleMerge.key(identity: AccountSupersede.normalized(tenantId), source: source, roleDefinitionId: roleDefinitionId,
-                      roleName: roleName, scope: scope)
+        RoleMerge.key(identity: identity, source: source, roleDefinitionId: roleDefinitionId, roleName: roleName, scope: scope)
     }
 }
 
@@ -124,7 +126,8 @@ public enum ActivationBlock: Equatable, Sendable {
     public var message: String {
         switch self {
         case .inProgress: "A request for this role is already in progress."
-        case .pending: "A request for this role is already waiting for approval or confirmation."
+        case .pending:
+            "A request for this role is already waiting for approval or confirmation. Cancel it in History to send another."
         case .offline: "You're offline: activation needs a connection to Microsoft."
         case .durationTooLong(let max): "The policy allows \(ISODuration.label(TimeInterval(max * 60))) at most."
         case .durationTooShort: "Azure needs at least 5 minutes."
