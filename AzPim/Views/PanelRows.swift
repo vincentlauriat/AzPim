@@ -66,6 +66,8 @@ struct EligibleRow: View {
     let isActive: Bool
     /// Status of a request still waiting for this role (pending approval or sent), if any.
     let pending: RequestStatus?
+    /// Selected with the keyboard (↑/↓).
+    var selected = false
     let activate: () -> Void
 
     var body: some View {
@@ -94,6 +96,7 @@ struct EligibleRow: View {
                         .tint(Theme.accent)
                         .controlSize(.small)
                         .disabled(store.isOffline)
+                        .help("Activate… — ⌥-click: activate now with the default duration")
                 }
             }
             .frame(minHeight: 40)
@@ -101,7 +104,9 @@ struct EligibleRow: View {
                 Text(error).font(.caption).foregroundStyle(Theme.danger).textSelection(.enabled).padding(.leading, 30).padding(.bottom, 4)
             }
         }
+        .keyboardSelected(selected)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
@@ -112,7 +117,19 @@ struct ActiveRow: View {
     /// The same role is also assigned permanently (merged into this row).
     var alsoPermanent = false
     var showTypeTag = false
+    /// Selected with the keyboard (↑/↓).
+    var selected = false
+    /// ⌫ on the selected row asks the same question as the button.
+    var keyboardConfirm: Binding<Bool>?
     @State private var confirming = false
+
+    private var confirmShown: Binding<Bool> {
+        Binding(get: { confirming || keyboardConfirm?.wrappedValue == true },
+                set: { shown in
+                    confirming = shown
+                    if !shown { keyboardConfirm?.wrappedValue = false }
+                })
+    }
 
     /// Azure refuses deactivation within 5 minutes of activation (BackendSchema › business rules).
     private var tooRecent: Bool { Date.now.timeIntervalSince(assignment.startAt) < 300 }
@@ -165,15 +182,16 @@ struct ActiveRow: View {
                     .buttonStyle(.borderless)
                     .disabled(tooRecent || store.isOffline)
                     .help(tooRecent ? "Can't deactivate within 5 minutes of activation" : "Deactivate")
-                    .popover(isPresented: $confirming) {
+                    .popover(isPresented: confirmShown) {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Deactivate \(assignment.roleName)?").font(.headline)
                             Text(assignment.scopeName).font(.caption).foregroundStyle(.secondary)
                             HStack {
                                 Spacer()
-                                Button("Cancel") { confirming = false }
+                                Button("Cancel") { confirmShown.wrappedValue = false }
+                                    .keyboardShortcut(.cancelAction)
                                 Button("Deactivate", role: .destructive) {
-                                    confirming = false
+                                    confirmShown.wrappedValue = false
                                     Task { await store.deactivate(assignment) }
                                 }
                                 .keyboardShortcut(.defaultAction)
@@ -189,6 +207,8 @@ struct ActiveRow: View {
                 Text(error).font(.caption).foregroundStyle(Theme.danger).textSelection(.enabled).padding(.leading, 30).padding(.bottom, 4)
             }
         }
+        .keyboardSelected(selected)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

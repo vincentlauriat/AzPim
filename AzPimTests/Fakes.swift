@@ -50,6 +50,10 @@ actor FakeSource: PIMSource {
         removeOnDeactivate = removes
     }
 
+    func set(policy result: Result<RolePolicy, Error>) {
+        policyResult = result
+    }
+
     func set(requestStatus status: Result<RequestStatus, Error>) {
         requestStatus = status
     }

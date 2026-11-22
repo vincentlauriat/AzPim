@@ -58,6 +58,9 @@ struct GeneralSettingsView: View {
                     Text(error).foregroundStyle(.red).textSelection(.enabled)
                 }
             }
+            Section("Keyboard") {
+                QuickActivateShortcutRow()
+            }
         }
         .formStyle(.grouped)
         .onAppear(perform: readStatus)
@@ -86,6 +89,41 @@ struct GeneralSettingsView: View {
         guard settings.launchAtLogin != enabled else { return }
         settings.launchAtLogin = enabled
         try? context.save()
+    }
+}
+
+/// Settings › General › Keyboard: the global shortcut of the quick-activate palette (default ⌃⌥P, or none).
+struct QuickActivateShortcutRow: View {
+    @AppStorage(PreferenceKeys.quickActivateShortcut) private var stored = GlobalShortcut.defaultShortcut.storageValue
+    /// macOS refused the shortcut (another app holds it).
+    @State private var refused = false
+
+    var body: some View {
+        Picker(selection: Binding(get: { stored }, set: { stored = $0; apply() })) {
+            ForEach(GlobalShortcut.presets, id: \.self) { Text($0.display).tag($0.storageValue) }
+            Divider()
+            Text("None").tag(GlobalShortcut.noneValue)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Quick activate")
+                Text("Opens a search from any app: ↩ activates with the default duration, ⌘↩ opens the sheet. "
+                     + "In the panel, ⌥-click Activate to skip the sheet.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .onAppear { refused = GlobalHotKey.lastStatus.map { $0 != noErr } ?? false }
+        if refused {
+            Text("\(GlobalShortcut.fromStorage(stored)?.display ?? "This shortcut") is already used: choose another one.")
+                .foregroundStyle(.red)
+        }
+    }
+
+    private func apply() {
+        #if DEBUG
+        // Snapshots and the test host never take a shortcut from the user's session.
+        if SnapshotRunner.directory != nil || SnapshotRunner.isTestHost { return }
+        #endif
+        refused = !GlobalHotKey.register(GlobalShortcut.fromStorage(stored))
     }
 }
 

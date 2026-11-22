@@ -81,6 +81,16 @@ struct MenuBarPanel: View {
     @State private var query: String
     @FocusState private var searchFocused: Bool
     @AppStorage(PreferenceKeys.panelShowFavorites) private var showFavorites = true
+    // Keyboard navigation (1.0 item 3): the row ↑/↓ selected, the one ⌫ asked to deactivate, the last Extend result.
+    @State private var selectedRowId: String?
+    @State private var confirmDeactivateId: String?
+    @State private var keyboardMessage: String?
+    // Same keys as the cards: ↑/↓ skip the rows of a collapsed card or group.
+    @AppStorage(PreferenceKeys.panelShowActive) private var showActive = true
+    @AppStorage(PreferenceKeys.panelShowEligible) private var showEligible = true
+    @AppStorage(PreferenceKeys.panelShowEligibleEntra) private var showEntra = true
+    @AppStorage(PreferenceKeys.panelShowEligibleAzure) private var showAzure = true
+    @AppStorage(PreferenceKeys.panelShowEligibleGroups) private var showGroups = true
 
     /// `initialQuery`: snapshots of a search only.
     init(initialQuery: String = "") {
@@ -117,19 +127,28 @@ struct MenuBarPanel: View {
                 ActivationSheet(role: role) { activating = nil }
                     .frame(width: Theme.panelWidth)
             } else {
-                ScrollView(.vertical) {
-                    content
-                        .background(GeometryReader { geo in
-                            Color.clear.preference(key: PanelHeightKey.self, value: geo.size.height)
-                        })
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical) {
+                        content
+                            .background(GeometryReader { geo in
+                                Color.clear.preference(key: PanelHeightKey.self, value: geo.size.height)
+                            })
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .onPreferenceChange(PanelHeightKey.self) { contentHeight = $0 }
+                    .frame(width: Theme.panelWidth, height: min(contentHeight > 0 ? contentHeight : 520, maxHeight))
+                    .onChange(of: selectedRowId) { _, id in
+                        if let id { proxy.scrollTo(id) }
+                    }
                 }
-                .scrollBounceBehavior(.basedOnSize)
-                .onPreferenceChange(PanelHeightKey.self) { contentHeight = $0 }
-                .frame(width: Theme.panelWidth, height: min(contentHeight > 0 ? contentHeight : 520, maxHeight))
             }
         }
+        .background(KeyDownMonitor(handler: handleKey))
         .background(WindowKeyObserver {
             store.panelOpenedAt = .now
+            selectedRowId = nil
+            confirmDeactivateId = nil
+            keyboardMessage = nil
             // Each open starts without a search (snapshots keep theirs).
             #if DEBUG
             if !store.snapshotFrozen { query = "" }
@@ -144,14 +163,19 @@ struct MenuBarPanel: View {
         let model = model
         return VStack(spacing: 8) {
             header
+            if let keyboardMessage {
+                Text(keyboardMessage).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
+            }
             heroCard(model)
             errorBanners
             if RoleSearch.isEmpty(query) {
                 ActiveRolesCard(model: model, emptyText: accountList.isEmpty ? "Add an account to see your roles" : "No active role",
-                                showAccount: shownAccounts.count > 1)
+                                showAccount: shownAccounts.count > 1, selectedId: selectedRowId, confirmId: $confirmDeactivateId)
                 if !favorites.isEmpty { favoritesCard }
                 EligibleRolesCard(model: model, accounts: shownAccounts, pendingRecords: pendingRecords,
-                                  noAccount: accountList.isEmpty, noEligibleText: noEligibleText) { activating = $0 }
+                                  noAccount: accountList.isEmpty, noEligibleText: noEligibleText,
+                                  selectedId: selectedRowId) { activateTapped($0) }
             } else {
                 searchResults(model.filtered(by: query))
             }
@@ -168,11 +192,12 @@ struct MenuBarPanel: View {
                 .card()
         }
         if !found.activations.isEmpty || !found.permanents.isEmpty {
-            ActiveRolesCard(model: found, emptyText: "", showAccount: shownAccounts.count > 1, searching: true)
+            ActiveRolesCard(model: found, emptyText: "", showAccount: shownAccounts.count > 1, searching: true,
+                            selectedId: selectedRowId, confirmId: $confirmDeactivateId)
         }
         if !found.eligible.isEmpty {
             EligibleRolesCard(model: found, accounts: shownAccounts, pendingRecords: pendingRecords, noAccount: false,
-                              noEligibleText: noEligibleText, searching: true) { activating = $0 }
+                              noEligibleText: noEligibleText, searching: true, selectedId: selectedRowId) { activateTapped($0) }
         }
     }
 
@@ -249,6 +274,100 @@ extension MenuBarPanel {
         if !(store.refreshErrors[account.id] ?? [:]).isEmpty { return "Couldn't load the eligible roles of \(account.upn)" }
         if account.lastRefreshAt == nil { return "Loading the eligible roles of \(account.upn)…" }
         return "No eligible PIM role for \(account.upn)"
+    }
+}
+
+// MARK: - Keyboard (1.0 item 3)
+
+/// A row ↑/↓ can select: a timed activation or an eligible role, in the order the cards show them.
+private struct KeyRow {
+    let id: String
+    let kind: PaletteKind
+    let role: EligibleRole?
+    let assignment: ActiveAssignment?
+}
+
+extension MenuBarPanel {
+    /// Visible actionable rows, top to bottom: activations, then eligible roles per tenant and type (collapsed cards
+    /// and groups left out, every group open while searching). Permanent rows and favorites have no keyboard action.
+    fileprivate func keyRows() -> [KeyRow] {
+        let searching = !RoleSearch.isEmpty(query)
+        let shown = searching ? model.filtered(by: query) : model
+        var rows: [KeyRow] = []
+        if searching || showActive {
+            rows += shown.activations.map {
+                KeyRow(id: $0.id, kind: .active, role: $0.assignment.eligibleRole, assignment: $0.assignment)
+            }
+        }
+        guard searching || showEligible else { return rows }
+        let accounts = shownAccounts
+        var seen = Set<String>()
+        for tenant in accounts.map({ $0.tenantId.lowercased() }) where seen.insert(tenant).inserted {
+            let ids = Set(accounts.filter { $0.tenantId.lowercased() == tenant }.map(\.id))
+            let roles = shown.eligible.filter { $0.account.map { ids.contains($0.id) } == true }
+            for type in PanelRoleType.allCases where searching || isExpanded(type) {
+                rows += roles.filter { $0.source == type.source }.map {
+                    KeyRow(id: $0.id, kind: .eligible, role: $0, assignment: nil)
+                }
+            }
+        }
+        return rows
+    }
+
+    private func isExpanded(_ type: PanelRoleType) -> Bool {
+        switch type {
+        case .entra: showEntra
+        case .azure: showAzure
+        case .groups: showGroups
+        }
+    }
+
+    /// ↑/↓ select, Return activates (quick) or extends, ⌘Return / Tab open the sheet, ⌫ asks to deactivate (⌫ only
+    /// once the search is empty). Escape and ⌘F stay with the search field and the panel.
+    fileprivate func handleKey(_ key: PaletteKey) -> Bool {
+        guard activating == nil else { return false }   // the Activation Sheet's own fields
+        let rows = keyRows()
+        let index = selectedRowId.flatMap { id in rows.firstIndex { $0.id == id } }
+        let row = index.map { rows[$0] }
+        switch PaletteCommand.forKey(key, kind: row?.kind, queryEmpty: query.isEmpty, escapeCloses: false) {
+        case .moveUp, .moveDown:
+            let delta = key == .upArrow ? -1 : 1
+            selectedRowId = QuickPalette.move(index, by: delta, count: rows.count).map { rows[$0].id }
+        case .activate: if let role = row?.role { quickActivate(role) }
+        case .extend: if let role = row?.role { extend(role) }
+        case .openSheet: activating = row?.role
+        case .confirmDeactivate: if let assignment = row?.assignment { askToDeactivate(assignment) }
+        case .close, .pass: return false
+        }
+        return true
+    }
+
+    private func extend(_ role: EligibleRole) {
+        keyboardMessage = "Extending \(role.roleName)…"
+        Task { keyboardMessage = await store.extend(eligibleRoleId: role.id) }
+    }
+
+    /// Opens the row's own Deactivate question, or says why it cannot (as the row's disabled button).
+    private func askToDeactivate(_ assignment: ActiveAssignment) {
+        if Date.now.timeIntervalSince(assignment.startAt) < 300 {
+            keyboardMessage = "Can't deactivate within 5 minutes of activation."
+        } else if store.isOffline {
+            keyboardMessage = ActivationBlock.offline.message
+        } else {
+            confirmDeactivateId = assignment.id
+        }
+    }
+
+    /// Activate button: the sheet, or with ⌥ held a quick activation (the sheet still opens when the policy needs it).
+    fileprivate func activateTapped(_ role: EligibleRole) {
+        if NSEvent.modifierFlags.contains(.option) { quickActivate(role) } else { activating = role }
+    }
+
+    /// Errors and blocks land on the row (`rowErrors`).
+    private func quickActivate(_ role: EligibleRole) {
+        Task {
+            if await store.quickActivate(role) == .needsSheet { activating = role }
+        }
     }
 }
 

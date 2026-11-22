@@ -171,6 +171,9 @@ struct ActiveRolesCard: View {
     let showAccount: Bool
     /// A search is active: every group is open and the empty line is left to the panel.
     var searching = false
+    /// Row selected with the keyboard, and the one whose Deactivate question ⌫ asked.
+    var selectedId: String?
+    var confirmId: Binding<String?>?
     @AppStorage(PreferenceKeys.panelShowActive) private var showActive = true
     @AppStorage(PreferenceKeys.panelShowPermanentGroup) private var showPermanent = false
 
@@ -183,7 +186,9 @@ struct ActiveRolesCard: View {
             }
             ForEach(Array(model.activations.enumerated()), id: \.element.id) { index, row in
                 if index > 0 { RowDivider() }
-                ActiveRow(assignment: row.assignment, alsoPermanent: row.alsoPermanent, showTypeTag: true)
+                ActiveRow(assignment: row.assignment, alsoPermanent: row.alsoPermanent, showTypeTag: true,
+                          selected: row.id == selectedId, keyboardConfirm: confirmBinding(row.id))
+                    .id(row.id)
             }
             if !model.permanents.isEmpty {
                 if !model.activations.isEmpty { RowDivider(inset: 0) }
@@ -196,6 +201,14 @@ struct ActiveRolesCard: View {
                     }
                 }
             }
+        }
+    }
+}
+
+extension ActiveRolesCard {
+    fileprivate func confirmBinding(_ id: String) -> Binding<Bool>? {
+        confirmId.map { confirm in
+            Binding(get: { confirm.wrappedValue == id }, set: { if !$0, confirm.wrappedValue == id { confirm.wrappedValue = nil } })
         }
     }
 }
@@ -214,6 +227,8 @@ struct EligibleRolesCard: View {
     let noEligibleText: (Account) -> String
     /// A search is active: every group is open and only matching rows show (no empty or consent lines).
     var searching = false
+    /// Row selected with the keyboard.
+    var selectedId: String?
     let activate: (EligibleRole) -> Void
     @AppStorage(PreferenceKeys.panelShowEligible) private var showEligible = true
     @AppStorage(PreferenceKeys.panelShowEligibleEntra) private var showEntra = true
@@ -290,9 +305,11 @@ struct EligibleRolesCard: View {
         if expanded.wrappedValue {
             ForEach(Array(roles.enumerated()), id: \.element.id) { index, role in
                 if index > 0 { RowDivider() }
-                EligibleRow(role: role, isActive: false, pending: model.waiting(role, in: pendingRecords, now: store.now)?.status) {
+                EligibleRow(role: role, isActive: false, pending: model.waiting(role, in: pendingRecords, now: store.now)?.status,
+                            selected: role.id == selectedId) {
                     activate(role)
                 }
+                .id(role.id)
             }
         }
     }

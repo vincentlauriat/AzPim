@@ -108,6 +108,7 @@ enum SnapshotRunner {
             // Deleted and saved first: the pending fixture would otherwise block the ticket sheet.
             try? env.container.mainContext.save()
             renderSheets(env: env, directory: directory, defaults: defaults)
+            renderKeyboard(env: env, directory: directory, defaults: defaults)
         }
     }
 
@@ -329,6 +330,21 @@ extension SnapshotRunner {
             let favorite = ((try? context.fetch(FetchDescriptor<Favorite>())) ?? []).first { $0.name == "Morning deploy" }
             render(FavoritesView(initialSelection: favorite?.id), size: NSSize(width: 900, height: 520), scheme: scheme,
                    to: directory.appending(path: "favorite-editor-\(suffix).png"), env: env)
+        }
+    }
+
+    /// Quick-activate palette (a search and the second row selected; the global shortcut itself cannot be rendered)
+    /// and the shortcut row of Settings › General, at its default ⌃⌥P.
+    private static func renderKeyboard(env: Env, directory: URL, defaults: UserDefaults) {
+        for scheme in [ColorScheme.dark, .light] {
+            let suffix = scheme == .dark ? "dark" : "light"
+            defaults.removePersistentDomain(forName: suiteName)
+            render(QuickPaletteView(initialQuery: "reader", initialSelection: 1) {},
+                   size: NSSize(width: QuickPaletteView.width, height: 416), scheme: scheme,
+                   to: directory.appending(path: "palette-search-\(suffix).png"), env: env)
+            render(Form { Section("Keyboard") { QuickActivateShortcutRow() } }.formStyle(.grouped),
+                   size: NSSize(width: 620, height: 150), scheme: scheme,
+                   to: directory.appending(path: "settings-shortcut-\(suffix).png"), env: env)
         }
     }
 }
