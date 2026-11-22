@@ -12,8 +12,8 @@ struct AzPimApp: App {
 
     init() {
         #if DEBUG
-        // Snapshot mode: fixtures in memory only, before anything opens or migrates the user's store.
-        if let env = SnapshotRunner.makeEnvironment() {
+        // Snapshot mode, or the host of the unit tests: memory only, before anything opens or migrates the user's store.
+        if let env = SnapshotRunner.makeEnvironment() ?? SnapshotRunner.makeTestHostEnvironment() {
             container = env.container
             _accounts = State(initialValue: env.accounts)
             _store = State(initialValue: env.store)

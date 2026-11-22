@@ -29,7 +29,10 @@ public struct PIMService: Sendable {
 
     /// Builds the sources available for a token provider. Directory sources only when `directory` is true
     /// (MSAL account with consent): the Azure CLI cannot obtain Graph PIM scopes.
-    public static func sources(token: @escaping @Sendable (Resource, String?) async throws -> AccessToken,
+    /// Token of one resource, with the claims of a challenge when stepping up.
+    public typealias TokenSource = @Sendable (Resource, String?) async throws -> AccessToken
+
+    public static func sources(token: @escaping TokenSource,
                                directory: Bool, transport: HTTPTransport = URLSessionTransport()) -> [any PIMSource] {
         let arm = AuthorizedClient(transport: transport) { claims in try await token(.arm, claims) }
         var list: [any PIMSource] = [ARMClient(client: arm)]

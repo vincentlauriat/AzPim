@@ -151,7 +151,7 @@ struct ActiveRow: View {
                         .background(Theme.remaining(remaining).opacity(0.14), in: Capsule())
                         .help(Countdown.long(remaining))
                 }
-                if store.busy.contains(assignment.id) {
+                if store.isBusy(assignment) {
                     ProgressView().controlSize(.small)
                 } else {
                     Button {

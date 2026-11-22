@@ -17,11 +17,9 @@ extension RoleStore {
         guard let current = activeActivations().first(where: { $0.eligibleRole?.id == eligibleRoleId }) else {
             return "\(role.roleName) is no longer active."
         }
+        // The active row stays busy too (`isBusy`), through the policy read, the deactivation and the waits between
+        // attempts, even when a refresh replaces it meanwhile.
         let activeSince = current.startAt
-        // The active row stays busy too, through the policy read, the deactivation and the waits between attempts.
-        let currentId = current.id
-        extending.insert(currentId)
-        defer { extending.remove(currentId) }
         let lastDuration = role.account?.records
             .filter { $0.eligibleRoleId == eligibleRoleId && $0.action != .deactivate && $0.requestedDuration != nil }
             .max { $0.sentAt < $1.sentAt }?.requestedDuration
@@ -38,6 +36,12 @@ extension RoleStore {
         }
     }
 
+    /// An active row is busy while its own request runs, or while its role is extended: keyed on the eligible role,
+    /// not on the row, so the row a refresh puts in its place during the extension (new instance id) is busy too.
+    func isBusy(_ assignment: ActiveAssignment) -> Bool {
+        busy.contains(assignment.id) || assignment.eligibleRole.map { extending.contains($0.id) } == true
+    }
+
     private func reactivate(_ role: EligibleRole, input: ActivationInput) async -> String {
         let roleId = role.id
         guard let current = activeActivations().first(where: { $0.eligibleRole?.id == roleId }) else {
@@ -52,7 +56,7 @@ extension RoleStore {
         var status: RequestStatus?
         let delays = [0, 3, 6, 12]
         for (attempt, delay) in delays.enumerated() {
-            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+            if delay > 0 { try? await sleep(.seconds(delay)) }
             status = await activate(role, input: input, fromPanel: false, action: .extend, refreshAfter: false,
                                     discardIfAlreadyActive: attempt < delays.count - 1)
             if status != nil || lastActivationError[roleId]?.alreadyActive != true { break }

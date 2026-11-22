@@ -312,7 +312,7 @@ private struct RoleDetail: View {
 
     @ViewBuilder private func actions(_ role: EligibleRole) -> some View {
         HStack {
-            if store.busy.contains(role.id) || row.assignment.map({ store.busy.contains($0.id) }) == true {
+            if store.busy.contains(role.id) || row.assignment.map(store.isBusy) == true {
                 ProgressView().controlSize(.small)
             } else if let assignment = row.assignment {
                 Button("Deactivate", role: .destructive) { confirmingDeactivate = true }

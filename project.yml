@@ -23,6 +23,11 @@ schemes:
         AzPim: all
     run:
       config: Debug
+    # Hosted unit tests (Debug only); not in `build`, so archive and Scripts/release.sh never build them.
+    test:
+      config: Debug
+      targets:
+        - AzPimTests
     archive:
       config: Release
 
@@ -88,3 +93,26 @@ targets:
               - azpim
               # MSAL redirect URI (TRD): msauth.<bundle id>://auth
               - msauth.fr.vincentlauriat.azpim
+
+  # RoleStore tests hosted in the app (fakes for PIM sources, tokens, sleeps and notifications). AzPimCore is
+  # not linked again: the test bundle uses the app's copy (a second copy would duplicate the @Model classes).
+  AzPimTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: AzPimTests
+    dependencies:
+      - target: AzPim
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fr.vincentlauriat.azpim.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AzPim.app/Contents/MacOS/AzPim"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
