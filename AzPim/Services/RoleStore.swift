@@ -263,7 +263,9 @@ final class RoleStore {
             record.status = outcome.status
             rowErrors[role.id] = nil   // a refused duplicate meanwhile left its message
             if outcome.status == .provisioned { record.completedAt = .now }
-            role.lastJustification = input.justification
+            // An empty justification (optional, quick activation) never replaces the one remembered for the sheet,
+            // favorites and Extend.
+            if !input.justification.isEmpty { role.lastJustification = input.justification }
             if viaFavorite == nil, action == .activate { rememberDuration(input.duration, for: role) }   // sheet only
             try? context.save()
             if refreshAfter { await refresh() }

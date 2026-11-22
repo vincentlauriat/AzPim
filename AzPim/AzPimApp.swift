@@ -63,7 +63,11 @@ struct AzPimApp: App {
         _store = State(initialValue: roleStore)
         // Started at launch, independent of any view (a menu bar label is not guaranteed to run `.task`).
         DeepLinkHandler.store = roleStore
-        Task { @MainActor in roleStore.start() }
+        // Global shortcut (default ⌃⌥P) → quick-activate palette. Production path only: snapshots and the test host
+        // returned above and never take the shortcut from the user's session.
+        let palette = QuickPaletteController(container: container, accounts: accountService, store: roleStore)
+        GlobalHotKey.onPress = { palette.toggle() }
+        Task { @MainActor in roleStore.start(); GlobalHotKey.registerStored() }
     }
 
     /// Shows a launch error and quits: used before any window exists, so it cannot be a sheet.

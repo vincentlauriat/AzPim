@@ -24,6 +24,7 @@ struct PreferenceKeysTests {
         #expect(PreferenceKeys.all.count == Set(PreferenceKeys.all).count)
         #expect(PreferenceKeys.all.allSatisfy { !$0.hasPrefix("SU") && !$0.hasPrefix("NS") })
         #expect(PreferenceKeys.all.contains(PreferenceKeys.allowLinkActivation))
+        #expect(PreferenceKeys.all.contains(PreferenceKeys.quickActivateShortcut))
     }
 
     /// On dictionaries: a real defaults domain would leave a plist in ~/Library/Preferences after the test.

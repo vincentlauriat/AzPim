@@ -58,6 +58,9 @@ struct GeneralSettingsView: View {
                     Text(error).foregroundStyle(.red).textSelection(.enabled)
                 }
             }
+            Section("Keyboard") {
+                QuickActivateShortcutRow()
+            }
         }
         .formStyle(.grouped)
         .onAppear(perform: readStatus)
@@ -86,6 +89,54 @@ struct GeneralSettingsView: View {
         guard settings.launchAtLogin != enabled else { return }
         settings.launchAtLogin = enabled
         try? context.save()
+    }
+}
+
+/// Settings › General › Keyboard: the global shortcut of the quick-activate palette (default ⌃⌥P, or none).
+struct QuickActivateShortcutRow: View {
+    @AppStorage(PreferenceKeys.quickActivateShortcut) private var stored = GlobalShortcut.defaultShortcut.storageValue
+    /// The shortcut macOS refused (another app holds it), shown under the picker.
+    @State private var refused: String?
+
+    var body: some View {
+        Picker(selection: Binding(get: { stored }, set: { choose($0) })) {
+            ForEach(GlobalShortcut.presets, id: \.self) { Text($0.display).tag($0.storageValue) }
+            Divider()
+            Text("None").tag(GlobalShortcut.noneValue)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Quick activate")
+                Text("Opens a search from any app: ↩ activates with the default duration, ⌘↩ opens the sheet. "
+                     + "In the panel, ⌥-click Activate to skip the sheet.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .onAppear {
+            // The launch registration may have been refused.
+            if GlobalHotKey.lastError != nil { refused = GlobalShortcut.fromStorage(stored)?.display }
+        }
+        if let refused {
+            Text("\(refused) is already used by another app: the shortcut was not changed. Choose another one.")
+                .foregroundStyle(.red)
+        }
+    }
+
+    /// Registers the choice first; the stored value changes only once macOS accepted it (the old shortcut stays).
+    private func choose(_ value: String) {
+        #if DEBUG
+        // Snapshots and the test host never take a shortcut from the user's session.
+        if SnapshotRunner.directory != nil || SnapshotRunner.isTestHost {
+            stored = value
+            return
+        }
+        #endif
+        let shortcut = GlobalShortcut.fromStorage(value)
+        if GlobalHotKey.register(shortcut) == noErr {
+            stored = value
+            refused = nil
+        } else {
+            refused = shortcut?.display ?? value
+        }
     }
 }
 
