@@ -85,6 +85,12 @@ public struct AuthorizedClient: Sendable {
                 claims = challenge
                 continue
             }
+            if status == 400, claims == nil, let challenge = Self.acrsChallenge(data) {
+                // Entra PIM: a role whose policy requires an authentication context fails with a 400 carrying the
+                // claims in its message. The request was rejected, so stepping up and sending it again is safe.
+                claims = challenge
+                continue
+            }
             if status == 429 || (status >= 500 && method == "GET"), attempt < maxRetries {
                 let retryAfter = response.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
                 // Capped: a huge Retry-After must not hold the refresh (and queued actions) for hours.
@@ -122,6 +128,24 @@ public struct AuthorizedClient: Sendable {
         var base64 = raw
         base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
         return Data(base64Encoded: base64).flatMap { String(bytes: $0, encoding: .utf8) } ?? raw
+    }
+
+    /// Claims JSON from a Graph `RoleAssignmentRequestAcrsValidationFailed` error: the message (possibly nested as a
+    /// JSON string) ends with `&claims=<url-encoded JSON>`.
+    static func acrsChallenge(_ data: Data) -> String? {
+        let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        guard var message = (object?["error"] as? [String: Any])?["message"] as? String else { return nil }
+        if let inner = message.data(using: .utf8),
+           let nested = (try? JSONSerialization.jsonObject(with: inner)) as? [String: Any],
+           let innerMessage = nested["message"] as? String {
+            message = innerMessage
+        }
+        guard let match = message.firstMatch(of: /claims=([^\s&"]+)/),
+              let decoded = String(match.1).removingPercentEncoding,
+              let json = decoded.data(using: .utf8),
+              let claims = (try? JSONSerialization.jsonObject(with: json)) as? [String: Any],
+              claims["access_token"] != nil else { return nil }
+        return decoded
     }
 
     static func error(status: Int, data: Data, response: HTTPURLResponse) -> Error {

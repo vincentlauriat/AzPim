@@ -222,6 +222,49 @@ struct AuthorizedClientTests {
         #expect(recorder.seen == [nil, claims])
     }
 
+    /// Graph answers an Entra activation that needs an authentication context with a 400 whose message carries
+    /// `&claims=<url-encoded JSON>` (no WWW-Authenticate): step up once with those claims.
+    @Test func retriesOnceWithAcrsClaimsFromGraph400() async throws {
+        let claims = #"{"access_token":{"acrs":{"essential":true, "value":"c1"}}}"#
+        let encoded = claims.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+        let message = "The following policy rules failed: [\"AcrsRule\"]. The authentication context requirement is not met. "
+            + "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=x&claims=\(encoded)"
+        let transport = FakeTransport([
+            .init(status: 400, json: ["error": ["code": "RoleAssignmentRequestAcrsValidationFailed", "message": message]]),
+            .init(status: 201, json: ["ok": true])
+        ])
+        let recorder = ClaimsRecorder()
+        let result = try await client(transport, recorder: recorder).json("POST", URL(string: "https://x.test")!, body: ["a": 1])
+        #expect(result["ok"] as? Bool == true)
+        #expect(recorder.seen == [nil, claims])
+    }
+
+    /// Same challenge when Graph nests the PIM error as a JSON string inside `message`.
+    @Test func acrsClaimsFoundInNestedGraphMessage() async throws {
+        let claims = #"{"access_token":{"acrs":{"essential":true,"value":"c2"}}}"#
+        let encoded = claims.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+        let inner = #"{"errorCode":"RoleAssignmentRequestAcrsValidationFailed","message":"Auth context required &claims=\#(encoded)"}"#
+        let transport = FakeTransport([
+            .init(status: 400, json: ["error": ["code": "UnknownError", "message": inner]]),
+            .init(status: 201, json: ["ok": true])
+        ])
+        let recorder = ClaimsRecorder()
+        _ = try await client(transport, recorder: recorder).json("POST", URL(string: "https://x.test")!, body: ["a": 1])
+        #expect(recorder.seen == [nil, claims])
+    }
+
+    /// A second ACRS failure after the step-up is reported, not looped on.
+    @Test func acrsChallengeIsAnsweredOnlyOnce() async {
+        let claims = #"{"access_token":{"acrs":{"essential":true,"value":"c1"}}}"#
+        let encoded = claims.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+        let body: [String: Any] = ["error": ["code": "RoleAssignmentRequestAcrsValidationFailed", "message": "x &claims=\(encoded)"]]
+        let transport = FakeTransport([.init(status: 400, json: body), .init(status: 400, json: body)])
+        await #expect(throws: PIMError.self) {
+            try await client(transport).json("POST", URL(string: "https://x.test")!, body: ["a": 1])
+        }
+        #expect(transport.requests.count == 2)
+    }
+
     @Test func mapsARMErrorMessage() async {
         let transport = FakeTransport([.init(status: 400, json: ["error": ["code": "RoleAssignmentExists",
                                                                            "message": "The Role assignment already exists."]])])
