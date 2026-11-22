@@ -106,7 +106,11 @@ struct EligibleRow: View {
 
 struct ActiveRow: View {
     @Environment(RoleStore.self) private var store
+    /// The activation: Deactivate and the countdown always target it, even when the role is also held permanently.
     let assignment: ActiveAssignment
+    /// The same role is also assigned permanently (merged into this row).
+    var alsoPermanent = false
+    var showTypeTag = false
     @State private var confirming = false
 
     /// Azure refuses deactivation within 5 minutes of activation (BackendSchema › business rules).
@@ -117,8 +121,19 @@ struct ActiveRow: View {
             HStack(spacing: 8) {
                 Image(systemName: SourceIcon.name(assignment.source)).frame(width: 22).foregroundStyle(Theme.active)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                    Text(assignment.scopeName).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                    HStack(spacing: 5) {
+                        Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                        if showTypeTag { TypeTag(source: assignment.source) }
+                    }
+                    HStack(spacing: 4) {
+                        Text(assignment.scopeName).lineLimit(1).truncationMode(.middle)
+                        if alsoPermanent {
+                            Label("also permanent", systemImage: "lock").labelStyle(.titleAndIcon).imageScale(.small)
+                                .lineLimit(1).fixedSize()
+                                .help("Also assigned permanently: deactivating ends the activation only")
+                        }
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
                 if let end = assignment.endAt {
@@ -175,12 +190,16 @@ struct ActiveRow: View {
 struct PermanentRow: View {
     let assignment: ActiveAssignment
     let showAccount: Bool
+    var showTypeTag = false
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: SourceIcon.name(assignment.source)).frame(width: 22).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 1) {
-                Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                HStack(spacing: 5) {
+                    Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                    if showTypeTag { TypeTag(source: assignment.source) }
+                }
                 Text(showAccount ? "\(assignment.scopeName) · \(assignment.account?.upn ?? "")" : assignment.scopeName)
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             }

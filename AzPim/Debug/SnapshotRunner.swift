@@ -4,117 +4,185 @@ import AzPimCore
 import SwiftData
 import SwiftUI
 
-/// Debug only: `AZPIM_SNAPSHOT=<dir>` renders the panel and the main window sections to PNG files
-/// once the first refresh is done, so the look can be checked without clicking the status item.
+/// Debug only: `AZPIM_SNAPSHOT=<dir>` renders the panel and the main window sections to PNG files from fixture data,
+/// so the look can be checked without clicking the status item. The app then runs on an in-memory store only: no
+/// migration, no refresh, no `az`, no Keychain, and preferences are read from a throwaway defaults suite, so the
+/// user's own data and settings are never touched.
 @MainActor
 enum SnapshotRunner {
     static var directory: URL? {
         ProcessInfo.processInfo.environment["AZPIM_SNAPSHOT"].map { URL(fileURLWithPath: $0, isDirectory: true) }
     }
 
-    static func run(container: ModelContainer, accounts: AccountService, store: RoleStore) {
+    /// Defaults suite of the renders (`@AppStorage` reads it through `.defaultAppStorage`), removed at the end.
+    private static let suiteName = "fr.vincentlauriat.azpim.snapshot"
+
+    struct Env {
+        let container: ModelContainer
+        let accounts: AccountService
+        let store: RoleStore
+    }
+
+    /// The fixture environment the app runs on in snapshot mode; nil outside it.
+    static func makeEnvironment() -> Env? {
+        guard directory != nil, let demo = try? AzPimStore.makeContainer(inMemory: true) else { return nil }
+        let context = demo.mainContext
+        let settings = try? AzPimStore.settings(in: context)
+        settings?.onboardingCompleted = true   // no onboarding window
+        addFixtures(context: context)
+        try? context.save()
+        let accounts = AccountService(context: context)
+        let store = RoleStore(context: context, accounts: accounts, notifications: NotificationScheduler())
+        store.snapshotFrozen = true   // a window becoming key must not refresh the fixtures
+        return Env(container: demo, accounts: accounts, store: store)
+    }
+
+    static func run(_ env: Env) {
         guard let directory else { return }
-        let env = Env(container: container, accounts: accounts, store: store)
         Task { @MainActor in
-            while store.lastRefresh == nil { try? await Task.sleep(for: .milliseconds(300)) }
-            try? await Task.sleep(for: .seconds(1))
-            // Screenshots show every card expanded; the user's own choices are restored afterwards.
-            let keys = [PreferenceKeys.panelShowActive, PreferenceKeys.panelShowPermanent,
-                        PreferenceKeys.panelShowFavorites, PreferenceKeys.panelShowEligible]
-            let saved = keys.map { UserDefaults.standard.object(forKey: $0) }
-            keys.forEach { UserDefaults.standard.set(true, forKey: $0) }
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            guard let defaults = UserDefaults(suiteName: suiteName) else { return }
+            defer {
+                defaults.removePersistentDomain(forName: suiteName)
+                NSApp.terminate(nil)
+            }
+            try? await Task.sleep(for: .milliseconds(500))
             for scheme in [ColorScheme.dark, .light] {
                 let suffix = scheme == .dark ? "dark" : "light"
+                // Default state: Permanent group collapsed, every other section expanded.
+                defaults.removePersistentDomain(forName: suiteName)
                 render(MenuBarPanel(), size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
                        to: directory.appending(path: "panel-\(suffix).png"), env: env)
+                PreferenceKeys.all.forEach { defaults.set(true, forKey: $0) }
+                render(MenuBarPanel(), size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
+                       to: directory.appending(path: "panel-expanded-\(suffix).png"), env: env)
                 for item in SidebarItem.allCases {
                     render(MainWindow(snapshot: item), size: NSSize(width: 1100, height: 720), scheme: scheme,
                            to: directory.appending(path: "window-\(item.rawValue.lowercased())-\(suffix).png"),
                            env: env)
                 }
             }
-            renderDemo(to: directory)
-            zip(keys, saved).forEach { UserDefaults.standard.set($1, forKey: $0) }
-            NSApp.terminate(nil)
         }
     }
 
-    /// Panel with fake activations (in-memory store): hero countdown, progress and active rows.
-    private static func renderDemo(to directory: URL) {
-        guard let demo = try? AzPimStore.makeContainer(inMemory: true) else { return }
-        let context = demo.mainContext
-        let account = Account(mode: .azureCLI, upn: "demo@contoso.com", objectId: "o", tenantId: "t", tenantName: "Contoso")
-        context.insert(account)
-        let reader = EligibleRole(id: "e1", account: account, source: .azureResource, roleDefinitionId: "r1", roleName: "Reader",
-                                  scope: "/", scopeName: "Tenant Root Group", scopeType: "managementgroup")
-        let contributor = EligibleRole(id: "e2", account: account, source: .azureResource, roleDefinitionId: "r2",
-                                       roleName: "Contributor", scope: "/s", scopeName: "rg-app-prod-weu001", scopeType: "resourcegroup")
-        context.insert(reader)
-        context.insert(contributor)
-        context.insert(ActiveAssignment(id: "a1", account: account, source: .azureResource, roleName: "Reader", scope: "/",
-                                        scopeName: "Tenant Root Group", assignmentType: .activated,
-                                        startAt: .now - 18 * 60, endAt: .now + 42 * 60, eligibleRole: reader))
-        context.insert(ActiveAssignment(id: "a2", account: account, source: .azureResource, roleName: "Contributor", scope: "/s",
-                                        scopeName: "rg-app-prod-weu001", assignmentType: .activated,
-                                        startAt: .now - 7 * 3600, endAt: .now + 3 * 3600 + 16 * 60, eligibleRole: contributor))
-        context.insert(ActiveAssignment(id: "a3", account: account, source: .azureResource, roleName: "Key Vault Secrets Officer",
-                                        scope: "/k", scopeName: "kv-app-dev-weu001", assignmentType: .assigned,
-                                        startAt: .now - 86_400, endAt: nil))
-        addDemoHistory(account: account, reader: reader, contributor: contributor, context: context)
-        context.insert(Favorite(name: "Morning deploy", items: [FavoriteItem(eligibleRoleId: contributor.id, duration: "PT4H")]))
-        context.insert(Favorite(name: "Audit", items: [FavoriteItem(eligibleRoleId: reader.id, duration: "PT1H")]))
-        try? context.save()
-        let accounts = AccountService(context: context)
-        let store = RoleStore(context: context, accounts: accounts, notifications: NotificationScheduler())
-        let env = Env(container: demo, accounts: accounts, store: store)
-        for scheme in [ColorScheme.dark, .light] {
-            let suffix = scheme == .dark ? "dark" : "light"
-            render(MenuBarPanel(), size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
-                   to: directory.appending(path: "panel-demo-\(suffix).png"), env: env)
-            for item in SidebarItem.allCases {
-                render(MainWindow(snapshot: item), size: NSSize(width: 1100, height: 640), scheme: scheme,
-                       to: directory.appending(path: "window-demo-\(item.rawValue.lowercased())-\(suffix).png"), env: env)
-            }
+    // MARK: Fixtures
+
+    /// One person signed in twice (Azure CLI and Microsoft, same tenant and UPN in another case), Azure roles held by
+    /// both, Entra roles of which one is activated and also assigned permanently through a group, one held only
+    /// permanently, and PIM groups. Before the dedup this rendered every Azure role twice and both Entra roles twice.
+    private static func addFixtures(context: ModelContext) {
+        let cli = Account(mode: .azureCLI, upn: "V.Admin@Contoso.com", objectId: "oid-1", tenantId: "TENANT-CONTOSO",
+                          tenantName: "Contoso", sortOrder: 0)
+        let msal = Account(mode: .msal, upn: "v.admin@contoso.com", objectId: "oid-1", tenantId: "tenant-contoso",
+                           tenantName: "Contoso", sortOrder: 1)
+        msal.directoryAccess = .enabled
+        for account in [cli, msal] {
+            account.lastRefreshAt = .now
+            context.insert(account)
+        }
+        // Azure resource roles, cached under both accounts (the CLI copies must not show).
+        for account in [cli, msal] {
+            let fixtures = Fixtures(context: context, account: account)
+            let reader = fixtures.eligible("e-reader", .azureResource, "Reader", "/providers/mg/root",
+                                           "Tenant Root Group")
+            let contributor = fixtures.eligible("e-contrib", .azureResource, "Contributor", "/subs/s1/rg/app-prod",
+                                                "rg-app-prod-weu001")
+            _ = fixtures.eligible("e-kvadmin", .azureResource, "Key Vault Administrator", "/subs/s1/kv/app-prod",
+                                  "kv-app-prod-weu001")
+            fixtures.assignment("a-reader", .azureResource, "Reader", "/providers/mg/root", "Tenant Root Group",
+                                started: 18 * 60, ends: 42 * 60, role: reader)
+            fixtures.assignment("a-contrib", .azureResource, "Contributor", "/subs/s1/rg/app-prod",
+                                "rg-app-prod-weu001", started: 7 * 3600, ends: 3 * 3600 + 16 * 60, role: contributor)
+            fixtures.assignment("p-kvso", .azureResource, "Key Vault Secrets Officer", "/subs/s1/kv/app-dev",
+                                "kv-app-dev-weu001")
+            if account === msal { addEntraAndGroups(fixtures) }
+        }
+        let favoriteRole = "\(cli.id.uuidString)|e-contrib"   // saved on the CLI account: resolves onto the MSAL one
+        context.insert(Favorite(name: "Morning deploy", items: [FavoriteItem(eligibleRoleId: favoriteRole, duration: "PT4H")]))
+        context.insert(Favorite(name: "Audit", items: [FavoriteItem(eligibleRoleId: "\(msal.id.uuidString)|e-reader",
+                                                                    duration: "PT1H")], sortOrder: 1))
+        addHistory(account: msal, context: context)
+    }
+
+    private static func addEntraAndGroups(_ fixtures: Fixtures) {
+        let license = fixtures.eligible("e-license", .entraRole, "License Administrator", "/", "Directory")
+        _ = fixtures.eligible("e-useradmin", .entraRole, "User Administrator", "/", "Directory")
+        _ = fixtures.eligible("e-globalreader", .entraRole, "Global Reader", "/", "Directory")
+        _ = fixtures.eligible("e-secreader", .entraRole, "Security Reader", "/", "Directory")
+        // Activated through PIM and also assigned permanently via a group: one row, "also permanent".
+        fixtures.assignment("a-license", .entraRole, "License Administrator", "/", "Directory",
+                            started: 55 * 60, ends: 65 * 60, role: license)
+        fixtures.assignment("p-license", .entraRole, "License Administrator", "/", "Directory")
+        // Held permanently only: shown under Permanent, not offered as eligible.
+        fixtures.assignment("p-useradmin", .entraRole, "User Administrator", "/", "Directory")
+        let sql = fixtures.eligible("e-sql", .pimGroup, "Member", "g-sql", "sg-pim-sql-admins")
+        _ = fixtures.eligible("e-ops", .pimGroup, "Member", "g-ops", "sg-pim-prod-operators")
+        _ = fixtures.eligible("e-glass", .pimGroup, "Owner", "g-glass", "sg-pim-break-glass")
+        fixtures.assignment("a-sql", .pimGroup, "Member", "g-sql", "sg-pim-sql-admins",
+                            started: 35 * 60, ends: 25 * 60, role: sql)
+    }
+
+    private struct Fixtures {
+        let context: ModelContext
+        let account: Account
+
+        func eligible(_ id: String, _ source: RoleSource, _ name: String, _ scope: String,
+                      _ scopeName: String) -> EligibleRole {
+            let role = EligibleRole(id: id, account: account, source: source, roleDefinitionId: "def-\(name)", roleName: name,
+                                    scope: scope, scopeName: scopeName, scopeType: source == .entraRole ? "directory" : "scope")
+            context.insert(role)
+            return role
+        }
+
+        /// An activation when `ends` is given (seconds from now), else a permanent assignment.
+        func assignment(_ id: String, _ source: RoleSource, _ name: String, _ scope: String,
+                        _ scopeName: String, started: TimeInterval = 86_400, ends: TimeInterval? = nil,
+                        role: EligibleRole? = nil) {
+            context.insert(ActiveAssignment(id: id, account: account, source: source, roleName: name, scope: scope,
+                                            scopeName: scopeName, assignmentType: ends == nil ? .assigned : .activated,
+                                            startAt: .now - started, endAt: ends.map { .now + $0 }, eligibleRole: role))
         }
     }
 
-    private static func addDemoHistory(account: Account, reader: EligibleRole, contributor: EligibleRole, context: ModelContext) {
+    private static func addHistory(account: Account, context: ModelContext) {
         struct Sample {
-            let role: EligibleRole, action: ActivationAction, ago: TimeInterval, justification: String, took: TimeInterval
+            let roleId: String, name: String, scope: String, action: ActivationAction, ago: TimeInterval
+            let justification: String, took: TimeInterval
         }
+        let prefix = account.id.uuidString + "|"
         let samples = [
-            Sample(role: reader, action: .activate, ago: 18 * 60, justification: "Audit of the tenant root policies", took: 14),
-            Sample(role: contributor, action: .activate, ago: 7 * 3600, justification: "Deploy release 2.4 to production", took: 21),
-            Sample(role: reader, action: .deactivate, ago: 26 * 3600, justification: "", took: 0),
-            Sample(role: reader, action: .activate, ago: 27 * 3600, justification: "Investigate cost anomaly", took: 17)
+            Sample(roleId: "e-reader", name: "Reader", scope: "Tenant Root Group", action: .activate, ago: 18 * 60,
+                   justification: "Audit of the tenant root policies", took: 14),
+            Sample(roleId: "e-license", name: "License Administrator", scope: "Directory", action: .activate, ago: 55 * 60,
+                   justification: "Assign licenses to the new hires", took: 9),
+            Sample(roleId: "e-contrib", name: "Contributor", scope: "rg-app-prod-weu001", action: .activate, ago: 7 * 3600,
+                   justification: "Deploy release 2.4 to production", took: 21),
+            Sample(roleId: "e-reader", name: "Reader", scope: "Tenant Root Group", action: .deactivate, ago: 26 * 3600,
+                   justification: "", took: 0)
         ]
         for sample in samples {
-            let role = sample.role, action = sample.action, ago = sample.ago
-            let justification = sample.justification, took = sample.took
-            let record = ActivationRecord(account: account, eligibleRoleId: role.id, roleName: role.roleName,
-                                          scopeName: role.scopeName, source: .azureResource, action: action,
-                                          requestedDuration: action == .activate ? "PT1H" : nil,
-                                          justification: justification.isEmpty ? nil : justification,
-                                          panelOpenedAt: action == .activate ? .now - ago - took : nil)
-            record.sentAt = .now - ago
+            let record = ActivationRecord(account: account, eligibleRoleId: prefix + sample.roleId, roleName: sample.name,
+                                          scopeName: sample.scope, source: .azureResource, action: sample.action,
+                                          requestedDuration: sample.action == .activate ? "PT1H" : nil,
+                                          justification: sample.justification.isEmpty ? nil : sample.justification,
+                                          panelOpenedAt: sample.action == .activate ? .now - sample.ago - sample.took : nil)
+            record.sentAt = .now - sample.ago
             record.status = .provisioned
-            record.completedAt = .now - ago + max(took - 8, 1)
+            record.completedAt = .now - sample.ago + max(sample.took - 8, 1)
             context.insert(record)
         }
     }
 
-    private struct Env {
-        let container: ModelContainer
-        let accounts: AccountService
-        let store: RoleStore
-    }
+    // MARK: Rendering
 
     private static func render(_ view: some View, size: NSSize, scheme: ColorScheme, to url: URL, env: Env) {
         let container = env.container, accounts = env.accounts, store = env.store
+        guard let defaults = UserDefaults(suiteName: suiteName) else { return }
         let root = view
             .environment(accounts)
             .environment(store)
             .modelContainer(container)
+            .defaultAppStorage(defaults)
             .environment(\.colorScheme, scheme)
             .background(scheme == .dark ? Color(white: 0.12) : Color(white: 0.96))
         let hosting = NSHostingView(rootView: root)

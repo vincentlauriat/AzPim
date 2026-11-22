@@ -118,7 +118,12 @@ private struct FavoriteEditor: View {
                     itemRow(item: item)
                 }
                 Menu("Add role") {
-                    ForEach(roles.filter { role in !favorite.items.contains { $0.eligibleRoleId == role.id } }) { role in
+                    // Not the roles of an Azure CLI account replaced by a Microsoft sign-in: they are not used.
+                    let superseded = store.supersededAccounts()
+                    ForEach(roles.filter { role in
+                        !favorite.items.contains { $0.eligibleRoleId == role.id }
+                            && role.account.map { superseded[$0.id] == nil } == true
+                    }) { role in
                         Button("\(role.roleName) — \(role.scopeName)") {
                             favorite.items.append(FavoriteItem(eligibleRoleId: role.id, duration: role.maxDuration ?? "PT8H"))
                             try? context.save()

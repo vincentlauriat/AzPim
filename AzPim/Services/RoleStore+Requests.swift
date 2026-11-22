@@ -96,9 +96,12 @@ extension RoleStore {
         runningFavorites.insert(favoriteId)
         defer { runningFavorites.remove(favoriteId) }
         let active = Set(activeActivations().compactMap { $0.eligibleRole?.id })
+        // Roles saved under an Azure CLI account now replaced by a Microsoft sign-in run under the latter.
+        let superseded = supersededAccounts()
         var results: [FavoriteRoleResult] = []
         for item in items {
-            guard let role = eligibleRole(id: item.eligibleRoleId) else {
+            let roleId = AccountSupersede.resolve(eligibleRoleId: item.eligibleRoleId, superseded: superseded)
+            guard let role = eligibleRole(id: roleId), role.account.map({ superseded[$0.id] == nil }) == true else {
                 results.append(.init(roleName: "Unknown role", status: nil, error: "no longer eligible"))
                 continue
             }

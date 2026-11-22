@@ -19,8 +19,9 @@ struct AccountsSettingsView: View {
                 if accounts.isEmpty {
                     Text("No account yet.").foregroundStyle(.secondary)
                 }
+                let superseded = AccountSupersede.superseded(accounts.map(\.facts))
                 ForEach(accounts) { account in
-                    AccountRow(account: account, busy: busy) {
+                    AccountRow(account: account, busy: busy, replaced: superseded[account.id] != nil) {
                         run { try await service.enableDirectoryAccess(for: account) }
                     } remove: {
                         pendingRemoval = account
@@ -60,7 +61,13 @@ struct AccountsSettingsView: View {
         .confirmationDialog("Remove \(pendingRemoval?.upn ?? "")?", isPresented: .constant(pendingRemoval != nil),
                             presenting: pendingRemoval) { account in
             Button("Remove", role: .destructive) {
-                do { try service.remove(account) } catch { self.error = AccountService.message(for: error) }
+                do {
+                    try service.remove(account)
+                    // Removing a Microsoft sign-in may bring back the Azure CLI account it replaced: load it now.
+                    Task { await store.refresh() }
+                } catch {
+                    self.error = AccountService.message(for: error)
+                }
                 pendingRemoval = nil
             }
             Button("Cancel", role: .cancel) { pendingRemoval = nil }
@@ -87,6 +94,8 @@ struct AccountsSettingsView: View {
 private struct AccountRow: View {
     let account: Account
     let busy: Bool
+    /// An Azure CLI account superseded by a Microsoft sign-in of the same identity: shown greyed, still removable.
+    let replaced: Bool
     let enableEntra: () -> Void
     let remove: () -> Void
 
@@ -95,14 +104,20 @@ private struct AccountRow: View {
             Text(initials).font(.caption.weight(.semibold)).frame(width: 28, height: 28)
                 .background(Circle().fill(.quaternary))
             VStack(alignment: .leading, spacing: 2) {
-                Text(account.upn)
+                Text(account.upn).foregroundStyle(replaced ? .secondary : .primary)
                 Text(account.tenantName ?? account.tenantId).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Text(account.mode == .azureCLI ? "CLI" : "Microsoft")
                 .font(.caption2.weight(.semibold)).padding(.horizontal, 6).padding(.vertical, 2)
                 .background(Capsule().fill(.quaternary))
-            entraStatus
+                .foregroundStyle(replaced ? .secondary : .primary)
+            if replaced {
+                Text("Replaced by Microsoft sign-in").font(.caption).foregroundStyle(.secondary)
+                    .help("The Microsoft sign-in of the same account is used instead: this one is not refreshed.")
+            } else {
+                entraStatus
+            }
             Button(role: .destructive, action: remove) { Image(systemName: "minus.circle") }
                 .buttonStyle(.borderless).help("Remove account")
         }
