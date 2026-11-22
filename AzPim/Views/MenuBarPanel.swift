@@ -130,7 +130,12 @@ struct MenuBarPanel: View {
         }
         .background(WindowKeyObserver {
             store.panelOpenedAt = .now
-            if !store.snapshotFrozen { query = "" }   // each open starts without a search (snapshots keep theirs)
+            // Each open starts without a search (snapshots keep theirs).
+            #if DEBUG
+            if !store.snapshotFrozen { query = "" }
+            #else
+            query = ""
+            #endif
             Task { await store.refreshIfStale() }
         })
     }
