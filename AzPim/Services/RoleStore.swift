@@ -76,6 +76,8 @@ final class RoleStore {
         -> [any PIMSource] = { PIMService.sources(token: $1, directory: $2) }
     /// Waits: between Extend attempts, in the refresh loop and in the countdown clock.
     @ObservationIgnored var sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    /// Last duration per role (`PreferenceKeys.lastDurations` in the user's preferences).
+    @ObservationIgnored var durationMemory = DurationMemory.defaults(.standard)
 
     init(context: ModelContext, accounts: AccountService, notifications: NotificationScheduler) {
         self.context = context
@@ -262,6 +264,7 @@ final class RoleStore {
             rowErrors[role.id] = nil   // a refused duplicate meanwhile left its message
             if outcome.status == .provisioned { record.completedAt = .now }
             role.lastJustification = input.justification
+            rememberDuration(input.duration, for: role)
             try? context.save()
             if refreshAfter { await refresh() }
             return outcome.status

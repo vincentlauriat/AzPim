@@ -34,6 +34,7 @@ enum SnapshotRunner {
         let accounts = AccountService(context: context)
         let store = RoleStore(context: context, accounts: accounts, notifications: NotificationScheduler())
         store.snapshotFrozen = true   // a window becoming key must not refresh the fixtures
+        store.durationMemory = .inMemory()   // never the user's preferences
         return Env(container: demo, accounts: accounts, store: store)
     }
 
@@ -56,6 +57,7 @@ enum SnapshotRunner {
         let accounts = AccountService(context: memory.mainContext)
         let store = RoleStore(context: memory.mainContext, accounts: accounts, notifications: NotificationScheduler())
         store.snapshotFrozen = true
+        store.durationMemory = .inMemory()   // never the user's preferences
         return Env(container: memory, accounts: accounts, store: store)
     }
 
@@ -75,7 +77,7 @@ enum SnapshotRunner {
                 defaults.removePersistentDomain(forName: suiteName)
                 render(MenuBarPanel(), size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
                        to: directory.appending(path: "panel-\(suffix).png"), env: env)
-                PreferenceKeys.all.forEach { defaults.set(true, forKey: $0) }
+                PreferenceKeys.all.filter { $0.hasPrefix("panel.") }.forEach { defaults.set(true, forKey: $0) }
                 render(MenuBarPanel(), size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
                        to: directory.appending(path: "panel-expanded-\(suffix).png"), env: env)
                 for item in SidebarItem.allCases {
@@ -103,6 +105,53 @@ enum SnapshotRunner {
             }
             renderOffline(env: env, directory: directory, defaults: defaults)
             added.forEach { env.container.mainContext.delete($0) }
+            // Deleted and saved first: the pending fixture would otherwise block the ticket sheet.
+            try? env.container.mainContext.save()
+            renderSheets(env: env, directory: directory, defaults: defaults)
+        }
+    }
+
+    /// Activation Sheet states, after the other renders (the pending request would show in History and the panel):
+    /// a remembered duration, the 1 h default with a missing justification, a policy under one hour with a ticket, and
+    /// a request already waiting.
+    private static func renderSheets(env: Env, directory: URL, defaults: UserDefaults) {
+        let context = env.container.mainContext
+        let msal = ((try? context.fetch(FetchDescriptor<Account>())) ?? []).first { $0.mode == .msal }
+        guard let msal else { return }
+        func role(_ remoteId: String, _ policy: RolePolicy, justification: String? = nil) -> EligibleRole? {
+            let role = env.store.eligibleRole(id: "\(msal.id.uuidString)|\(remoteId)")
+            role?.policy = policy   // read: the sheet never asks Azure
+            role?.lastJustification = justification
+            return role
+        }
+        let remembered = role("e-kvadmin", RolePolicy(maxDuration: "PT8H"), justification: "Rotate the TLS certificate")
+        let fresh = role("e-globalreader", RolePolicy(maxDuration: "PT8H"))
+        let ticket = role("e-secreader", RolePolicy(maxDuration: "PT30M", requiresTicket: true),
+                          justification: "Review the sign-in alerts")
+        let waiting = role("e-ops", RolePolicy(maxDuration: "PT4H", requiresApproval: true), justification: "Hotfix")
+        if let waiting {
+            let record = ActivationRecord(account: msal, eligibleRoleId: waiting.id, roleName: waiting.roleName,
+                                          scopeName: waiting.scopeName, source: waiting.source, action: .activate,
+                                          requestedDuration: "PT1H", justification: "Hotfix")
+            record.status = .pendingApproval
+            record.remoteRequestId = "req-ops"
+            context.insert(record)
+        }
+        try? context.save()
+        let sheets = [("remembered", remembered), ("justification", fresh), ("ticket", ticket), ("pending", waiting)]
+        for scheme in [ColorScheme.dark, .light] {
+            let suffix = scheme == .dark ? "dark" : "light"
+            defaults.removePersistentDomain(forName: suiteName)
+            if let remembered { env.store.rememberDuration("PT2H15M", for: remembered) }
+            for (name, role) in sheets {
+                guard let role else { continue }
+                render(ActivationSheet(role: role) {}, size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
+                       to: directory.appending(path: "sheet-\(name)-\(suffix).png"), env: env)
+            }
+            // Favorite editor with its per-role duration stepper.
+            let favorite = ((try? context.fetch(FetchDescriptor<Favorite>())) ?? []).first { $0.name == "Morning deploy" }
+            render(FavoritesView(initialSelection: favorite?.id), size: NSSize(width: 900, height: 520), scheme: scheme,
+                   to: directory.appending(path: "favorite-editor-\(suffix).png"), env: env)
         }
     }
 

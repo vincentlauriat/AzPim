@@ -14,10 +14,13 @@ public enum PreferenceKeys {
     public static let panelShowEligibleEntra = "panel.showEligibleEntra"
     public static let panelShowEligibleAzure = "panel.showEligibleAzure"
     public static let panelShowEligibleGroups = "panel.showEligibleGroups"
+    /// Last activation duration per eligible role: `[ActivationDuration.roleKey: ISO 8601 duration]`.
+    public static let lastDurations = "activation.lastDurations"
 
     public static let all: [String] = [allowLinkActivation, panelShowActive, panelShowPermanent,
                                        panelShowFavorites, panelShowEligible, panelShowPermanentGroup,
-                                       panelShowEligibleEntra, panelShowEligibleAzure, panelShowEligibleGroups]
+                                       panelShowEligibleEntra, panelShowEligibleAzure, panelShowEligibleGroups,
+                                       lastDurations]
 
     /// Defaults domain of the 0.9.x releases, shipped as AzurePim (non-sandboxed: ~/Library/Preferences/<domain>.plist).
     /// It is also AzurePim's bundle id.
