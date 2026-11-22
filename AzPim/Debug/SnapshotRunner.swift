@@ -339,9 +339,13 @@ extension SnapshotRunner {
         for scheme in [ColorScheme.dark, .light] {
             let suffix = scheme == .dark ? "dark" : "light"
             defaults.removePersistentDomain(forName: suiteName)
-            render(QuickPaletteView(initialQuery: "reader", initialSelection: 1) {},
-                   size: NSSize(width: QuickPaletteView.width, height: 416), scheme: scheme,
-                   to: directory.appending(path: "palette-search-\(suffix).png"), env: env)
+            // « reader »: the active Reader ranks first (its name starts with the word); index 0 shows the active-row
+            // hint, index 1 an eligible role.
+            for (name, index) in [("palette-active", 0), ("palette-search", 1)] {
+                render(QuickPaletteView(initialQuery: "reader", initialSelection: index) {},
+                       size: NSSize(width: QuickPaletteView.width, height: 416), scheme: scheme,
+                       to: directory.appending(path: "\(name)-\(suffix).png"), env: env)
+            }
             render(Form { Section("Keyboard") { QuickActivateShortcutRow() } }.formStyle(.grouped),
                    size: NSSize(width: 620, height: 150), scheme: scheme,
                    to: directory.appending(path: "settings-shortcut-\(suffix).png"), env: env)

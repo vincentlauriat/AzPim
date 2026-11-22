@@ -10,10 +10,10 @@ struct QuickActivationTests {
         #expect(decision == .send(ActivationInput(duration: "PT1H", justification: "")))
     }
 
-    @Test func usesTheRememberedDurationAndJustification() {
-        let decision = QuickActivation.decide(.init(policy: open, policyKnown: true, lastDuration: "PT45M",
-                                                    lastJustification: "Audit"))
-        #expect(decision == .send(ActivationInput(duration: "PT45M", justification: "Audit")))
+    /// The remembered duration is used; an optional justification is always sent empty (never an old one unseen).
+    @Test func usesTheRememberedDurationAndNoJustification() {
+        let decision = QuickActivation.decide(.init(policy: open, policyKnown: true, lastDuration: "PT45M"))
+        #expect(decision == .send(ActivationInput(duration: "PT45M", justification: "")))
     }
 
     @Test func theDurationIsCappedByThePolicy() {
@@ -22,11 +22,9 @@ struct QuickActivationTests {
         #expect(decision == .send(ActivationInput(duration: "PT30M", justification: "")))
     }
 
-    /// Even with a justification remembered: the user must see what is sent.
     @Test func aRequiredJustificationOpensTheSheet() {
         let policy = RolePolicy(maxDuration: "PT8H", requiresJustification: true)
         #expect(QuickActivation.decide(.init(policy: policy, policyKnown: true)) == .openSheet)
-        #expect(QuickActivation.decide(.init(policy: policy, policyKnown: true, lastJustification: "Audit")) == .openSheet)
     }
 
     @Test func aRequiredTicketOpensTheSheet() {
@@ -79,7 +77,7 @@ struct QuickPaletteTests {
 
     @Test func otherFieldsMatchToo() {
         #expect(QuickPalette.rank("contoso user", entries).map(\.id) == ["e4"])
-        #expect(QuickPalette.rank("azure", entries).map(\.id) == ["a1", "e2"])
+        #expect(QuickPalette.rank("azure", entries).map(\.id) == ["e2", "a1"])   // equal score: eligible first
         #expect(QuickPalette.rank("root", entries).map(\.id) == ["a1"])
     }
 
@@ -91,9 +89,10 @@ struct QuickPaletteTests {
         #expect(QuickPalette.rank("reader owner", entries).isEmpty)
     }
 
-    @Test func activeRowsWinATie() {
-        let tie = [entry("e1", "Reader"), entry("a1", "Reader", kind: .active)]
-        #expect(QuickPalette.rank("reader", tie).map(\.id) == ["a1", "e1"])
+    /// Return activates an eligible row and does nothing on an active one: at equal score the eligible row wins.
+    @Test func eligibleRowsWinATie() {
+        let tie = [entry("a1", "Reader", kind: .active), entry("e1", "Reader")]
+        #expect(QuickPalette.rank("reader", tie).map(\.id) == ["e1", "a1"])
     }
 
     @Test func moveClampsAtTheEnds() {
@@ -108,15 +107,26 @@ struct QuickPaletteTests {
 }
 
 struct PaletteCommandTests {
-    private func command(_ key: PaletteKey, _ kind: PaletteKind?, queryEmpty: Bool = true,
+    private func command(_ key: PaletteKey, _ kind: PaletteKind?, isRepeat: Bool = false, queryEmpty: Bool = true,
                          escapeCloses: Bool = true) -> PaletteCommand {
-        PaletteCommand.forKey(key, kind: kind, queryEmpty: queryEmpty, escapeCloses: escapeCloses)
+        PaletteCommand.forKey(key, kind: kind, isRepeat: isRepeat, queryEmpty: queryEmpty, escapeCloses: escapeCloses)
     }
 
-    @Test func returnActivatesOrExtends() {
+    @Test func returnActivatesAnEligibleRow() {
         #expect(command(.returnKey, .eligible) == .activate)
-        #expect(command(.returnKey, .active) == .extend)
         #expect(command(.returnKey, nil) == .pass)
+    }
+
+    /// Return never extends: on an active row it only shows how to.
+    @Test func returnOnAnActiveRowDoesNothing() {
+        #expect(command(.returnKey, .active) == .alreadyActive)
+        #expect(PaletteCommand.alreadyActiveHint.contains("⇧↩ Extend"))
+    }
+
+    @Test func shiftReturnExtendsAnActiveRow() {
+        #expect(command(.shiftReturn, .active) == .extend)
+        #expect(command(.shiftReturn, .eligible) == .pass)
+        #expect(command(.shiftReturn, nil) == .pass)
     }
 
     @Test func commandReturnAndTabOpenTheSheetOfAnEligibleRole() {
@@ -126,23 +136,96 @@ struct PaletteCommandTests {
         #expect(command(.tab, nil) == .pass)
     }
 
-    /// ⌫ edits the search while there is text; ⌘⌫ always asks to deactivate.
+    /// ⌫ and ⌘⌫ edit the search while there is text.
     @Test func deleteDeactivatesOnlyWithoutSearchText() {
         #expect(command(.delete, .active) == .confirmDeactivate)
+        #expect(command(.commandDelete, .active) == .confirmDeactivate)
         #expect(command(.delete, .active, queryEmpty: false) == .pass)
-        #expect(command(.commandDelete, .active, queryEmpty: false) == .confirmDeactivate)
+        #expect(command(.commandDelete, .active, queryEmpty: false) == .pass)
         #expect(command(.delete, .eligible) == .pass)
         #expect(command(.commandDelete, .eligible) == .pass)
+    }
+
+    /// A held key never activates, extends or asks again; a held ⌫ goes back to the search field. Arrows repeat.
+    @Test func repeatedActionKeysAreIgnored() {
+        #expect(command(.returnKey, .eligible, isRepeat: true) == .ignore)
+        #expect(command(.shiftReturn, .active, isRepeat: true) == .ignore)
+        #expect(command(.commandReturn, .eligible, isRepeat: true) == .ignore)
+        #expect(command(.tab, .eligible, isRepeat: true) == .ignore)
+        #expect(command(.commandDelete, .active, isRepeat: true) == .ignore)
+        #expect(command(.delete, .active, isRepeat: true) == .pass)
+        #expect(command(.downArrow, .active, isRepeat: true) == .moveDown)
+        #expect(command(.upArrow, nil, isRepeat: true) == .moveUp)
     }
 
     @Test func escapeClosesThePaletteOnly() {
         #expect(command(.escape, .eligible) == .close)
         #expect(command(.escape, .eligible, escapeCloses: false) == .pass)
     }
+}
 
-    @Test func arrowsMove() {
-        #expect(command(.upArrow, nil) == .moveUp)
-        #expect(command(.downArrow, .active) == .moveDown)
+struct PaletteSessionTests {
+    private let ids = ["e1", "e2", "a1"]
+
+    @Test func selectionFollowsTheRowNotItsIndex() {
+        var session = PaletteSession(selectedId: "e2")
+        #expect(session.index(in: ids) == 1)
+        #expect(session.index(in: ["a1", "e2"]) == 1)   // rows reordered: still e2
+        #expect(session.index(in: ["a1"]) == 0)        // gone: the first row
+        #expect(PaletteSession().index(in: ids) == 0)
+        #expect(PaletteSession().index(in: []) == nil)
+        session.move(by: 1, in: ids)
+        #expect(session.selectedId == "a1")
+        session.move(by: 1, in: ids)
+        #expect(session.selectedId == "a1")
+    }
+
+    @Test func aQueryChangeDropsTheQuestionAndTheMessage() {
+        var session = PaletteSession(selectedId: "a1")
+        session.ask("a1")
+        session.message = "Extending…"
+        session.queryChanged(firstId: "e1")
+        #expect(session.confirming == nil)
+        #expect(session.message == nil)
+        #expect(session.selectedId == "e1")
+    }
+
+    @Test func aSelectionChangeDropsTheQuestion() {
+        var session = PaletteSession(selectedId: "a1")
+        session.ask("a1")
+        session.move(by: -1, in: ids)
+        #expect(session.confirming == nil)
+        #expect(session.selectedId == "e2")
+    }
+
+    @Test func escapeKeepsTheRole() {
+        var session = PaletteSession(selectedId: "a1")
+        session.ask("a1")
+        #expect(session.answer(.escape, isRepeat: false) == .keep)
+        #expect(session.confirming == nil)
+        #expect(session.answer(.returnKey, isRepeat: false) == .none)
+    }
+
+    /// The held ⌫ that asked cannot confirm by repeat; a fresh Return does, and then holds the action keys until the
+    /// key is released (no second action from the same press).
+    @Test func returnConfirmsOnceThenHoldsUntilKeyUp() {
+        var session = PaletteSession(selectedId: "a1")
+        session.ask("a1")
+        #expect(session.answer(.returnKey, isRepeat: true) == .ignored)
+        #expect(session.confirming == "a1")
+        #expect(session.answer(.returnKey, isRepeat: false) == .deactivate("a1"))
+        #expect(!session.allows(.returnKey))
+        #expect(!session.allows(.delete))
+        #expect(session.allows(.downArrow))
+        session.keyUp()
+        #expect(session.allows(.returnKey))
+    }
+
+    @Test func anotherKeyDropsTheQuestion() {
+        var session = PaletteSession(selectedId: "a1")
+        session.ask("a1")
+        #expect(session.answer(.tab, isRepeat: false) == .dropped)
+        #expect(session.confirming == nil)
     }
 }
 
@@ -176,6 +259,11 @@ struct GlobalShortcutTests {
         #expect(GlobalShortcut(key: "P", modifiers: [.shift]) == nil)
         #expect(GlobalShortcut(key: "P", modifiers: []) == nil)
         #expect(GlobalShortcut(key: "F5", modifiers: [.command]) == nil)
+        // Keys that move on AZERTY (the label would lie) and ⌃⌥Space (input sources) are not offered.
+        for key in ["A", "Q", "Z", "W", "M", "Space"] {
+            #expect(GlobalShortcut(key: key, modifiers: [.control, .option]) == nil)
+        }
+        #expect(GlobalShortcut.fromStorage("control+option+A") == GlobalShortcut.defaultShortcut)
         // Unreadable stored values fall back to the default rather than turning the shortcut off.
         #expect(GlobalShortcut.fromStorage("hyper+P") == GlobalShortcut.defaultShortcut)
         #expect(GlobalShortcut.fromStorage("shift+P") == GlobalShortcut.defaultShortcut)

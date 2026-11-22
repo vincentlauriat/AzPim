@@ -17,7 +17,7 @@ extension RoleStore {
     func quickActivate(_ role: EligibleRole, fromPanel: Bool = true) async -> QuickResult {
         await ensurePolicy(for: role)
         let facts = QuickActivation.Facts(policy: role.policy, policyKnown: role.policyFetchedAt != nil,
-                                          lastDuration: lastDuration(for: role), lastJustification: role.lastJustification,
+                                          lastDuration: lastDuration(for: role),
                                           inProgress: busy.contains(role.id), pending: waitingRequest(for: role) != nil,
                                           offline: isOffline)
         switch QuickActivation.decide(facts) {

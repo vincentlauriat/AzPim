@@ -67,6 +67,21 @@ struct QuickActivateTests {
         #expect(harness.records().map(\.action) == [.activate])
     }
 
+    /// An optional justification is sent empty (no old text reaches the audit log unseen), and the one remembered for
+    /// the sheet, favorites and Extend is kept.
+    @Test func allowedSendsAnEmptyJustificationAndKeepsTheLastOne() async throws {
+        let role = try await role(policy: RolePolicy(maxDuration: "PT8H", requiresJustification: false))
+        // A sheet activation remembers « Audit » (History keeps its record, so the purge keeps it too).
+        await harness.store.activate(role, input: ActivationInput(duration: "PT1H", justification: "Audit"))
+        await arm.set(assignments: [])   // that activation ended
+        await harness.refresh()
+        let again = try #require(harness.role(account, "e1"))
+        #expect(again.lastJustification == "Audit")
+        #expect(await harness.store.quickActivate(again) == .sent(.provisioned))
+        #expect(harness.records().map { $0.justification ?? "" } == ["Audit", ""])
+        #expect(try #require(harness.role(account, "e1")).lastJustification == "Audit")
+    }
+
     @Test func allowedUsesTheRememberedDuration() async throws {
         let role = try await role(policy: RolePolicy(maxDuration: "PT8H", requiresJustification: false))
         harness.store.rememberDuration("PT45M", for: role)

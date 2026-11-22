@@ -3,26 +3,27 @@ import AzPimCore
 import SwiftData
 import SwiftUI
 
-/// One row of the palette: an eligible role (Return activates) or a timed activation (Return extends, ⌫ deactivates).
+/// One row of the palette: an eligible role (Return activates) or a timed activation (⇧Return extends, ⌫ deactivates).
 struct PaletteRow: Identifiable {
     let entry: PaletteEntry
     let role: EligibleRole?
     let assignment: ActiveAssignment?
     var id: String { entry.id }
 
+    /// Eligible roles first (Return activates them), then the activations.
     static func rows(_ model: PanelModel) -> [PaletteRow] {
+        let eligible = model.eligible.map { role in
+            let entry = PaletteEntry(id: role.id, kind: .eligible, name: role.roleName, scope: role.scopeName,
+                                     types: types(role.source), tenant: role.account?.tenantName ?? "")
+            return PaletteRow(entry: entry, role: role, assignment: nil)
+        }
         let active = model.activations.map { row -> PaletteRow in
             let item = row.assignment
             let entry = PaletteEntry(id: item.id, kind: .active, name: item.roleName, scope: item.scopeName,
                                      types: types(item.source), tenant: item.account?.tenantName ?? "")
             return PaletteRow(entry: entry, role: item.eligibleRole, assignment: item)
         }
-        let eligible = model.eligible.map { role in
-            let entry = PaletteEntry(id: role.id, kind: .eligible, name: role.roleName, scope: role.scopeName,
-                                     types: types(role.source), tenant: role.account?.tenantName ?? "")
-            return PaletteRow(entry: entry, role: role, assignment: nil)
-        }
-        return active + eligible
+        return eligible + active
     }
 
     /// « Entra », « Entra roles »: the names the search matches, as in the panel.
@@ -32,8 +33,8 @@ struct PaletteRow: Identifiable {
 }
 
 /// Quick-activate palette (1.0 item 3), opened by the global shortcut: search, ↑/↓, Return activates the selected
-/// role with its default duration (or extends an active one), ⌘Return or Tab opens the Activation Sheet, ⌫ asks to
-/// deactivate an active role, Escape closes.
+/// eligible role with its default duration, ⌘Return or Tab opens the Activation Sheet, ⇧Return extends an active
+/// role and ⌫ asks to deactivate it (Return does nothing on an active row), Escape closes.
 struct QuickPaletteView: View {
     @Environment(RoleStore.self) private var store
     @Query(sort: \Account.sortOrder) private var accountList: [Account]
@@ -41,31 +42,31 @@ struct QuickPaletteView: View {
     @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" || $0.statusRaw == "sent" })
     private var pendingRecords: [ActivationRecord]
     @State private var query: String
-    @State private var selection: Int?
+    /// Selection (by row id), Deactivate question and status line.
+    @State private var session = PaletteSession()
     @State private var sheetRole: EligibleRole?
-    /// Active row waiting for Return (deactivate) or Escape (keep).
-    @State private var confirming: String?
-    @State private var message: String?
     @FocusState private var searchFocused: Bool
+    /// Snapshots: the row index to select once the rows are known.
+    private let initialSelection: Int?
     let close: () -> Void
 
     static let width: CGFloat = 560
     static let listHeight: CGFloat = 330
 
     /// `initialQuery`, `initialSelection`: snapshots only.
-    init(initialQuery: String = "", initialSelection: Int? = 0, close: @escaping () -> Void) {
+    init(initialQuery: String = "", initialSelection: Int? = nil, close: @escaping () -> Void) {
         _query = State(initialValue: initialQuery)
-        _selection = State(initialValue: initialSelection)
+        self.initialSelection = initialSelection
         self.close = close
     }
 
-    private var model: PanelModel {
+    private func makeModel() -> PanelModel {
         let supersession = store.supersession(accountList)
         let accounts = accountList.filter { !supersession.isRetired($0.id) }
         return PanelModel(accounts: accounts, assignments: assignments, supersession: supersession, now: store.now)
     }
 
-    private var rows: [PaletteRow] {
+    private func makeRows(_ model: PanelModel) -> [PaletteRow] {
         let all = PaletteRow.rows(model)
         let byId = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return QuickPalette.rank(query, all.map(\.entry)).compactMap { byId[$0.id] }
@@ -76,15 +77,18 @@ struct QuickPaletteView: View {
             if let role = sheetRole {
                 ActivationSheet(role: role, close: close)
             } else {
-                list(rows)
+                // Built once per body: the store clock ticks every second near an expiry.
+                let model = makeModel()
+                list(model, rows: makeRows(model))
             }
         }
         .frame(width: Self.width)
-        .background(KeyDownMonitor(handler: handle))
+        .background(KeyDownMonitor(handler: handle, onKeyUp: { session.keyUp() }))
     }
 
-    private func list(_ rows: [PaletteRow]) -> some View {
-        VStack(spacing: 0) {
+    private func list(_ model: PanelModel, rows: [PaletteRow]) -> some View {
+        let selectedIndex = session.index(in: rows.map(\.id))
+        return VStack(spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: "key.horizontal.fill").foregroundStyle(Theme.accent)
                 TextField("Activate a role", text: $query, prompt: Text("Activate a role…"))
@@ -101,42 +105,41 @@ struct QuickPaletteView: View {
                     LazyVStack(spacing: 2) {
                         if rows.isEmpty { EmptyLine(text: query.isEmpty ? "No role to show" : "No role matches") }
                         ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                            PaletteRowView(row: row, selected: index == selection,
+                            PaletteRowView(row: row, selected: index == selectedIndex,
                                            pending: row.role.flatMap { model.waiting($0, in: pendingRecords, now: store.now) }?.status)
                                 .id(row.id)
                                 .contentShape(Rectangle())
-                                .onTapGesture { selection = index }
+                                .onTapGesture { session.select(row.id) }
                         }
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                 }
                 .frame(height: Self.listHeight)
-                .onChange(of: selection) { _, index in
-                    if let index, rows.indices.contains(index) { proxy.scrollTo(rows[index].id) }
+                .onChange(of: session.selectedId) { _, id in
+                    if let id { proxy.scrollTo(id) }
                 }
             }
             Divider()
-            footer(rows)
+            footer(selectedIndex.map { rows[$0] }, rows: rows)
                 .padding(.horizontal, 16)
                 .frame(height: 34)
         }
-        .onChange(of: query) { selection = rows.isEmpty ? nil : 0 }
-        .onAppear { searchFocused = true }
+        .onChange(of: query) { session.queryChanged(firstId: makeRows(makeModel()).first?.id) }
+        .onAppear {
+            searchFocused = true
+            if let initialSelection, rows.indices.contains(initialSelection) { session.select(rows[initialSelection].id) }
+        }
     }
 
-    private func selected(_ rows: [PaletteRow]) -> PaletteRow? {
-        selection.flatMap { rows.indices.contains($0) ? rows[$0] : nil }
-    }
-
-    @ViewBuilder private func footer(_ rows: [PaletteRow]) -> some View {
+    @ViewBuilder private func footer(_ selected: PaletteRow?, rows: [PaletteRow]) -> some View {
         HStack(spacing: 12) {
-            if let id = confirming, let row = rows.first(where: { $0.id == id }) {
+            if let id = session.confirming, let row = rows.first(where: { $0.id == id }) {
                 Text("Deactivate \(row.entry.name)? ↩ Deactivate · esc Keep").foregroundStyle(Theme.danger)
-            } else if let message {
+            } else if let message = session.message {
                 Text(message).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail).textSelection(.enabled)
-            } else if let row = selected(rows) {
-                Text(hints(row)).foregroundStyle(.secondary)
+            } else if let selected {
+                Text(hints(selected)).foregroundStyle(.secondary)
             } else {
                 Text("↑↓ Select · esc Close").foregroundStyle(.secondary)
             }
@@ -146,8 +149,8 @@ struct QuickPaletteView: View {
     }
 
     private func hints(_ row: PaletteRow) -> String {
+        if row.entry.kind == .active { return PaletteCommand.alreadyActiveHint + " · esc Close" }
         guard let role = row.role else { return "esc Close" }
-        if row.entry.kind == .active { return "↩ Extend · ⌫ Deactivate · esc Close" }
         let needsSheet = role.policyFetchedAt == nil || role.requiresJustification || role.requiresTicket
         let duration = ISODuration.label(TimeInterval(store.defaultDurationMinutes(for: role) * 60))
         let primary = needsSheet ? "↩ Activate… (\(role.requiresTicket ? "ticket" : "justification") needed)"
@@ -157,75 +160,78 @@ struct QuickPaletteView: View {
 
     // MARK: Keys
 
-    private func handle(_ key: PaletteKey) -> Bool {
+    private func handle(_ key: PaletteKey, isRepeat: Bool) -> Bool {
         guard sheetRole == nil else { return false }   // the sheet's own fields and buttons
-        let rows = rows
-        if let id = confirming {
-            // Return deactivates, Escape keeps the role; any other key drops the question and acts as usual.
-            confirming = nil
-            if key == .returnKey, let assignment = rows.first(where: { $0.id == id })?.assignment { deactivate(assignment) }
-            if key == .returnKey || key == .escape { return true }
+        // The key that confirmed a deactivation is still down: no second action from it.
+        guard session.allows(key) else { return true }
+        let rows = makeRows(makeModel())
+        switch session.answer(key, isRepeat: isRepeat) {
+        case .deactivate(let id):
+            if let assignment = rows.first(where: { $0.id == id })?.assignment { deactivate(assignment) }
+            return true
+        case .keep, .ignored: return true
+        case .none, .dropped: break
         }
-        let row = selected(rows)
-        let command = PaletteCommand.forKey(key, kind: row?.entry.kind, queryEmpty: query.isEmpty, escapeCloses: true)
+        let ids = rows.map(\.id)
+        let row = session.index(in: ids).map { rows[$0] }
+        let command = PaletteCommand.forKey(key, kind: row?.entry.kind, isRepeat: isRepeat, queryEmpty: query.isEmpty,
+                                            escapeCloses: true)
         guard command != .pass else { return false }
-        perform(command, row: row, count: rows.count)
+        perform(command, row: row, ids: ids)
         return true
     }
 
-    private func perform(_ command: PaletteCommand, row: PaletteRow?, count: Int) {
+    private func perform(_ command: PaletteCommand, row: PaletteRow?, ids: [String]) {
         switch command {
-        case .moveUp: selection = QuickPalette.move(selection, by: -1, count: count)
-        case .moveDown: selection = QuickPalette.move(selection, by: 1, count: count)
+        case .moveUp, .moveDown: session.move(by: command == .moveUp ? -1 : 1, in: ids)
         case .activate: if let role = row?.role { activate(role) }
+        case .alreadyActive: session.message = PaletteCommand.alreadyActiveHint
         case .extend: extend(row)
         case .openSheet: sheetRole = row?.role
         case .confirmDeactivate: if let assignment = row?.assignment { askToDeactivate(assignment) }
         case .close: close()
-        case .pass: break
+        case .ignore, .pass: break
         }
     }
 
     private func activate(_ role: EligibleRole) {
-        message = "Activating \(role.roleName)…"
+        session.message = "Activating \(role.roleName)…"
         Task {
             switch await store.quickActivate(role) {
             case .needsSheet: sheetRole = role
-            case .sent(let status?):
-                message = status == .provisioned ? "\(role.roleName) is active." : "\(role.roleName): request sent."
-                close()
-            case .sent(nil): message = store.rowErrors[role.id] ?? "Activation failed."
-            case .blocked(let reason): message = reason
+            case .sent(_?): close()
+            case .sent(nil): session.message = store.rowErrors[role.id] ?? "Activation failed."
+            case .blocked(let reason): session.message = reason
             }
         }
     }
 
     private func extend(_ row: PaletteRow?) {
         guard let role = row?.role else {
-            message = "This activation has no eligibility to extend."
+            session.message = "This activation has no eligibility to extend."
             return
         }
-        message = "Extending \(role.roleName)…"
-        Task { message = await store.extend(eligibleRoleId: role.id) }
+        session.message = "Extending \(role.roleName)…"
+        Task { session.message = await store.extend(eligibleRoleId: role.id) }
     }
 
     private func askToDeactivate(_ assignment: ActiveAssignment) {
         // Azure refuses deactivation within 5 minutes of activation (as the row's button).
         if Date.now.timeIntervalSince(assignment.startAt) < 300 {
-            message = "Can't deactivate within 5 minutes of activation."
+            session.message = "Can't deactivate within 5 minutes of activation."
         } else if store.isOffline {
-            message = ActivationBlock.offline.message
+            session.message = ActivationBlock.offline.message
         } else {
-            confirming = assignment.id
+            session.ask(assignment.id)
         }
     }
 
     private func deactivate(_ assignment: ActiveAssignment) {
         let name = assignment.roleName, id = assignment.id
-        message = "Deactivating \(name)…"
+        session.message = "Deactivating \(name)…"
         Task {
             let done = await store.deactivate(assignment)
-            message = done ? "\(name) deactivated." : (store.rowErrors[id] ?? "Deactivation failed.")
+            session.message = done ? "\(name) deactivated." : (store.rowErrors[id] ?? "Deactivation failed.")
         }
     }
 }
@@ -258,7 +264,7 @@ private struct PaletteRowView: View {
     }
 
     @ViewBuilder private var trailing: some View {
-        let busy = row.assignment.map(store.isBusy) ?? row.role.map { store.busy.contains($0.id) } ?? false
+        let busy = row.assignment.map { store.isBusy($0) } ?? row.role.map { store.busy.contains($0.id) } ?? false
         if busy {
             ProgressView().controlSize(.small)
         } else if let end = row.assignment?.endAt {
@@ -339,7 +345,8 @@ final class QuickPaletteController: NSObject, NSWindowDelegate {
         guard let panel else { return }
         self.panel = nil
         panel.orderOut(nil)
-        panel.contentView = nil
+        // Torn down after the current event: `close` is often called from inside the view's own key handler.
+        DispatchQueue.main.async { panel.contentView = nil }
     }
 
     /// A click in another app or window closes it, like Spotlight.

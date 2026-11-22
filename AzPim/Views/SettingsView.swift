@@ -95,11 +95,11 @@ struct GeneralSettingsView: View {
 /// Settings › General › Keyboard: the global shortcut of the quick-activate palette (default ⌃⌥P, or none).
 struct QuickActivateShortcutRow: View {
     @AppStorage(PreferenceKeys.quickActivateShortcut) private var stored = GlobalShortcut.defaultShortcut.storageValue
-    /// macOS refused the shortcut (another app holds it).
-    @State private var refused = false
+    /// The shortcut macOS refused (another app holds it), shown under the picker.
+    @State private var refused: String?
 
     var body: some View {
-        Picker(selection: Binding(get: { stored }, set: { stored = $0; apply() })) {
+        Picker(selection: Binding(get: { stored }, set: { choose($0) })) {
             ForEach(GlobalShortcut.presets, id: \.self) { Text($0.display).tag($0.storageValue) }
             Divider()
             Text("None").tag(GlobalShortcut.noneValue)
@@ -111,19 +111,32 @@ struct QuickActivateShortcutRow: View {
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
-        .onAppear { refused = GlobalHotKey.lastStatus.map { $0 != noErr } ?? false }
-        if refused {
-            Text("\(GlobalShortcut.fromStorage(stored)?.display ?? "This shortcut") is already used: choose another one.")
+        .onAppear {
+            // The launch registration may have been refused.
+            if GlobalHotKey.lastError != nil { refused = GlobalShortcut.fromStorage(stored)?.display }
+        }
+        if let refused {
+            Text("\(refused) is already used by another app: the shortcut was not changed. Choose another one.")
                 .foregroundStyle(.red)
         }
     }
 
-    private func apply() {
+    /// Registers the choice first; the stored value changes only once macOS accepted it (the old shortcut stays).
+    private func choose(_ value: String) {
         #if DEBUG
         // Snapshots and the test host never take a shortcut from the user's session.
-        if SnapshotRunner.directory != nil || SnapshotRunner.isTestHost { return }
+        if SnapshotRunner.directory != nil || SnapshotRunner.isTestHost {
+            stored = value
+            return
+        }
         #endif
-        refused = !GlobalHotKey.register(GlobalShortcut.fromStorage(stored))
+        let shortcut = GlobalShortcut.fromStorage(value)
+        if GlobalHotKey.register(shortcut) == noErr {
+            stored = value
+            refused = nil
+        } else {
+            refused = shortcut?.display ?? value
+        }
     }
 }
 

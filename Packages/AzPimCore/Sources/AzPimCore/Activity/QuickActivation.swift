@@ -3,7 +3,7 @@ import Foundation
 /// Keyboard-first activation (1.0 item 3): whether a role may be activated without the Activation Sheet (palette
 /// Return, panel Return, ⌥-click), with its default duration.
 public enum QuickActivation: Equatable, Sendable {
-    /// Send at once: the default duration (last used, else 1 h, capped by the policy) and the last justification.
+    /// Send at once: the default duration (last used, else 1 h, capped by the policy), no justification.
     case send(ActivationInput)
     /// The policy asks for a justification or a ticket, or is unknown: the sheet collects them, nothing is sent.
     case openSheet
@@ -16,17 +16,15 @@ public enum QuickActivation: Equatable, Sendable {
         public var policyKnown: Bool
         /// Duration last chosen for the role (ISO 8601), if any.
         public var lastDuration: String?
-        public var lastJustification: String?
         public var inProgress = false
         public var pending = false
         public var offline = false
 
-        public init(policy: RolePolicy, policyKnown: Bool, lastDuration: String? = nil, lastJustification: String? = nil,
+        public init(policy: RolePolicy, policyKnown: Bool, lastDuration: String? = nil,
                     inProgress: Bool = false, pending: Bool = false, offline: Bool = false) {
             self.policy = policy
             self.policyKnown = policyKnown
             self.lastDuration = lastDuration
-            self.lastJustification = lastJustification
             self.inProgress = inProgress
             self.pending = pending
             self.offline = offline
@@ -49,8 +47,9 @@ public enum QuickActivation: Equatable, Sendable {
             }
         }
         guard facts.policyKnown else { return .openSheet }
-        // `activate` stores the justification it sends: the last one is kept rather than wiped by an empty one.
-        return .send(ActivationInput(duration: ActivationDuration.iso(minutes), justification: facts.lastJustification ?? ""))
+        // An optional justification is left empty: an old one would reach the Azure audit log unseen. `activate` never
+        // stores an empty justification, so the one remembered for the sheet, favorites and Extend is kept.
+        return .send(ActivationInput(duration: ActivationDuration.iso(minutes), justification: ""))
     }
 }
 
@@ -84,8 +83,8 @@ public struct PaletteEntry: Sendable, Equatable, Identifiable {
 
 public enum QuickPalette {
     /// The entries matching `query`, best first. Every word must match one field (`RoleSearch`), or the role name as
-    /// a subsequence or by initials (« kva » finds Key Vault Administrator). An empty query keeps the given order
-    /// (active roles first, as the caller lists them).
+    /// a subsequence or by initials (« kva » finds Key Vault Administrator). At equal score eligible roles come first
+    /// (Return activates them). An empty query keeps the given order.
     public static func rank(_ query: String, _ entries: [PaletteEntry]) -> [PaletteEntry] {
         guard !RoleSearch.isEmpty(query) else { return entries }
         let scored = entries.enumerated().compactMap { index, entry in
@@ -93,7 +92,7 @@ public enum QuickPalette {
         }
         return scored.sorted { lhs, rhs in
             if lhs.score != rhs.score { return lhs.score > rhs.score }
-            if lhs.entry.kind != rhs.entry.kind { return lhs.entry.kind == .active }
+            if lhs.entry.kind != rhs.entry.kind { return lhs.entry.kind == .eligible }
             return lhs.index < rhs.index
         }.map(\.entry)
     }
@@ -149,7 +148,15 @@ public enum QuickPalette {
 
 /// Keys of the palette and of the panel's keyboard navigation.
 public enum PaletteKey: Sendable, Equatable {
-    case upArrow, downArrow, returnKey, commandReturn, tab, delete, commandDelete, escape
+    case upArrow, downArrow, returnKey, shiftReturn, commandReturn, tab, delete, commandDelete, escape
+
+    /// Keys that act on a role (everything but moving and Escape): never repeated by a held key.
+    public var isAction: Bool {
+        switch self {
+        case .upArrow, .downArrow, .escape: false
+        default: true
+        }
+    }
 }
 
 /// What a key does to the selected row.
@@ -157,35 +164,123 @@ public enum PaletteCommand: Sendable, Equatable {
     case moveUp, moveDown
     /// Quick activation (`QuickActivation.decide`).
     case activate
+    /// Return on an active row: nothing is sent, the hint says how to extend or deactivate.
+    case alreadyActive
+    /// ⇧Return on an active row.
     case extend
     /// The full Activation Sheet (justification, ticket, another duration).
     case openSheet
     /// Asks before deactivating.
     case confirmDeactivate
     case close
+    /// Swallowed without effect (a held action key repeating).
+    case ignore
     /// Not handled: the key goes on to the focused view (the search field types, deletes, clears).
     case pass
 
-    /// `kind`: the selected row, nil without a selection. `queryEmpty`: ⌫ deletes the search text while there is some,
-    /// ⌘⌫ always means Deactivate. `escapeCloses`: the palette closes on Escape; the panel leaves it to the search field.
-    public static func forKey(_ key: PaletteKey, kind: PaletteKind?, queryEmpty: Bool, escapeCloses: Bool) -> PaletteCommand {
+    /// Hint of Return on an active row.
+    public static let alreadyActiveHint = "Already active · ⇧↩ Extend · ⌫ Deactivate"
+
+    /// `kind`: the selected row, nil without a selection. `isRepeat`: the key is held; only ↑/↓ repeat, a repeated ⌫
+    /// goes back to the search field, the other action keys are swallowed. `queryEmpty`: ⌫ and ⌘⌫ edit the search text
+    /// while there is some. `escapeCloses`: the palette closes on Escape; the panel leaves it to the search field.
+    public static func forKey(_ key: PaletteKey, kind: PaletteKind?, isRepeat: Bool = false, queryEmpty: Bool,
+                              escapeCloses: Bool) -> PaletteCommand {
+        if isRepeat, key.isAction { return key == .delete ? .pass : .ignore }
         switch key {
         case .upArrow: return .moveUp
         case .downArrow: return .moveDown
         case .escape: return escapeCloses ? .close : .pass
         case .returnKey:
-            switch kind {
-            case .eligible?: return .activate
-            case .active?: return .extend
-            case nil: return .pass
-            }
+            return kind.map { $0 == .eligible ? .activate : .alreadyActive } ?? .pass
+        case .shiftReturn:
+            return kind == .active ? .extend : .pass
         case .commandReturn, .tab:
             return kind == .eligible ? .openSheet : .pass
-        case .delete:
+        case .delete, .commandDelete:
             return kind == .active && queryEmpty ? .confirmDeactivate : .pass
-        case .commandDelete:
-            return kind == .active ? .confirmDeactivate : .pass
         }
+    }
+}
+
+/// Selection, Deactivate question and status line of the palette. The selection is a row id, so a refresh that
+/// reorders or removes rows never moves it onto another role; any change of selection or search drops the question
+/// and the message. After a confirmed deactivation, action keys are ignored until the key is released.
+public struct PaletteSession: Sendable, Equatable {
+    public private(set) var selectedId: String?
+    /// Active row waiting for Return (deactivate) or Escape (keep).
+    public private(set) var confirming: String?
+    public var message: String?
+    public private(set) var holdingKeys = false
+
+    public init(selectedId: String? = nil) {
+        self.selectedId = selectedId
+    }
+
+    /// Index of the selection in `ids`: the first row when nothing (or a row no longer listed) is selected.
+    public func index(in ids: [String]) -> Int? {
+        guard !ids.isEmpty else { return nil }
+        return selectedId.flatMap { ids.firstIndex(of: $0) } ?? 0
+    }
+
+    public mutating func select(_ id: String?) {
+        guard id != selectedId else { return }
+        selectedId = id
+        confirming = nil
+        message = nil
+    }
+
+    /// ↑/↓ over the rows shown.
+    public mutating func move(by delta: Int, in ids: [String]) {
+        let current = selectedId.flatMap { ids.firstIndex(of: $0) }
+        select(QuickPalette.move(current, by: delta, count: ids.count).map { ids[$0] })
+    }
+
+    /// A new search: the best match is selected.
+    public mutating func queryChanged(firstId: String?) {
+        selectedId = firstId
+        confirming = nil
+        message = nil
+    }
+
+    public mutating func ask(_ id: String) {
+        confirming = id
+        message = nil
+    }
+
+    public enum Answer: Sendable, Equatable {
+        /// No question asked: the key acts as usual.
+        case none
+        case deactivate(String)
+        /// Escape: the question is dropped, the role kept.
+        case keep
+        /// A held key: the question stays.
+        case ignored
+        /// Any other key drops the question, then acts as usual.
+        case dropped
+    }
+
+    /// Return answers the question once pressed again (never by repeat); Escape keeps the role.
+    public mutating func answer(_ key: PaletteKey, isRepeat: Bool) -> Answer {
+        guard let id = confirming else { return .none }
+        if isRepeat { return .ignored }
+        confirming = nil
+        switch key {
+        case .returnKey:
+            holdingKeys = true
+            return .deactivate(id)
+        case .escape: return .keep
+        default: return .dropped
+        }
+    }
+
+    /// False for an action key while the key that confirmed a deactivation is still down.
+    public func allows(_ key: PaletteKey) -> Bool {
+        !(holdingKeys && key.isAction)
+    }
+
+    public mutating func keyUp() {
+        holdingKeys = false
     }
 }
 
@@ -206,11 +301,12 @@ public struct GlobalShortcut: Sendable, Equatable, Hashable {
     public let key: String
     public let modifiers: Modifiers
 
-    /// Keys a shortcut may use: letters and Space.
+    /// Keys a shortcut may use: letters at the same place on QWERTY and AZERTY, so the label matches the key whatever
+    /// the layout (RegisterEventHotKey takes a key position). A, Q, Z, W and M move on AZERTY; Space with ⌃⌥ is the
+    /// input source switch.
     public static let keyCodes: [String: UInt32] = [
-        "A": 0, "S": 1, "D": 2, "F": 3, "H": 4, "G": 5, "Z": 6, "X": 7, "C": 8, "V": 9, "B": 11, "Q": 12, "W": 13,
-        "E": 14, "R": 15, "Y": 16, "T": 17, "O": 31, "U": 32, "I": 34, "P": 35, "L": 37, "J": 38, "K": 40, "N": 45,
-        "M": 46, "Space": 49
+        "S": 1, "D": 2, "F": 3, "H": 4, "G": 5, "X": 7, "C": 8, "V": 9, "B": 11, "E": 14, "R": 15, "Y": 16, "T": 17,
+        "O": 31, "U": 32, "I": 34, "P": 35, "L": 37, "J": 38, "K": 40, "N": 45
     ]
 
     /// Nil for an unknown key, or without Control, Option or Command (Shift alone would steal typing).
@@ -230,7 +326,7 @@ public struct GlobalShortcut: Sendable, Equatable, Hashable {
     public static let noneValue = "none"
     /// Choices of Settings › General (none is offered apart).
     public static let presets: [GlobalShortcut] = [
-        defaultShortcut, GlobalShortcut(checked: "A", [.control, .option]), GlobalShortcut(checked: "Space", [.control, .option]),
+        defaultShortcut, GlobalShortcut(checked: "K", [.control, .option]), GlobalShortcut(checked: "L", [.control, .option]),
         GlobalShortcut(checked: "P", [.option, .command]), GlobalShortcut(checked: "P", [.control, .shift, .command])
     ]
 
@@ -248,7 +344,7 @@ public struct GlobalShortcut: Sendable, Equatable, Hashable {
         ModifierName(flag: .shift, name: "shift", symbol: "⇧"), ModifierName(flag: .command, name: "command", symbol: "⌘")
     ]
 
-    /// « ⌃⌥P », « ⌃⌥Space ».
+    /// « ⌃⌥P ».
     public var display: String {
         Self.names.filter { modifiers.contains($0.flag) }.map(\.symbol).joined() + key
     }

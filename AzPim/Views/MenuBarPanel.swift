@@ -140,6 +140,7 @@ struct MenuBarPanel: View {
                     .onChange(of: selectedRowId) { _, id in
                         if let id { proxy.scrollTo(id) }
                     }
+                    .onChange(of: query) { keyboardMessage = nil }
                 }
             }
         }
@@ -322,21 +323,33 @@ extension MenuBarPanel {
         }
     }
 
-    /// ↑/↓ select, Return activates (quick) or extends, ⌘Return / Tab open the sheet, ⌫ asks to deactivate (⌫ only
-    /// once the search is empty). Escape and ⌘F stay with the search field and the panel.
-    fileprivate func handleKey(_ key: PaletteKey) -> Bool {
+    /// ↑/↓ select, Return activates (quick; nothing on an active row), ⇧Return extends, ⌘Return / Tab open the sheet,
+    /// ⌫ / ⌘⌫ ask to deactivate once the search is empty. Held action keys never repeat. Escape and ⌘F stay with the
+    /// search field and the panel.
+    fileprivate func handleKey(_ key: PaletteKey, isRepeat: Bool) -> Bool {
         guard activating == nil else { return false }   // the Activation Sheet's own fields
+        guard confirmDeactivateId == nil else { return false }   // the Deactivate popover answers
         let rows = keyRows()
         let index = selectedRowId.flatMap { id in rows.firstIndex { $0.id == id } }
         let row = index.map { rows[$0] }
-        switch PaletteCommand.forKey(key, kind: row?.kind, queryEmpty: query.isEmpty, escapeCloses: false) {
-        case .moveUp, .moveDown:
-            let delta = key == .upArrow ? -1 : 1
-            selectedRowId = QuickPalette.move(index, by: delta, count: rows.count).map { rows[$0].id }
+        let command = PaletteCommand.forKey(key, kind: row?.kind, isRepeat: isRepeat, queryEmpty: query.isEmpty,
+                                            escapeCloses: false)
+        if command == .moveUp || command == .moveDown {
+            selectedRowId = QuickPalette.move(index, by: command == .moveUp ? -1 : 1, count: rows.count).map { rows[$0].id }
+            keyboardMessage = nil
+            return true
+        }
+        return perform(command, row: row)
+    }
+
+    private func perform(_ command: PaletteCommand, row: KeyRow?) -> Bool {
+        switch command {
         case .activate: if let role = row?.role { quickActivate(role) }
+        case .alreadyActive: keyboardMessage = PaletteCommand.alreadyActiveHint
         case .extend: if let role = row?.role { extend(role) }
         case .openSheet: activating = row?.role
         case .confirmDeactivate: if let assignment = row?.assignment { askToDeactivate(assignment) }
+        case .ignore, .moveUp, .moveDown: break
         case .close, .pass: return false
         }
         return true
