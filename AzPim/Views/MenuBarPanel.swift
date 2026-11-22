@@ -3,25 +3,29 @@ import SwiftData
 import SwiftUI
 
 /// Menu bar label (DesignBrief › Components): `key.fill` when nothing is active; otherwise count + next expiry,
-/// orange at ≤ 15 min, red at ≤ 5 min. Rendered at launch: also opens Onboarding on first run.
+/// orange at ≤ 15 min, red at ≤ 5 min. An hourglass follows while a request waits for approval (an SF Symbol, so
+/// the status item keeps it a template image). Rendered at launch: also opens Onboarding on first run.
 struct MenuBarLabel: View {
     @Environment(AccountService.self) private var accounts
     @Environment(RoleStore.self) private var store
     @Environment(\.openWindow) private var openWindow
     @Query(sort: \ActiveAssignment.endAt) private var assignments: [ActiveAssignment]
     @Query private var accountList: [Account]
+    @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" })
+    private var pendingRecords: [ActivationRecord]
 
-    /// Activations of the accounts in use, one per role (superseded Azure CLI rows count for nothing).
-    private var activations: [ActiveAssignment] {
+    /// Rows of the accounts in use, one per role (superseded Azure CLI rows count for nothing).
+    private var model: PanelModel {
         let supersession = store.supersession(accountList)
         let accounts = accountList.filter { !supersession.isRetired($0.id) }
         return PanelModel(accounts: accounts, assignments: assignments, supersession: supersession, now: store.now)
-            .activations.map(\.assignment)
     }
-    private var nextEnd: Date? { activations.compactMap(\.endAt).min() }
 
     var body: some View {
-        label(at: store.now)
+        let model = model
+        label(activations: model.activations.map(\.assignment),
+              badge: MenuBarBadge(activeCount: model.activations.count,
+                                  pendingCount: model.pendingApprovalCount(in: pendingRecords)))
             .task {
                 if !accounts.settings.onboardingCompleted {
                     openWindow(id: WindowID.onboarding)
@@ -30,20 +34,27 @@ struct MenuBarLabel: View {
             }
     }
 
-    @ViewBuilder private func label(at now: Date) -> some View {
+    @ViewBuilder private func label(activations: [ActiveAssignment], badge: MenuBarBadge) -> some View {
         let style = accounts.settings.menuBarStyle
+        let pending = badge.spokenPending.map { ", \($0)" } ?? ""
         if activations.isEmpty || style == .icon {
-            Image(systemName: activations.isEmpty ? "key.fill" : "key.horizontal.fill")
-                .accessibilityLabel(activations.isEmpty ? "AzPim, no active role" : "AzPim, \(activations.count) active")
+            HStack(spacing: 2) {
+                Image(systemName: badge.keySymbol)
+                if let symbol = badge.pendingSymbol { Image(systemName: symbol) }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel((activations.isEmpty ? "AzPim, no active role" : "AzPim, \(activations.count) active") + pending)
         } else {
-            let remaining = nextEnd.map { $0.timeIntervalSince(now) }
+            let remaining = activations.compactMap(\.endAt).min().map { $0.timeIntervalSince(store.now) }
             HStack(spacing: 3) {
-                Image(systemName: "key.horizontal.fill")
+                Image(systemName: badge.keySymbol)
                 Text(text(count: activations.count, remaining: style == .iconCountTime ? remaining : nil))
                     .monospacedDigit()
+                if let symbol = badge.pendingSymbol { Image(systemName: symbol) }
             }
             .foregroundStyle(Countdown.color(remaining))
-            .accessibilityLabel("AzPim, \(activations.count) active, next expiry in \(Countdown.spoken(remaining))")
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("AzPim, \(activations.count) active, next expiry in \(Countdown.spoken(remaining))" + pending)
         }
     }
 
@@ -67,7 +78,14 @@ struct MenuBarPanel: View {
     private var pendingRecords: [ActivationRecord]
     @State private var activating: EligibleRole?
     @State private var contentHeight: CGFloat = 0
+    @State private var query: String
+    @FocusState private var searchFocused: Bool
     @AppStorage(PreferenceKeys.panelShowFavorites) private var showFavorites = true
+
+    /// `initialQuery`: snapshots of a search only.
+    init(initialQuery: String = "") {
+        _query = State(initialValue: initialQuery)
+    }
 
     private var supersession: Supersession { store.supersession(accountList) }
     /// Accounts in use: an Azure CLI account replaced by a Microsoft sign-in of the same identity is left out.
@@ -112,6 +130,12 @@ struct MenuBarPanel: View {
         }
         .background(WindowKeyObserver {
             store.panelOpenedAt = .now
+            // Each open starts without a search (snapshots keep theirs).
+            #if DEBUG
+            if !store.snapshotFrozen { query = "" }
+            #else
+            query = ""
+            #endif
             Task { await store.refreshIfStale() }
         })
     }
@@ -119,109 +143,77 @@ struct MenuBarPanel: View {
     private var content: some View {
         let model = model
         return VStack(spacing: 8) {
+            header
             heroCard(model)
             errorBanners
-            ActiveRolesCard(model: model, emptyText: accountList.isEmpty ? "Add an account to see your roles" : "No active role",
-                            showAccount: shownAccounts.count > 1)
-            if !favorites.isEmpty { favoritesCard }
-            EligibleRolesCard(model: model, accounts: shownAccounts, pendingRecords: pendingRecords,
-                              noAccount: accountList.isEmpty, noEligibleText: noEligibleText) { activating = $0 }
+            if RoleSearch.isEmpty(query) {
+                ActiveRolesCard(model: model, emptyText: accountList.isEmpty ? "Add an account to see your roles" : "No active role",
+                                showAccount: shownAccounts.count > 1)
+                if !favorites.isEmpty { favoritesCard }
+                EligibleRolesCard(model: model, accounts: shownAccounts, pendingRecords: pendingRecords,
+                                  noAccount: accountList.isEmpty, noEligibleText: noEligibleText) { activating = $0 }
+            } else {
+                searchResults(model.filtered(by: query))
+            }
             PanelActionList()
         }
         .padding(10)
     }
 
-    // MARK: Hero
-
-    /// The activation that expires first, with its fraction of time left.
-    private func nextActivation(_ activations: [ActiveAssignment]) -> NextActivation? {
-        guard let next = activations.filter({ ($0.endAt ?? .distantPast) > store.now }).min(by: {
-            ($0.endAt ?? .distantFuture) < ($1.endAt ?? .distantFuture)
-        }), let end = next.endAt else { return nil }
-        let remaining = end.timeIntervalSince(store.now)
-        let total = max(1, end.timeIntervalSince(next.startAt))
-        return NextActivation(assignment: next, remaining: remaining, fraction: remaining / total)
-    }
-
-    private func heroCard(_ model: PanelModel) -> some View {
-        let activations = model.activations.map(\.assignment)
-        let nextActivation = nextActivation(activations)
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("\(activations.count)")
-                            .font(.display(52))
-                            .monospacedDigit()
-                            .foregroundStyle(activations.isEmpty ? Color.secondary : Theme.active)
-                        Text("active")
-                            .font(.display(18, weight: .semibold))
-                            .foregroundStyle(activations.isEmpty ? Color.secondary : Theme.active)
-                    }
-                    HStack(spacing: 6) {
-                        Image(systemName: activations.isEmpty ? "key.fill" : "key.horizontal.fill")
-                            .foregroundStyle(activations.isEmpty ? Color.secondary : Theme.active)
-                        Text(heroSubtitle(nextActivation, activations))
-                            .font(.system(size: 13, weight: .semibold)).lineLimit(1).truncationMode(.middle)
-                    }
-                }
-                Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 4) {
-                    if let next = nextActivation {
-                        SectionLabel(text: "Expires in")
-                        Text(Countdown.hero(next.remaining))
-                            .font(.display(20, weight: .semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(next.remaining <= 900 ? Theme.remaining(next.remaining) : Color.primary)
-                    } else {
-                        SectionLabel(text: "Permanent")
-                        Text("\(model.permanents.count)").font(.display(20, weight: .semibold)).monospacedDigit()
-                    }
-                    statusLine
-                }
-            }
-            if let next = nextActivation {
-                ProgressTrack(fraction: next.fraction, tint: Theme.remaining(next.remaining))
-            }
-            if activeAccounts.count > 1 { accountPicker }
+    /// Matching rows only, every group open; card counts are those of the matches.
+    @ViewBuilder private func searchResults(_ found: PanelModel) -> some View {
+        if found.isEmpty {
+            EmptyLine(text: "No role matches")
+                .padding(.horizontal, 14)
+                .card()
         }
-        .padding(16)
-        .card()
-        .accessibilityElement(children: .combine)
-    }
-
-    private func heroSubtitle(_ nextActivation: NextActivation?, _ activations: [ActiveAssignment]) -> String {
-        if accountList.isEmpty { return "Not signed in" }
-        if let next = nextActivation { return "\(next.assignment.roleName) · \(next.assignment.scopeName)" }
-        return activations.isEmpty ? "No PIM activation" : "PIM roles active"
-    }
-
-    @ViewBuilder private var statusLine: some View {
-        if store.isRefreshing {
-            ProgressView().controlSize(.small)
-        } else if store.isOffline {
-            Label(offlineText, systemImage: "wifi.slash").font(.system(size: 11)).foregroundStyle(Theme.warning)
-                .help("Actions are disabled until the network is back")
-        } else if let last = store.lastRefresh {
-            Text("Updated \(last.formatted(date: .omitted, time: .shortened))")
-                .font(.system(size: 11)).foregroundStyle(.secondary)
+        if !found.activations.isEmpty || !found.permanents.isEmpty {
+            ActiveRolesCard(model: found, emptyText: "", showAccount: shownAccounts.count > 1, searching: true)
+        }
+        if !found.eligible.isEmpty {
+            EligibleRolesCard(model: found, accounts: shownAccounts, pendingRecords: pendingRecords, noAccount: false,
+                              noEligibleText: noEligibleText, searching: true) { activating = $0 }
         }
     }
 
-    private var accountPicker: some View {
+    // MARK: Header and hero
+
+    /// Search field, and the account menu when several accounts are in use (T4.4).
+    private var header: some View {
+        HStack(spacing: 8) {
+            PanelSearchField(query: $query, focused: $searchFocused)
+            if activeAccounts.count > 1 { accountMenu }
+        }
+    }
+
+    private var accountMenu: some View {
         @Bindable var store = store
         return Picker("Account", selection: $store.accountFilter) {
             Text("All accounts (\(activeAccounts.count))").tag(UUID?.none)
             ForEach(activeAccounts) { Text($0.tenantName ?? $0.upn).tag(UUID?.some($0.id)) }
         }
         .labelsHidden()
-        .pickerStyle(.segmented)
+        .pickerStyle(.menu)
         .controlSize(.small)
+        .fixedSize()
+        .help("Accounts shown in the panel")
     }
 
-    private var offlineText: String {
-        guard let last = store.lastOnline else { return "Offline" }
-        return "Offline — data from \(last.formatted(date: .omitted, time: .shortened))"
+    /// The activation that expires first, with its time left.
+    private func nextActivation(_ activations: [ActiveAssignment]) -> (assignment: ActiveAssignment, remaining: TimeInterval)? {
+        guard let next = activations.filter({ ($0.endAt ?? .distantPast) > store.now }).min(by: {
+            ($0.endAt ?? .distantFuture) < ($1.endAt ?? .distantFuture)
+        }), let end = next.endAt else { return nil }
+        return (next, end.timeIntervalSince(store.now))
+    }
+
+    private func heroCard(_ model: PanelModel) -> some View {
+        let next = nextActivation(model.activations.map(\.assignment))
+        let summary = HeroSummary(activeCount: model.activations.count, nextExpiry: next.map { Countdown.hero($0.remaining) },
+                                  pendingCount: model.pendingApprovalCount(in: pendingRecords))
+        return CompactHeroCard(summary: summary, activeCount: model.activations.count, remaining: next?.remaining,
+                               nextRole: next.map { "\($0.assignment.roleName) · \($0.assignment.scopeName)" },
+                               signedIn: !accountList.isEmpty)
     }
 
     // MARK: Banners
@@ -258,12 +250,6 @@ extension MenuBarPanel {
         if account.lastRefreshAt == nil { return "Loading the eligible roles of \(account.upn)…" }
         return "No eligible PIM role for \(account.upn)"
     }
-}
-
-private struct NextActivation {
-    let assignment: ActiveAssignment
-    let remaining: TimeInterval
-    let fraction: Double
 }
 
 private struct PanelHeightKey: PreferenceKey {

@@ -83,8 +83,62 @@ enum SnapshotRunner {
                            to: directory.appending(path: "window-\(item.rawValue.lowercased())-\(suffix).png"),
                            env: env)
                 }
+                defaults.removePersistentDomain(forName: suiteName)
+                for (name, query) in [("search", "reader"), ("search-none", "nothing like this")] {
+                    render(MenuBarPanel(initialQuery: query), size: NSSize(width: Theme.panelWidth, height: 1400),
+                           scheme: scheme, to: directory.appending(path: "panel-\(name)-\(suffix).png"), env: env)
+                }
+                render(MenuBarLabel(), size: NSSize(width: 160, height: 24), scheme: scheme,
+                       to: directory.appending(path: "menubar-\(suffix).png"), env: env)
             }
+            // A request waiting for approval and a second tenant (account menu), for these renders only.
+            let added = addPendingAndSecondAccount(context: env.container.mainContext)
+            for scheme in [ColorScheme.dark, .light] {
+                let suffix = scheme == .dark ? "dark" : "light"
+                defaults.removePersistentDomain(forName: suiteName)
+                render(MenuBarPanel(), size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
+                       to: directory.appending(path: "panel-pending-\(suffix).png"), env: env)
+                render(MenuBarLabel(), size: NSSize(width: 160, height: 24), scheme: scheme,
+                       to: directory.appending(path: "menubar-pending-\(suffix).png"), env: env)
+            }
+            renderOffline(env: env, directory: directory, defaults: defaults)
+            added.forEach { env.container.mainContext.delete($0) }
         }
+    }
+
+    /// Offline, next expiry in hours, 1 pending: the longest hero line.
+    private static func renderOffline(env: Env, directory: URL, defaults: UserDefaults) {
+        let context = env.container.mainContext
+        let activations = ((try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? []).filter { $0.endAt != nil }
+        activations.forEach { $0.endAt = $0.endAt.map { $0 + 3 * 3600 } }
+        let msal = ((try? context.fetch(FetchDescriptor<Account>())) ?? []).first { $0.mode == .msal }
+        if let msal { env.store.snapshotOffline(msal, lastOnline: .now - 12 * 60) }
+        for scheme in [ColorScheme.dark, .light] {
+            defaults.removePersistentDomain(forName: suiteName)
+            render(MenuBarPanel(), size: NSSize(width: Theme.panelWidth, height: 1400), scheme: scheme,
+                   to: directory.appending(path: "panel-offline-\(scheme == .dark ? "dark" : "light").png"), env: env)
+        }
+        if let msal { env.store.snapshotOffline(msal, lastOnline: nil) }
+        activations.forEach { $0.endAt = $0.endAt.map { $0 - 3 * 3600 } }
+    }
+
+    /// `Security Reader` waiting for an approver, and an account of another tenant. Returns what to delete afterwards.
+    private static func addPendingAndSecondAccount(context: ModelContext) -> [any PersistentModel] {
+        let accounts = (try? context.fetch(FetchDescriptor<Account>())) ?? []
+        guard let msal = accounts.first(where: { $0.mode == .msal }) else { return [] }
+        let record = ActivationRecord(account: msal, eligibleRoleId: "\(msal.id.uuidString)|e-secreader",
+                                      roleName: "Security Reader", scopeName: "Directory", source: .entraRole,
+                                      action: .activate, requestedDuration: "PT1H")
+        record.status = .pendingApproval
+        record.remoteRequestId = "req-secreader"
+        record.sentAt = .now - 4 * 60
+        let other = Account(mode: .azureCLI, upn: "v.admin@fabrikam.com", objectId: "oid-2", tenantId: "tenant-fabrikam",
+                            tenantName: "Fabrikam", sortOrder: 2)
+        other.lastRefreshAt = .now
+        context.insert(record)
+        context.insert(other)
+        try? context.save()
+        return [record, other]
     }
 
     // MARK: Fixtures

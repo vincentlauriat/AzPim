@@ -138,7 +138,83 @@ struct RefreshTests {
         await harness.refresh()
         #expect(record.status == .provisioned)
         #expect(!RoleStore.needsPolling(record))
-        #expect(harness.center.immediate.map(\.body) == ["Request approved: the role is active."])
+        #expect(harness.center.immediate.map(\.title) == ["Request approved: Global Reader"])
+        #expect(harness.center.immediate.map(\.body) == ["Directory — the role is active."])
+    }
+
+    /// A request refused by the approver (or failed, or canceled in the portal) is notified once as denied.
+    @Test(arguments: [(RequestStatus.denied, "Request denied: Owner"), (.failed, "Request expired or failed: Owner"),
+                      (.canceled, "Request canceled: Owner")])
+    func refusedRequestIsNotifiedOnce(status: RequestStatus, title: String) async throws {
+        let harness = try Harness()
+        let (account, sources) = harness.addAccount()
+        let arm = sources[0]
+        await arm.set(eligible: [Fixture.eligibility("e1")])
+        await harness.refresh()
+        let record = ActivationRecord(account: account, eligibleRoleId: "\(account.id.uuidString)|e1", roleName: "Owner",
+                                      scopeName: "rg-app", source: .azureResource, action: .activate)
+        record.status = .pendingApproval
+        record.remoteRequestId = "req-e1"
+        harness.context.insert(record)
+
+        await arm.set(requestStatus: .success(status))
+        await harness.refresh()
+        #expect(record.status == status)
+        #expect(record.completedAt == nil)
+        #expect(harness.center.immediate.map(\.title) == [title])
+        #expect(harness.center.immediate.first?.body.hasPrefix("rg-app — ") == true)
+
+        // Decided: no longer polled, never notified again.
+        await harness.refresh()
+        #expect(!RoleStore.needsPolling(record))
+        #expect(harness.center.immediate.count == 1)
+    }
+
+    /// The user's own cancel, still in flight when the poll reads "canceled": never notified.
+    @Test func ownCancelIsNotNotified() async throws {
+        let harness = try Harness()
+        let (account, sources) = harness.addAccount()
+        let arm = sources[0]
+        await arm.set(eligible: [Fixture.eligibility("e1")])
+        await harness.refresh()
+        let record = ActivationRecord(account: account, eligibleRoleId: "\(account.id.uuidString)|e1", roleName: "Owner",
+                                      scopeName: "rg-app", source: .azureResource, action: .activate)
+        record.status = .pendingApproval
+        record.remoteRequestId = "REQ-e1"
+        harness.context.insert(record)
+
+        await arm.set(requestStatus: .success(.canceled))
+        harness.store.cancellingRequests.insert("req-e1")
+        await harness.refresh()
+        #expect(harness.center.immediate.isEmpty)
+        #expect(record.status == .pendingApproval)
+
+        // The cancel completes: the record is canceled locally and the poll stops.
+        harness.store.cancellingRequests.removeAll()
+        #expect(await harness.store.cancel(requestId: "REQ-e1", source: .azureResource, account: account) == nil)
+        #expect(record.status == .canceled)
+        await harness.refresh()
+        #expect(harness.center.immediate.isEmpty)
+        #expect(harness.store.cancellingRequests.isEmpty)
+    }
+
+    /// Still waiting: nothing is notified.
+    @Test func undecidedRequestIsNotNotified() async throws {
+        let harness = try Harness()
+        let (account, sources) = harness.addAccount()
+        let arm = sources[0]
+        await arm.set(eligible: [Fixture.eligibility("e1")])
+        await harness.refresh()
+        let record = ActivationRecord(account: account, eligibleRoleId: "\(account.id.uuidString)|e1", roleName: "Owner",
+                                      scopeName: "rg-app", source: .azureResource, action: .activate)
+        record.status = .pendingApproval
+        record.remoteRequestId = "req-e1"
+        harness.context.insert(record)
+
+        await arm.set(requestStatus: .success(.pendingApproval))
+        await harness.refresh()
+        #expect(record.status == .pendingApproval)
+        #expect(harness.center.immediate.isEmpty)
     }
 
     /// One account failing leaves the other's rows and errors alone.

@@ -85,7 +85,8 @@ struct EligibleRow: View {
                         .padding(.horizontal, 7).padding(.vertical, 2)
                         .background(Theme.active.opacity(0.14), in: Capsule())
                 } else if let pending {
-                    Label("Pending", systemImage: "clock").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.warning)
+                    Label(pending == .sent ? "Sent" : "Pending", systemImage: "clock")
+                        .font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.warning)
                         .help(pending == .sent ? "Not confirmed yet — refreshes in a moment" : "Waiting for approval — see History")
                 } else {
                     Button("Activate", action: activate)

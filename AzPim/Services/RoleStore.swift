@@ -47,6 +47,9 @@ final class RoleStore {
     var lastActivationError: [String: (text: String, alreadyActive: Bool)] = [:]
     /// True while the History window is shown: pending requests are then listed on every refresh.
     var historyVisible = false
+    /// Request ids (lowercased) the user is cancelling from the app: the poll leaves them alone, so the user's own
+    /// cancel is never notified as a decision.
+    @ObservationIgnored var cancellingRequests: Set<String> = []
     /// Eligible roles with an extension in flight (a second tap on another notification is refused). Their active
     /// row shows busy through `isBusy`.
     var extending: Set<String> = []
@@ -383,3 +386,13 @@ extension RoleStore {
         }
     }
 }
+
+#if DEBUG
+extension RoleStore {
+    /// Snapshots only: show `account` offline since `lastOnline`, or back online with nil.
+    func snapshotOffline(_ account: Account, lastOnline date: Date?) {
+        refreshErrors[account.id] = date == nil ? nil : [.azureResource: .offline]
+        lastOnline = date
+    }
+}
+#endif
