@@ -69,7 +69,7 @@ struct PanelModel {
     func filtered(by query: String) -> PanelModel {
         guard !RoleSearch.isEmpty(query) else { return self }
         let matches = { (name: String, scope: String, source: RoleSource) in
-            RoleSearch.matches(query, fields: [name, scope, TypeTag(source: source).text,
+            RoleSearch.matches(query, fields: [name, scope, TypeTag.text(source),
                                                PanelRoleType.allCases.first { $0.source == source }?.title ?? ""])
         }
         var copy = self
@@ -105,7 +105,10 @@ enum PanelRoleType: CaseIterable {
 struct TypeTag: View {
     let source: RoleSource
 
-    var text: String {
+    var text: String { Self.text(source) }
+
+    /// Nonisolated: the panel search matches on it too.
+    nonisolated static func text(_ source: RoleSource) -> String {
         switch source {
         case .entraRole: "Entra"
         case .azureResource: "Azure"
