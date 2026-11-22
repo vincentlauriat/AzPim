@@ -311,6 +311,7 @@ private struct RoleDetail: View {
     }
 
     @ViewBuilder private func actions(_ role: EligibleRole) -> some View {
+        let block = row.assignment == nil ? activateBlock(role) : nil
         HStack {
             if store.busy.contains(role.id) || row.assignment.map(store.isBusy) == true {
                 ProgressView().controlSize(.small)
@@ -325,10 +326,23 @@ private struct RoleDetail: View {
                     }
             } else {
                 Button("Activate…") { activating = true }.buttonStyle(.borderedProminent).tint(Theme.accent)
-                    .disabled(store.isOffline)
+                    .disabled(block != nil)
             }
             Menu("Add to favorite") { AddToFavoriteMenu(role: role) }.fixedSize()
         }
+        // Why Activate… cannot be pressed (the form itself is checked in the sheet).
+        if !store.busy.contains(role.id), let block {
+            Text(block.message).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    /// Read once per body; `store.now` follows the store clock (a sent request's 15-minute window).
+    private func activateBlock(_ role: EligibleRole) -> ActivationBlock? {
+        // Duration and form are the sheet's: only the state is checked here.
+        ActivationBlock.reason(.init(inProgress: store.busy.contains(role.id),
+                                     pending: store.waitingRequest(for: role, at: store.now) != nil,
+                                     offline: store.isOffline, minutes: ActivationDuration.minMinutes(policyMax: role.maxDuration),
+                                     policyMax: role.maxDuration, requiresJustification: false))
     }
 
     private func detail(_ label: String, _ value: String) -> some View {
@@ -350,14 +364,18 @@ private struct RoleDetail: View {
 /// Menu items adding a role to an existing favorite or to a new one.
 struct AddToFavoriteMenu: View {
     @Environment(\.modelContext) private var context
+    @Environment(RoleStore.self) private var store
     @Query(sort: \Favorite.sortOrder) private var favorites: [Favorite]
     let role: EligibleRole
+
+    /// The last duration used for the role, else 1 h (least privilege), not the policy maximum.
+    private var item: FavoriteItem { FavoriteItem(eligibleRoleId: role.id, duration: store.defaultFavoriteDuration(for: role)) }
 
     var body: some View {
         ForEach(favorites) { favorite in
             Button(favorite.name) {
                 guard !favorite.items.contains(where: { $0.eligibleRoleId == role.id }) else { return }
-                favorite.items.append(FavoriteItem(eligibleRoleId: role.id, duration: role.maxDuration ?? "PT8H"))
+                favorite.items.append(item)
                 try? context.save()
             }
             .disabled(favorite.items.contains { $0.eligibleRoleId == role.id })
@@ -372,7 +390,7 @@ struct AddToFavoriteMenu: View {
                 name = "\(base) \(index)"
                 index += 1
             }
-            context.insert(Favorite(name: name, items: [FavoriteItem(eligibleRoleId: role.id, duration: role.maxDuration ?? "PT8H")],
+            context.insert(Favorite(name: name, items: [item],
                                     sortOrder: (favorites.map(\.sortOrder).max() ?? -1) + 1))
             try? context.save()
         }

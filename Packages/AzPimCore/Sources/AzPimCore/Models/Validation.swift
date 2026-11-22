@@ -35,10 +35,15 @@ public enum Validation {
         return nil
     }
 
-    /// Validates an activation duration: 5 min ≤ d ≤ policy max (default cap 24 h).
+    /// Longest activation Azure PIM accepts at all, whatever the policy: the hard ceiling of `duration` when the policy
+    /// is unknown. Not the app's own default cap for an unknown policy (`ActivationDuration.unknownPolicyMaxMinutes`,
+    /// 8 h), which keeps the durations the app proposes well under it.
+    public static let azureMaxActivation: TimeInterval = 24 * 3600
+
+    /// Validates an activation duration: 5 min ≤ d ≤ policy max (`azureMaxActivation` when unknown).
     public static func duration(_ iso: String, policyMax: String?) -> Result<TimeInterval, Failure> {
         guard let seconds = ISODuration.seconds(iso) else { return .failure(.invalidFormat("duration")) }
-        let cap = policyMax.flatMap(ISODuration.seconds) ?? 24 * 3600
+        let cap = policyMax.flatMap(ISODuration.seconds) ?? azureMaxActivation
         guard seconds >= 5 * 60 else { return .failure(.outOfRange("duration", 5...Int(cap / 60))) }
         guard seconds <= cap else { return .failure(.exceedsPolicy(max: cap)) }
         return .success(seconds)

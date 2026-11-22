@@ -53,6 +53,7 @@ struct AccountsSettingsView: View {
         .confirmationDialog("Delete all AzPim data on this Mac?", isPresented: $confirmingWipe) {
             Button("Delete All", role: .destructive) {
                 do { try service.deleteAllLocalData() } catch { self.error = AccountService.message(for: error) }
+                store.pruneDurations()   // no role left: the remembered durations go too
             }
         } message: {
             Text("Signs out every account and deletes cached roles, favorites, history and preferences. "
@@ -63,6 +64,7 @@ struct AccountsSettingsView: View {
             Button("Remove", role: .destructive) {
                 do {
                     try service.remove(account)
+                    store.pruneDurations()   // its roles are gone: so are their remembered durations
                     // Removing a Microsoft sign-in may bring back the Azure CLI account it replaced: load it now,
                     // without opening a sign-in window.
                     Task { await TokenInteraction.$isBackground.withValue(true) { await store.refresh() } }

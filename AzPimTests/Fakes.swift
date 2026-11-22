@@ -243,6 +243,7 @@ final class Harness {
         let accounts = AccountService(context: container.mainContext)
         store = RoleStore(context: container.mainContext, accounts: accounts,
                           notifications: NotificationScheduler(center: center))
+        store.durationMemory = .inMemory()   // never the user's preferences
         store.tokenProvider = { FakeTokenProvider(mode: $0.mode, objectId: $0.objectId, tenantId: $0.tenantId) }
         store.makeSources = { [unowned self] account, _, _ in self.sources[account.id] ?? [] }
         store.sleep = { [weak self] duration in await self?.slept(duration) }

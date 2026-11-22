@@ -80,11 +80,12 @@ extension ActivationRecord {
     /// A sent request whose outcome could not be read counts as waiting this long, then the role can be asked again.
     public static let sentWaitSeconds: TimeInterval = 15 * 60
 
-    /// A request still waiting for its outcome: pending approval (until `Retention.markAbandoned`), or sent with a
-    /// request id in the last 15 minutes. The panel shows Pending and a favorite run does not send it again.
+    /// A request still waiting for its outcome, with a request id (one without could never be polled nor cancelled):
+    /// pending approval (until `Retention.markAbandoned`), or sent in the last 15 minutes. The panel shows Pending,
+    /// the sheet refuses another request and a favorite run does not send it again.
     public func isWaiting(at now: Date = .now) -> Bool {
         switch status {
-        case .pendingApproval: true
+        case .pendingApproval: remoteRequestId != nil
         case .sent: remoteRequestId != nil && now.timeIntervalSince(sentAt) < Self.sentWaitSeconds
         default: false
         }
@@ -131,9 +132,11 @@ public enum FavoriteRun {
         if let error = Validation.justification(justification, required: policy.requiresJustification) {
             return .failure(error)
         }
+        // Capped by the policy, or by the app's cap when the policy is unknown (never more than the sheet allows).
         var duration = item.duration
-        if let max = policy.maxDuration.flatMap(ISODuration.seconds), let wanted = ISODuration.seconds(duration), wanted > max {
-            duration = ISODuration.string(max)
+        let max = (policy.maxDuration ?? ActivationDuration.unknownPolicyMax)
+        if let cap = ISODuration.seconds(max), let wanted = ISODuration.seconds(duration), wanted > cap {
+            duration = ISODuration.string(cap)
         }
         if case .failure(let error) = Validation.duration(duration, policyMax: policy.maxDuration) { return .failure(error) }
         return .success(ActivationInput(duration: duration, justification: justification))
@@ -158,10 +161,9 @@ public enum ExtendPlan: Equatable, Sendable {
         if policy.requiresJustification, Validation.justification(justification, required: true) != nil {
             return .blocked("No previous justification for this role: open the panel to activate it again.")
         }
-        var duration = lastDuration ?? policy.maxDuration ?? "PT8H"
-        if let max = policy.maxDuration.flatMap(ISODuration.seconds), let wanted = ISODuration.seconds(duration), wanted > max {
-            duration = ISODuration.string(max)
-        }
+        // The last duration of this role, else 1 h (least privilege, never the policy maximum), capped by the policy.
+        let duration = ActivationDuration.iso(ActivationDuration.defaultMinutes(lastUsed: lastDuration,
+                                                                               policyMax: policy.maxDuration))
         return .reactivate(ActivationInput(duration: duration, justification: justification))
     }
 

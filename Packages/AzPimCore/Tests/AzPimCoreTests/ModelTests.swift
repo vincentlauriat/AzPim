@@ -92,14 +92,14 @@ struct ModelTests {
     @Test func waitingRequests() throws {
         let account = Account(mode: .azureCLI, upn: "a@x.com", objectId: "o1", tenantId: "t1")
         context.insert(account)
-        // "c" was sent but never got a request id (app quit mid-flight): not waiting.
+        // "c" was sent but never got a request id (app quit mid-flight): not waiting. Nor "f", pending without one.
         let rows: [(String, RequestStatus)] = [("a", .pendingApproval), ("b", .sent), ("c", .sent), ("d", .failed),
-                                               ("e", .sent)]
+                                               ("e", .sent), ("f", .pendingApproval)]
         for (role, status) in rows {
             let record = ActivationRecord(account: account, eligibleRoleId: role, roleName: role, scopeName: "s",
                                           source: .azureResource, action: .activate)
             record.status = status
-            record.remoteRequestId = role == "c" ? nil : "req-\(role)"
+            record.remoteRequestId = role == "c" || role == "f" ? nil : "req-\(role)"
             // "e" was sent 20 minutes ago and its status could never be read: no longer blocks the row.
             if role == "e" { record.sentAt = Date.now.addingTimeInterval(-20 * 60) }
             context.insert(record)

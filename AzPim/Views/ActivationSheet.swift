@@ -1,7 +1,8 @@
 import AzPimCore
 import SwiftUI
 
-/// Activation Sheet (AppFlow): duration presets capped by policy, justification / ticket validation, send.
+/// Activation Sheet (AppFlow): duration in 15-minute steps capped by policy (the last one used for the role, else 1 h),
+/// justification / ticket validation, send; when Activate is disabled, the reason is shown under it.
 /// Shown inside the menu bar panel so the panel stays open while the user types.
 struct ActivationSheet: View {
     @Environment(RoleStore.self) private var store
@@ -10,28 +11,30 @@ struct ActivationSheet: View {
     var fromPanel = true
     let close: () -> Void
 
-    @State private var hours: Double = 8
+    @State private var minutes = ActivationDuration.fallbackMinutes
     @State private var justification = ""
     @State private var ticket = ""
     @State private var result: RequestStatus?
+    /// This sheet's own request is running: the busy state is not shown as a reason.
+    @State private var sending = false
+    /// The user changed the duration: a policy read afterwards no longer resets it.
+    @State private var durationTouched = false
     @FocusState private var focused: Bool
 
-    private var maxHours: Double {
-        (role.maxDuration.flatMap(ISODuration.seconds) ?? 8 * 3600) / 3600
-    }
-    private var presets: [Double] { [1, 2, 4, 8].filter { $0 < maxHours } + [maxHours] }
-    private var duration: String { ISODuration.string(hours * 3600) }
+    private var duration: String { ActivationDuration.iso(minutes) }
 
-    private var validationError: String? {
-        if case .failure = Validation.duration(duration, policyMax: role.maxDuration) { return "Duration not allowed by policy." }
-        if Validation.justification(justification, required: role.requiresJustification) != nil {
-            return justification.count > 500 ? "Justification is limited to 500 characters." : "Justification required by policy."
-        }
-        if Validation.ticketNumber(ticket, required: role.requiresTicket) != nil { return "Ticket number required by policy." }
-        return nil
+    /// Why Activate is disabled, nil when the request can be sent. Read once per body; `store.now` makes the body
+    /// follow the store clock, so a sent request stops blocking once its 15-minute window is over.
+    private var block: ActivationBlock? {
+        ActivationBlock.reason(.init(inProgress: store.busy.contains(role.id),
+                                     pending: store.waitingRequest(for: role, at: store.now) != nil,
+                                     offline: store.isOffline, minutes: minutes, policyMax: role.maxDuration,
+                                     requiresJustification: role.requiresJustification, justification: justification,
+                                     requiresTicket: role.requiresTicket, ticket: ticket))
     }
 
     var body: some View {
+        let block = self.block
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Activate \(role.roleName)").font(.headline)
@@ -39,13 +42,8 @@ struct ActivationSheet: View {
                 Text(policyHint).font(.caption).foregroundStyle(.secondary)
             }
 
-            Picker("Duration", selection: $hours) {
-                ForEach(presets, id: \.self) { value in
-                    Text(value == maxHours ? "Max (\(label(value)))" : label(value)).tag(value)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            DurationPicker(minutes: Binding(get: { minutes }, set: { minutes = $0; durationTouched = true }),
+                           policyMax: role.maxDuration)
 
             TextField("Justification", text: $justification, prompt: Text("Why do you need this role?"), axis: .vertical)
                 .lineLimit(2...4)
@@ -63,45 +61,51 @@ struct ActivationSheet: View {
                 // Accepted but not confirmed yet (or already decided): sending it again would submit a second request.
                 Label("Request sent — not confirmed yet. Check the panel in a moment.", systemImage: "paperplane")
                     .font(.caption).foregroundStyle(.orange)
-            } else if let validationError, !justification.isEmpty || role.requiresTicket {
-                Text(validationError).font(.caption).foregroundStyle(.secondary)
             }
 
-            HStack {
-                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
-                Spacer()
-                if store.busy.contains(role.id) { ProgressView().controlSize(.small) }
-                // A request Azure accepted (any result) is never sent twice from the same sheet: the button becomes Done.
-                Button(result != nil ? "Done" : "Activate") {
-                    if result != nil { close() } else { Task { await send() } }
+            VStack(alignment: .trailing, spacing: 6) {
+                HStack {
+                    Button("Cancel", action: close).keyboardShortcut(.cancelAction)
+                    Spacer()
+                    if store.busy.contains(role.id) { ProgressView().controlSize(.small) }
+                    // A request Azure accepted (any result) is never sent twice from the same sheet: the button becomes Done.
+                    Button(result != nil ? "Done" : "Activate") {
+                        if result != nil { close() } else { Task { await send() } }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(result == nil && block != nil)
                 }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
-                .disabled(result == nil && (validationError != nil || store.busy.contains(role.id) || store.isOffline))
+                // One sentence under the button: why it cannot be pressed (not while this sheet's own request runs).
+                if result == nil, !sending, let block {
+                    Text(block.message).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .padding(14)
         .task {
             justification = role.lastJustification ?? ""
+            // Shown at once from the cached policy; read again once the policy is known, unless already changed.
+            minutes = store.defaultDurationMinutes(for: role)
             await store.ensurePolicy(for: role)
-            hours = min(8, maxHours)
+            if !durationTouched { minutes = store.defaultDurationMinutes(for: role) }
             focused = true
         }
     }
 
     private var policyHint: String {
-        var parts = ["Max \(label(maxHours))"]
+        let max = ISODuration.label(TimeInterval(ActivationDuration.maxMinutes(policyMax: role.maxDuration) * 60))
+        var parts = ["Max \(max)"]
         if role.requiresTicket { parts.append("Ticket required") }
         if role.requiresMFA { parts.append("MFA required") }
         if role.requiresApproval { parts.append("Approval required") }
         return parts.joined(separator: " · ")
     }
 
-    private func label(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(value)) h" : "\(Int(value * 60)) min"
-    }
-
     private func send() async {
+        sending = true
+        defer { sending = false }
         let input = ActivationInput(duration: duration, justification: justification.trimmingCharacters(in: .whitespacesAndNewlines),
                                     ticketNumber: role.requiresTicket ? ticket : nil)
         result = await store.activate(role, input: input, fromPanel: fromPanel)

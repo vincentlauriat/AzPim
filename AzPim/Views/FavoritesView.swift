@@ -9,6 +9,8 @@ struct FavoritesView: View {
     @Query(sort: \Favorite.sortOrder) private var favorites: [Favorite]
     @State private var selection: Favorite.ID?
     @State private var confirmingDelete: Favorite?
+    /// Favorite selected when the view appears (snapshot renders).
+    var initialSelection: Favorite.ID?
 
     var body: some View {
         HSplitView {
@@ -68,6 +70,7 @@ struct FavoritesView: View {
             }
         }
         .navigationTitle("Favorites")
+        .onAppear { if selection == nil { selection = initialSelection } }
     }
 
     private func add() {
@@ -125,7 +128,7 @@ private struct FavoriteEditor: View {
                             && role.account.map { !supersession.hides($0.id, role.source) } == true
                     }) { role in
                         Button("\(role.roleName) — \(role.scopeName)") {
-                            favorite.items.append(FavoriteItem(eligibleRoleId: role.id, duration: role.maxDuration ?? "PT8H"))
+                            favorite.items.append(FavoriteItem(eligibleRoleId: role.id, duration: store.defaultFavoriteDuration(for: role)))
                             try? context.save()
                         }
                     }
@@ -158,11 +161,6 @@ private struct FavoriteEditor: View {
                         .lineLimit(1).truncationMode(.middle)
                 }
                 Spacer()
-                Picker("Duration", selection: durationBinding(item.eligibleRoleId)) {
-                    ForEach(presets(role), id: \.self) { value in Text(label(value)).tag(value) }
-                }
-                .labelsHidden()
-                .fixedSize()
                 Button {
                     favorite.items.removeAll { $0.eligibleRoleId == item.eligibleRoleId }
                     try? context.save()
@@ -172,6 +170,8 @@ private struct FavoriteEditor: View {
                 .buttonStyle(.borderless)
                 .help("Remove from favorite")
             }
+            DurationPicker(minutes: durationBinding(item.eligibleRoleId, policyMax: role?.maxDuration),
+                           policyMax: role?.maxDuration)
             TextField("Justification", text: justificationBinding(item.eligibleRoleId),
                       prompt: Text(role?.lastJustification ?? "Uses the last justification of this role"))
                 .font(.callout)
@@ -182,22 +182,17 @@ private struct FavoriteEditor: View {
         .padding(.vertical, 2)
     }
 
-    private func presets(_ role: EligibleRole?) -> [String] {
-        let max = role?.maxDuration.flatMap(ISODuration.seconds) ?? 8 * 3600
-        return ([1, 2, 4, 8].map { Double($0) * 3600 }.filter { $0 < max } + [max]).map(ISODuration.string)
-    }
-
-    private func label(_ iso: String) -> String {
-        guard let seconds = ISODuration.seconds(iso) else { return iso }
-        return seconds >= 3600 ? "\(Int(seconds / 3600)) h" : "\(Int(seconds / 60)) min"
-    }
-
     /// Bindings resolve the item by role id at each access: an index could point to a neighbour after a removal.
-    private func durationBinding(_ roleId: String) -> Binding<String> {
-        Binding(get: { favorite.items.first { $0.eligibleRoleId == roleId }?.duration ?? "PT8H" },
+    /// The favorite keeps its own saved duration, shown capped by the role's current policy (the run caps it too).
+    private func durationBinding(_ roleId: String, policyMax: String?) -> Binding<Int> {
+        Binding(get: {
+                    let saved = favorite.items.first { $0.eligibleRoleId == roleId }?.duration
+                    let minutes = saved.flatMap(ISODuration.seconds).map { Int(($0 / 60).rounded()) }
+                    return ActivationDuration.clamp(minutes ?? ActivationDuration.fallbackMinutes, policyMax: policyMax)
+                },
                 set: { value in
                     guard let index = favorite.items.firstIndex(where: { $0.eligibleRoleId == roleId }) else { return }
-                    favorite.items[index].duration = value
+                    favorite.items[index].duration = ActivationDuration.iso(value)
                     try? context.save()
                 })
     }

@@ -76,6 +76,8 @@ final class RoleStore {
         -> [any PIMSource] = { PIMService.sources(token: $1, directory: $2) }
     /// Waits: between Extend attempts, in the refresh loop and in the countdown clock.
     @ObservationIgnored var sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    /// Last duration per role (`PreferenceKeys.lastDurations` in the user's preferences).
+    @ObservationIgnored var durationMemory = DurationMemory.defaults(.standard)
 
     init(context: ModelContext, accounts: AccountService, notifications: NotificationScheduler) {
         self.context = context
@@ -262,6 +264,7 @@ final class RoleStore {
             rowErrors[role.id] = nil   // a refused duplicate meanwhile left its message
             if outcome.status == .provisioned { record.completedAt = .now }
             role.lastJustification = input.justification
+            if viaFavorite == nil, action == .activate { rememberDuration(input.duration, for: role) }   // sheet only
             try? context.save()
             if refreshAfter { await refresh() }
             return outcome.status
@@ -316,18 +319,6 @@ final class RoleStore {
             try? context.save()
             return false
         }
-    }
-
-    // MARK: - Queries
-
-    /// Panel open time if recent: a stale value (panel `onAppear` not called again) would inflate the median.
-    private var recentPanelOpen: Date? {
-        guard let opened = panelOpenedAt, Date.now.timeIntervalSince(opened) < 600 else { return nil }
-        return opened
-    }
-
-    static func message(for error: Error) -> String {
-        ErrorKind.classify(error).message
     }
 
 }
