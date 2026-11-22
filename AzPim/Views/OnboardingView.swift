@@ -58,8 +58,8 @@ struct OnboardingView: View {
             .controlSize(.large)
             .disabled(busy || !accounts.isMSALConfigured)
             Text(accounts.isMSALConfigured
-                 ? "Azure resource roles, Entra roles and PIM groups (Entra roles need your admin's consent)."
-                 : "Not available in this build yet (no app registration client ID).")
+                 ? String(localized: "Azure resource roles, Entra roles and PIM groups (Entra roles need your admin's consent).")
+                 : String(localized: "Not available in this build yet (no app registration client ID)."))
                 .font(.caption).foregroundStyle(.secondary)
             if busy { ProgressView().controlSize(.small) }
             if let error { Text(error).font(.callout).foregroundStyle(.red) }
@@ -142,12 +142,14 @@ struct OnboardingView: View {
             if launchAtLogin { try SMAppService.mainApp.register() } else { try? await SMAppService.mainApp.unregister() }
         } catch {
             // Unsigned debug builds cannot register.
-            loginItemError = "Launch at login: \(error.localizedDescription) "
-                + "You can change it later in System Settings › General › Login Items."
+            loginItemError = String(localized: """
+                Launch at login: \(error.localizedDescription) \
+                You can change it later in System Settings › General › Login Items.
+                """)
         }
         let status = SMAppService.mainApp.status
         if launchAtLogin, loginItemError == nil, status == .requiresApproval {
-            loginItemError = "Launch at login needs your approval in System Settings › General › Login Items."
+            loginItemError = String(localized: "Launch at login needs your approval in System Settings › General › Login Items.")
         }
         let settings = accounts.settings
         // What macOS actually registered, not what was asked.

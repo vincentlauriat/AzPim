@@ -183,14 +183,14 @@ final class AccountService {
 
     static func message(for error: Error) -> String {
         switch error as? TokenError {
-        case .cliNotFound: "Azure CLI not found. Install it or choose its location in Settings."
-        case .cliNotSignedIn(let command): "Azure CLI session expired or missing — run `\(command)`."
-        case .interactionRequired: "Your organization requires you to sign in again (MFA)."
-        case .cliStepUp(let command): "Your organization requires a new sign-in (MFA) — run `\(command)` in Terminal."
-        case .consentRequired: "Admin consent required in this tenant."
-        case .notConfigured: "Microsoft sign-in is not configured in this build (no client ID)."
-        case .cancelled: "Sign-in cancelled."
-        case .timedOut: "The request timed out."
+        case .cliNotFound: String(localized: "Azure CLI not found. Install it or choose its location in Settings.")
+        case .cliNotSignedIn(let command): String(localized: "Azure CLI session expired or missing — run `\(command)`.")
+        case .interactionRequired: String(localized: "Your organization requires you to sign in again (MFA).")
+        case .cliStepUp(let command): String(localized: "Your organization requires a new sign-in (MFA) — run `\(command)` in Terminal.")
+        case .consentRequired: String(localized: "Admin consent required in this tenant.")
+        case .notConfigured: String(localized: "Microsoft sign-in is not configured in this build (no client ID).")
+        case .cancelled: String(localized: "Sign-in cancelled.")
+        case .timedOut: String(localized: "The request timed out.")
         case .failed(let message): message
         case nil: error.localizedDescription
         }

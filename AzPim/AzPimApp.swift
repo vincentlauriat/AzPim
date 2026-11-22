@@ -22,29 +22,19 @@ struct AzPimApp: App {
         }
         #endif
         let migrating = AzPimStore.needsLegacyMigration()
-        // A store being written by AzurePim could be copied half-way: ask to quit it first.
-        if migrating, !NSRunningApplication.runningApplications(withBundleIdentifier: PreferenceKeys.legacyDomain).isEmpty {
-            Self.stop("Quit AzurePim, then open AzPim again.",
-                      info: "AzPim copies AzurePim's favorites and history once, on its first launch, "
-                        + "and cannot do it while AzurePim is running.", code: 0)
-        }
-        do {
-            // 0.9.x shipped as AzurePim: copy its store once, so favorites and history survive the rename.
-            try AzPimStore.migrateLegacyStore()
-        } catch {
-            Self.stop("AzPim could not copy AzurePim's data.",
-                      info: "From \(AzPimStore.legacyURL.path) to \(AzPimStore.defaultURL.path): \(error)\n"
-                        + "AzurePim's data was not changed.")
-        }
+        Self.copyLegacyStore(migrating: migrating)
         do {
             container = try AzPimStore.makeContainer()
         } catch {
             if migrating {
                 // Do not keep a copy that cannot open: remove it (only the AzPim files); the next launch retries.
                 AzPimStore.storeFiles(AzPimStore.defaultURL).forEach { try? FileManager.default.removeItem(at: $0) }
-                Self.stop("AzPim could not open the data copied from AzurePim.",
-                          info: "The copy at \(AzPimStore.defaultURL.path) was removed; AzurePim's data at "
-                            + "\(AzPimStore.legacyURL.path) was not changed.\n\(error)")
+                let detail = String(describing: error), copy = AzPimStore.defaultURL.path, legacy = AzPimStore.legacyURL.path
+                Self.stop(String(localized: "AzPim could not open the data copied from AzurePim."),
+                          info: String(localized: """
+                            The copy at \(copy) was removed; AzurePim's data at \(legacy) was not changed.
+                            \(detail)
+                            """))
             }
             // The local store is required; failing silently to memory would lose favorites and history.
             fatalError("AzPim could not open its local store at \(AzPimStore.defaultURL.path): \(error)")
@@ -70,6 +60,25 @@ struct AzPimApp: App {
         Task { @MainActor in roleStore.start(); GlobalHotKey.registerStored() }
     }
 
+    /// 0.9.x shipped as AzurePim: copies its store once, so favorites and history survive the rename. A store being
+    /// written by AzurePim could be copied half-way: asks to quit it first.
+    private static func copyLegacyStore(migrating: Bool) {
+        if migrating, !NSRunningApplication.runningApplications(withBundleIdentifier: PreferenceKeys.legacyDomain).isEmpty {
+            stop(String(localized: "Quit AzurePim, then open AzPim again."),
+                 info: String(localized: """
+                    AzPim copies AzurePim's favorites and history once, on its first launch, \
+                    and cannot do it while AzurePim is running.
+                    """), code: 0)
+        }
+        do {
+            try AzPimStore.migrateLegacyStore()
+        } catch {
+            let detail = String(describing: error), from = AzPimStore.legacyURL.path, destination = AzPimStore.defaultURL.path
+            stop(String(localized: "AzPim could not copy AzurePim's data."),
+                 info: String(localized: "From \(from) to \(destination): \(detail)\nAzurePim's data was not changed."))
+        }
+    }
+
     /// Shows a launch error and quits: used before any window exists, so it cannot be a sheet.
     private static func stop(_ message: String, info: String, code: Int32 = 1) -> Never {
         NSApplication.shared.activate(ignoringOtherApps: true)
@@ -77,7 +86,7 @@ struct AzPimApp: App {
         alert.alertStyle = code == 0 ? .informational : .critical
         alert.messageText = message
         alert.informativeText = info
-        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: String(localized: "Quit"))
         alert.runModal()
         exit(code)
     }
@@ -107,9 +116,11 @@ struct AzPimApp: App {
                 try? await Task.sleep(for: .seconds(1))
                 NSApp.activate(ignoringOtherApps: true)
                 let alert = NSAlert()
-                alert.messageText = "AzurePim is still installed."
-                alert.informativeText = "AzPim replaces it and has copied its data. Remove AzurePim from "
-                    + "Applications and its entry from System Settings › General › Login Items."
+                alert.messageText = String(localized: "AzurePim is still installed.")
+                alert.informativeText = String(localized: """
+                    AzPim replaces it and has copied its data. Remove AzurePim from Applications and its entry \
+                    from System Settings › General › Login Items.
+                    """)
                 alert.runModal()
             }
         }

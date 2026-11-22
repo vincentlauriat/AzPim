@@ -20,7 +20,8 @@ struct SettingsView: View {
                 LabeledContent("Core", value: AzPimCore.version)
                 LabeledContent("MSAL", value: MSALPublicClientApplication.sdkVersion ?? "?")
                 LabeledContent("Sparkle", value: updater.sparkleVersion)
-                LabeledContent("Microsoft sign-in", value: accounts.isMSALConfigured ? "Configured" : "No client ID")
+                LabeledContent("Microsoft sign-in",
+                               value: accounts.isMSALConfigured ? String(localized: "Configured") : String(localized: "No client ID"))
                 if updater.isEnabled {
                     Button("Check for Updates…") { updater.checkForUpdates() }
                 }
@@ -75,7 +76,7 @@ struct GeneralSettingsView: View {
             if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         } catch {
             // Unsigned debug builds cannot register.
-            self.error = "Launch at login: \(error.localizedDescription)"
+            self.error = String(localized: "Launch at login: \(error.localizedDescription)")
         }
         readStatus()
     }
@@ -106,8 +107,10 @@ struct QuickActivateShortcutRow: View {
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Quick activate")
-                Text("Opens a search from any app: ↩ activates with the default duration, ⌘↩ opens the sheet. "
-                     + "In the panel, ⌥-click Activate to skip the sheet.")
+                Text("""
+                    Opens a search from any app: ↩ activates with the default duration, ⌘↩ opens the sheet. \
+                    In the panel, ⌥-click Activate to skip the sheet.
+                    """)
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }

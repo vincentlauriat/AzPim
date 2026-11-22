@@ -13,9 +13,9 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>lld</string>
 			<key>one</key>
-			<string>%lld rôle actif</string>
+			<string>%lld actif</string>
 			<key>other</key>
-			<string>%lld rôles actifs</string>
+			<string>%lld actifs</string>
 		</dict>
 	</dict>
 	<key>%lld requests waiting for approval</key>

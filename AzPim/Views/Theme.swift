@@ -148,7 +148,7 @@ struct DisclosureCard<Content: View>: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("\(title)\(count.map { ", \($0)" } ?? ""), \(expanded ? "expanded" : "collapsed")")
+            .accessibilityLabel(accessibilityText)
             if expanded {
                 VStack(spacing: 0) { content }
                     .padding(.horizontal, 14)
@@ -156,6 +156,12 @@ struct DisclosureCard<Content: View>: View {
             }
         }
         .card()
+    }
+
+    /// « Eligible roles, 4, expanded ».
+    private var accessibilityText: String {
+        let name = count.map { "\(title), \($0)" } ?? title
+        return expanded ? String(localized: "\(name), expanded") : String(localized: "\(name), collapsed")
     }
 }
 

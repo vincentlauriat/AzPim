@@ -24,6 +24,9 @@ jobs:
       - name: Release metadata (appcast vs project.yml, pinned packages)
         run: python3 Scripts/check-release-metadata.py
 
+      - name: French strings complete (app catalog, core tables)
+        run: python3 Scripts/check-localizations.py
+
       - name: release.sh syntax
         run: bash -n Scripts/release.sh
 
@@ -76,6 +79,13 @@ jobs:
           xcodebuild -project AzPim.xcodeproj -scheme AzPim -configuration Debug \
             -destination 'platform=macOS' -clonedSourcePackagesDirPath SourcePackages \
             CODE_SIGNING_ALLOWED=NO build
+
+      # The strings the compiler extracted (SWIFT_EMIT_LOC_STRINGS) must match the String Catalog, all in French.
+      - name: Localizations match the code
+        run: |
+          plutil -lint Packages/AzPimCore/Sources/AzPimCore/Resources/*.lproj/*
+          BUILD_DIR="$(ls -d ~/Library/Developer/Xcode/DerivedData/AzPim-*/Build/Intermediates.noindex/AzPim.build/Debug/AzPim.build | head -1)"
+          python3 Scripts/check-localizations.py --stringsdata "$BUILD_DIR"
 
       # RoleStore tests hosted in the Debug app. The step fails unless tests actually ran: a bundle that does not
       # load into the host reports success with zero tests.

@@ -103,7 +103,9 @@ struct QuickPaletteView: View {
             ScrollViewReader { proxy in
                 ScrollView(.vertical) {
                     LazyVStack(spacing: 2) {
-                        if rows.isEmpty { EmptyLine(text: query.isEmpty ? "No role to show" : "No role matches") }
+                        if rows.isEmpty {
+                            EmptyLine(text: query.isEmpty ? String(localized: "No role to show") : String(localized: "No role matches"))
+                        }
                         ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                             PaletteRowView(row: row, selected: index == selectedIndex,
                                            pending: row.role.flatMap { model.waiting($0, in: pendingRecords, now: store.now) }?.status)
@@ -149,13 +151,15 @@ struct QuickPaletteView: View {
     }
 
     private func hints(_ row: PaletteRow) -> String {
-        if row.entry.kind == .active { return PaletteCommand.alreadyActiveHint + " · esc Close" }
-        guard let role = row.role else { return "esc Close" }
+        let close = String(localized: "esc Close")
+        if row.entry.kind == .active { return PaletteCommand.alreadyActiveHint + " · " + close }
+        guard let role = row.role else { return close }
         let needsSheet = role.policyFetchedAt == nil || role.requiresJustification || role.requiresTicket
         let duration = ISODuration.label(TimeInterval(store.defaultDurationMinutes(for: role) * 60))
-        let primary = needsSheet ? "↩ Activate… (\(role.requiresTicket ? "ticket" : "justification") needed)"
-            : "↩ Activate for \(duration)"
-        return primary + " · ⌘↩ Options · esc Close"
+        let primary = !needsSheet ? String(localized: "↩ Activate for \(duration)")
+            : role.requiresTicket ? String(localized: "↩ Activate… (ticket needed)")
+            : String(localized: "↩ Activate… (justification needed)")
+        return primary + " · " + String(localized: "⌘↩ Options") + " · " + close
     }
 
     // MARK: Keys
@@ -195,12 +199,12 @@ struct QuickPaletteView: View {
     }
 
     private func activate(_ role: EligibleRole) {
-        session.message = "Activating \(role.roleName)…"
+        session.message = String(localized: "Activating \(role.roleName)…")
         Task {
             switch await store.quickActivate(role) {
             case .needsSheet: sheetRole = role
             case .sent(_?): close()
-            case .sent(nil): session.message = store.rowErrors[role.id] ?? "Activation failed."
+            case .sent(nil): session.message = store.rowErrors[role.id] ?? String(localized: "Activation failed.")
             case .blocked(let reason): session.message = reason
             }
         }
@@ -208,17 +212,17 @@ struct QuickPaletteView: View {
 
     private func extend(_ row: PaletteRow?) {
         guard let role = row?.role else {
-            session.message = "This activation has no eligibility to extend."
+            session.message = String(localized: "This activation has no eligibility to extend.")
             return
         }
-        session.message = "Extending \(role.roleName)…"
+        session.message = String(localized: "Extending \(role.roleName)…")
         Task { session.message = await store.extend(eligibleRoleId: role.id) }
     }
 
     private func askToDeactivate(_ assignment: ActiveAssignment) {
         // Azure refuses deactivation within 5 minutes of activation (as the row's button).
         if Date.now.timeIntervalSince(assignment.startAt) < 300 {
-            session.message = "Can't deactivate within 5 minutes of activation."
+            session.message = String(localized: "Can't deactivate within 5 minutes of activation.")
         } else if store.isOffline {
             session.message = ActivationBlock.offline.message
         } else {
@@ -228,10 +232,11 @@ struct QuickPaletteView: View {
 
     private func deactivate(_ assignment: ActiveAssignment) {
         let name = assignment.roleName, id = assignment.id
-        session.message = "Deactivating \(name)…"
+        session.message = String(localized: "Deactivating \(name)…")
         Task {
             let done = await store.deactivate(assignment)
-            session.message = done ? "\(name) deactivated." : (store.rowErrors[id] ?? "Deactivation failed.")
+            session.message = done ? String(localized: "\(name) deactivated.")
+                : (store.rowErrors[id] ?? String(localized: "Deactivation failed."))
         }
     }
 }

@@ -1,0 +1,3627 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+      "shouldTranslate" : false
+    },
+    " · " : {
+      "shouldTranslate" : false
+    },
+    "%@ (tenant %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (tenant %2$@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (locataire %2$@)"
+          }
+        }
+      }
+    },
+    "%@ The role is still active." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Le rôle est toujours actif."
+          }
+        }
+      }
+    },
+    "%@ deactivated." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ désactivé."
+          }
+        }
+      }
+    },
+    "%@ is already running." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est déjà en cours."
+          }
+        }
+      }
+    },
+    "%@ is already used by another app: the shortcut was not changed. Choose another one." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est déjà utilisé par une autre app : le raccourci n’a pas été modifié. Choisissez-en un autre."
+          }
+        }
+      }
+    },
+    "%@ is no longer active." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’est plus actif."
+          }
+        }
+      }
+    },
+    "%@ left" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reste %@"
+          }
+        }
+      }
+    },
+    "%@ to activate" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ pour activer"
+          }
+        }
+      }
+    },
+    "%@ · also permanent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · aussi permanent"
+          }
+        }
+      }
+    },
+    "%@ · via group" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · via un groupe"
+          }
+        }
+      }
+    },
+    "%@ — %@" : {
+      "shouldTranslate" : false
+    },
+    "%@ — kept “%@”." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — kept “%2$@”."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — « %2$@ » conservé."
+          }
+        }
+      }
+    },
+    "%@, %@, permanent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@, permanent"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@, permanent"
+          }
+        }
+      }
+    },
+    "%@, %lld, collapsed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$lld, collapsed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$lld, replié"
+          }
+        }
+      }
+    },
+    "%@, %lld, expanded" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$lld, expanded"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$lld, déplié"
+          }
+        }
+      }
+    },
+    "%@, collapsed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, replié"
+          }
+        }
+      }
+    },
+    "%@, expanded" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, déplié"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ : %2$@"
+          }
+        }
+      }
+    },
+    "%@: not sent (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: not sent (%2$@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ : non envoyé (%2$@)"
+          }
+        }
+      }
+    },
+    "%@: skipped (already requested, waiting)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : ignoré (déjà demandé, en attente)"
+          }
+        }
+      }
+    },
+    "%lld" : {
+      "shouldTranslate" : false
+    },
+    "%lld roles" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld role"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld roles"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rôle"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rôles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    ", ending first: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", expire en premier : %@"
+          }
+        }
+      }
+    },
+    "15-minute steps, up to the policy maximum (%@)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par pas de 15 minutes, jusqu’au maximum de la stratégie (%@)"
+          }
+        }
+      }
+    },
+    "A favorite activates several roles in one click." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un favori active plusieurs rôles en un clic."
+          }
+        }
+      }
+    },
+    "A link asked AzPim to activate:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un lien demande à AzPim d’activer :"
+          }
+        }
+      }
+    },
+    "About" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À propos"
+          }
+        }
+      }
+    },
+    "Account" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compte"
+          }
+        }
+      }
+    },
+    "Account not found" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compte introuvable"
+          }
+        }
+      }
+    },
+    "Accounts" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comptes"
+          }
+        }
+      }
+    },
+    "Accounts shown in the panel" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comptes affichés dans le panneau"
+          }
+        }
+      }
+    },
+    "Accounts, cached roles, favorites and history stay on this Mac only." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les comptes, les rôles en cache, les favoris et l’historique restent sur ce Mac uniquement."
+          }
+        }
+      }
+    },
+    "Actions are disabled until the network is back" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les actions sont désactivées jusqu’au retour du réseau"
+          }
+        }
+      }
+    },
+    "Activatable through PIM" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activables via PIM"
+          }
+        }
+      }
+    },
+    "Activate" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer"
+          }
+        }
+      }
+    },
+    "Activate %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer %@"
+          }
+        }
+      }
+    },
+    "Activate %@ — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activate %1$@ — %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activation %1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "Activate %lld roles" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Activate %lld role"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Activate %lld roles"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Activer %lld rôle"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Activer %lld rôles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Activate a role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer un rôle"
+          }
+        }
+      }
+    },
+    "Activate a role…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer un rôle…"
+          }
+        }
+      }
+    },
+    "Activate “%@”?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer « %@ » ?"
+          }
+        }
+      }
+    },
+    "Activate, track and end your Microsoft PIM roles from the menu bar." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez, suivez et terminez vos rôles Microsoft PIM depuis la barre des menus."
+          }
+        }
+      }
+    },
+    "Activate…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer…"
+          }
+        }
+      }
+    },
+    "Activate… — ⌥-click: activate now with the default duration" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer… — ⌥-clic : activer tout de suite avec la durée par défaut"
+          }
+        }
+      }
+    },
+    "Activating %@…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activation de %@…"
+          }
+        }
+      }
+    },
+    "Activation failed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de l’activation."
+          }
+        }
+      }
+    },
+    "Activations" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activations"
+          }
+        }
+      }
+    },
+    "Activations and deactivations sent by AzPim appear here." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les activations et désactivations envoyées par AzPim apparaissent ici."
+          }
+        }
+      }
+    },
+    "Active" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actif"
+          }
+        }
+      }
+    },
+    "Active PIM" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIM actifs"
+          }
+        }
+      }
+    },
+    "Active roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles actifs"
+          }
+        }
+      }
+    },
+    "Active · permanent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actif · permanent"
+          }
+        }
+      }
+    },
+    "Add Account" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un compte"
+          }
+        }
+      }
+    },
+    "Add an account to get started." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez un compte pour commencer."
+          }
+        }
+      }
+    },
+    "Add an account to see your roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez un compte pour voir vos rôles"
+          }
+        }
+      }
+    },
+    "Add an account…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un compte…"
+          }
+        }
+      }
+    },
+    "Add at least one role." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez au moins un rôle."
+          }
+        }
+      }
+    },
+    "Add role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un rôle"
+          }
+        }
+      }
+    },
+    "Add to favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter à un favori"
+          }
+        }
+      }
+    },
+    "Admin consent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentement administrateur"
+          }
+        }
+      }
+    },
+    "Admin consent required" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentement administrateur requis"
+          }
+        }
+      }
+    },
+    "Admin consent required in this tenant." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentement administrateur requis dans ce locataire."
+          }
+        }
+      }
+    },
+    "Advanced" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avancé"
+          }
+        }
+      }
+    },
+    "All" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous"
+          }
+        }
+      }
+    },
+    "All accounts" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les comptes"
+          }
+        }
+      }
+    },
+    "All accounts (%lld)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les comptes (%lld)"
+          }
+        }
+      }
+    },
+    "All eligible roles are active" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les rôles éligibles sont actifs"
+          }
+        }
+      }
+    },
+    "All sources" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes les sources"
+          }
+        }
+      }
+    },
+    "Also assigned permanently: already held without an activation" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aussi attribué de façon permanente : déjà détenu sans activation"
+          }
+        }
+      }
+    },
+    "Also assigned permanently: deactivating ends the activation only" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aussi attribué de façon permanente : la désactivation ne met fin qu’à l’activation"
+          }
+        }
+      }
+    },
+    "An extension is already running for this role." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une prolongation est déjà en cours pour ce rôle."
+          }
+        }
+      }
+    },
+    "Approval" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approbation"
+          }
+        }
+      }
+    },
+    "Approval required" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approbation requise"
+          }
+        }
+      }
+    },
+    "Assignment" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attribution"
+          }
+        }
+      }
+    },
+    "Auto-detect" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Détection automatique"
+          }
+        }
+      }
+    },
+    "AzPim" : {
+      "shouldTranslate" : false
+    },
+    "AzPim app registration" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inscription d’app AzPim"
+          }
+        }
+      }
+    },
+    "AzPim copies AzurePim's favorites and history once, on its first launch, and cannot do it while AzurePim is running." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim copie une seule fois les favoris et l’historique d’AzurePim, à son premier lancement, et ne peut pas le faire pendant qu’AzurePim est ouvert."
+          }
+        }
+      }
+    },
+    "AzPim could not copy AzurePim's data." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim n’a pas pu copier les données d’AzurePim."
+          }
+        }
+      }
+    },
+    "AzPim could not open the data copied from AzurePim." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim n’a pas pu ouvrir les données copiées depuis AzurePim."
+          }
+        }
+      }
+    },
+    "AzPim history" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historique AzPim"
+          }
+        }
+      }
+    },
+    "AzPim replaces it and has copied its data. Remove AzurePim from Applications and its entry from System Settings › General › Login Items." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim le remplace et a copié ses données. Supprimez AzurePim du dossier Applications et son entrée dans Réglages Système › Général › Ouverture."
+          }
+        }
+      }
+    },
+    "AzPim, %lld active" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim, rôles actifs : %lld"
+          }
+        }
+      }
+    },
+    "AzPim, %lld active, next expiry in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim, %1$lld active, next expiry in %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim, rôles actifs : %1$lld, prochaine expiration dans %2$@"
+          }
+        }
+      }
+    },
+    "AzPim, no active role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim, aucun rôle actif"
+          }
+        }
+      }
+    },
+    "Azure" : {
+      "shouldTranslate" : false
+    },
+    "Azure CLI" : {
+      "shouldTranslate" : false
+    },
+    "Azure CLI found but not signed in — run `%@` then retry." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azure CLI trouvé mais non connecté — exécutez `%@` puis réessayez."
+          }
+        }
+      }
+    },
+    "Azure CLI not found (optional)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azure CLI introuvable (facultatif)."
+          }
+        }
+      }
+    },
+    "Azure CLI not found. Install it or choose its location in Settings." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azure CLI introuvable. Installez-le ou indiquez son emplacement dans Réglages."
+          }
+        }
+      }
+    },
+    "Azure CLI session expired or missing — run `%@`." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session Azure CLI expirée ou absente — exécutez `%@`."
+          }
+        }
+      }
+    },
+    "Azure refuses deactivation within 5 minutes of activation" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azure refuse la désactivation dans les 5 minutes qui suivent l’activation"
+          }
+        }
+      }
+    },
+    "Azure resource" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ressource Azure"
+          }
+        }
+      }
+    },
+    "Azure resource roles, Entra roles and PIM groups (Entra roles need your admin's consent)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles de ressources Azure, rôles Microsoft Entra et groupes PIM (les rôles Microsoft Entra demandent le consentement de votre administrateur)."
+          }
+        }
+      }
+    },
+    "Azure resource roles, no admin consent needed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles de ressources Azure, sans consentement administrateur."
+          }
+        }
+      }
+    },
+    "Azure resources" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ressources Azure"
+          }
+        }
+      }
+    },
+    "Azure roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles Azure"
+          }
+        }
+      }
+    },
+    "AzurePim is still installed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzurePim est toujours installé."
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retour"
+          }
+        }
+      }
+    },
+    "CLI" : {
+      "shouldTranslate" : false
+    },
+    "Can't deactivate within 5 minutes of activation" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivation impossible dans les 5 minutes qui suivent l’activation"
+          }
+        }
+      }
+    },
+    "Can't deactivate within 5 minutes of activation." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivation impossible dans les 5 minutes qui suivent l’activation."
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
+          }
+        }
+      }
+    },
+    "Cancel request" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler la demande"
+          }
+        }
+      }
+    },
+    "Canceled" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulée"
+          }
+        }
+      }
+    },
+    "Check again" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier à nouveau"
+          }
+        }
+      }
+    },
+    "Check for Updates…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher les mises à jour…"
+          }
+        }
+      }
+    },
+    "Choose az" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir az"
+          }
+        }
+      }
+    },
+    "Choose the executable named `az`." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez l’exécutable nommé `az`."
+          }
+        }
+      }
+    },
+    "Choose…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir…"
+          }
+        }
+      }
+    },
+    "Clear the search" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer la recherche"
+          }
+        }
+      }
+    },
+    "Configured" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurée"
+          }
+        }
+      }
+    },
+    "Consent granted — loading Entra roles." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentement accordé — chargement des rôles Microsoft Entra."
+          }
+        }
+      }
+    },
+    "Consent required" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentement requis"
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer"
+          }
+        }
+      }
+    },
+    "Copied" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copié"
+          }
+        }
+      }
+    },
+    "Copy consent link" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier le lien de consentement"
+          }
+        }
+      }
+    },
+    "Copy “%@”" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier « %@ »"
+          }
+        }
+      }
+    },
+    "Core" : {
+      "shouldTranslate" : false
+    },
+    "Could not remove the Microsoft session from the Keychain: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de supprimer la session Microsoft du trousseau : %@"
+          }
+        }
+      }
+    },
+    "Couldn't extend: %@. The role is still active." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolongation impossible : %@. Le rôle est toujours actif."
+          }
+        }
+      }
+    },
+    "Couldn't fetch pending requests: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de récupérer les demandes en attente : %@"
+          }
+        }
+      }
+    },
+    "Couldn't load the eligible roles of %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger les rôles éligibles de %@"
+          }
+        }
+      }
+    },
+    "Couldn't read the role's policy: not extended, the role is still active." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de lire la stratégie du rôle : pas de prolongation, le rôle est toujours actif."
+          }
+        }
+      }
+    },
+    "Create it in AzPim › Favorites." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créez-le dans AzPim › Favoris."
+          }
+        }
+      }
+    },
+    "Custom client ID" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID client personnalisé"
+          }
+        }
+      }
+    },
+    "Deactivate" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactiver"
+          }
+        }
+      }
+    },
+    "Deactivate %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactiver %@"
+          }
+        }
+      }
+    },
+    "Deactivate %@ — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deactivate %1$@ — %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivation %1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "Deactivate %@?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactiver %@ ?"
+          }
+        }
+      }
+    },
+    "Deactivate %@? ↩ Deactivate · esc Keep" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactiver %@ ? ↩ Désactiver · esc Garder"
+          }
+        }
+      }
+    },
+    "Deactivating %@…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivation de %@…"
+          }
+        }
+      }
+    },
+    "Deactivation failed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la désactivation."
+          }
+        }
+      }
+    },
+    "Deep link: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lien direct : %@"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer"
+          }
+        }
+      }
+    },
+    "Delete All" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout supprimer"
+          }
+        }
+      }
+    },
+    "Delete All Local Data…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer toutes les données locales…"
+          }
+        }
+      }
+    },
+    "Delete all AzPim data on this Mac?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer toutes les données d’AzPim sur ce Mac ?"
+          }
+        }
+      }
+    },
+    "Delete favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le favori"
+          }
+        }
+      }
+    },
+    "Delete “%@”?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer « %@ » ?"
+          }
+        }
+      }
+    },
+    "Denied" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refusée"
+          }
+        }
+      }
+    },
+    "Direct" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Directe"
+          }
+        }
+      }
+    },
+    "Dismiss" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignorer"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminé"
+          }
+        }
+      }
+    },
+    "Duration" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durée"
+          }
+        }
+      }
+    },
+    "Each request is still confirmed. Turn off if you never start favorites from links or scripts." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque demande reste confirmée. Désactivez si vous ne lancez jamais de favoris depuis des liens ou des scripts."
+          }
+        }
+      }
+    },
+    "Eligible" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éligible"
+          }
+        }
+      }
+    },
+    "Eligible roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles éligibles"
+          }
+        }
+      }
+    },
+    "Eligible roles couldn't be loaded" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger les rôles éligibles"
+          }
+        }
+      }
+    },
+    "Enable Entra roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer les rôles Microsoft Entra"
+          }
+        }
+      }
+    },
+    "Ends" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fin"
+          }
+        }
+      }
+    },
+    "Entra" : {
+      "shouldTranslate" : false
+    },
+    "Entra role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôle Microsoft Entra"
+          }
+        }
+      }
+    },
+    "Entra roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles Microsoft Entra"
+          }
+        }
+      }
+    },
+    "Entra roles need Microsoft sign-in: the Azure CLI cannot request PIM directory permissions." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les rôles Microsoft Entra demandent la connexion Microsoft : Azure CLI ne peut pas obtenir les autorisations d’annuaire PIM."
+          }
+        }
+      }
+    },
+    "Entra roles: admin consent required" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles Microsoft Entra : consentement administrateur requis"
+          }
+        }
+      }
+    },
+    "Entra: n/a" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entra : n/d"
+          }
+        }
+      }
+    },
+    "Expires at %@ (%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires at %1$@ (%2$@)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expire à %1$@ (%2$@)."
+          }
+        }
+      }
+    },
+    "Export CSV…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter en CSV…"
+          }
+        }
+      }
+    },
+    "Extend" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolonger"
+          }
+        }
+      }
+    },
+    "Extend %@ — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extend %1$@ — %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolongation %1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "Extended until %@." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolongé jusqu’à %@."
+          }
+        }
+      }
+    },
+    "Extending %@…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolongation de %@…"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec"
+          }
+        }
+      }
+    },
+    "Favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favori"
+          }
+        }
+      }
+    },
+    "Favorites" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favoris"
+          }
+        }
+      }
+    },
+    "From %@ to %@: %@\nAzurePim's data was not changed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %1$@ to %2$@: %3$@\nAzurePim's data was not changed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De %1$@ vers %2$@ : %3$@\nLes données d’AzurePim n’ont pas été modifiées."
+          }
+        }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Général"
+          }
+        }
+      }
+    },
+    "Group" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groupe"
+          }
+        }
+      }
+    },
+    "Hide %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer %@"
+          }
+        }
+      }
+    },
+    "History" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historique"
+          }
+        }
+      }
+    },
+    "How should AzPim sign in?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comment AzPim doit-il se connecter ?"
+          }
+        }
+      }
+    },
+    "Icon" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icône"
+          }
+        }
+      }
+    },
+    "Icon + count" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icône + nombre"
+          }
+        }
+      }
+    },
+    "Icon + count + time" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icône + nombre + temps"
+          }
+        }
+      }
+    },
+    "Including requests sent elsewhere" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Y compris les demandes envoyées ailleurs"
+          }
+        }
+      }
+    },
+    "Inherited" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Héritée"
+          }
+        }
+      }
+    },
+    "Invalid claims challenge: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Défi de revendications non valide : %@"
+          }
+        }
+      }
+    },
+    "Its cached roles and history are deleted from this Mac. Your roles in Azure are not changed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses rôles en cache et son historique sont supprimés de ce Mac. Vos rôles dans Azure ne changent pas."
+          }
+        }
+      }
+    },
+    "Justification" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Justification"
+          }
+        }
+      }
+    },
+    "Keep history %lld days" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Keep history %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Keep history %lld days"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Conserver l’historique %lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Conserver l’historique %lld jours"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Keyboard" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clavier"
+          }
+        }
+      }
+    },
+    "Launch AzPim at login" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir AzPim à la connexion"
+          }
+        }
+      }
+    },
+    "Launch at login needs your approval in System Settings › General › Login Items." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’ouverture à la connexion attend votre accord dans Réglages Système › Général › Ouverture."
+          }
+        }
+      }
+    },
+    "Launch at login: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouverture à la connexion : %@"
+          }
+        }
+      }
+    },
+    "Launch at login: %@ You can change it later in System Settings › General › Login Items." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouverture à la connexion : %@ Vous pourrez la modifier plus tard dans Réglages Système › Général › Ouverture."
+          }
+        }
+      }
+    },
+    "Link copied." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lien copié."
+          }
+        }
+      }
+    },
+    "Links can ask to activate favorites (azpim://activate)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les liens peuvent demander d’activer des favoris (azpim://activate)"
+          }
+        }
+      }
+    },
+    "Loading eligible roles…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement des rôles éligibles…"
+          }
+        }
+      }
+    },
+    "Loading the eligible roles of %@…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement des rôles éligibles de %@…"
+          }
+        }
+      }
+    },
+    "Looking for the Azure CLI…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche d’Azure CLI…"
+          }
+        }
+      }
+    },
+    "MFA" : {
+      "shouldTranslate" : false
+    },
+    "MFA required" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MFA requise"
+          }
+        }
+      }
+    },
+    "MSAL" : {
+      "shouldTranslate" : false
+    },
+    "Managed by your administrator" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérés par votre administrateur"
+          }
+        }
+      }
+    },
+    "Max %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max. %@"
+          }
+        }
+      }
+    },
+    "Max (%@)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max. (%@)"
+          }
+        }
+      }
+    },
+    "Maximum" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum"
+          }
+        }
+      }
+    },
+    "Median time to activate" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai médian d’activation"
+          }
+        }
+      }
+    },
+    "Menu bar" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barre des menus"
+          }
+        }
+      }
+    },
+    "Microsoft" : {
+      "shouldTranslate" : false
+    },
+    "Microsoft Graph only lets AzPim read and activate Entra roles and PIM groups after an administrator of %@ consents to these delegated permissions. Azure resource roles keep working meanwhile." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Graph ne permet à AzPim de lire et d’activer les rôles Microsoft Entra et les groupes PIM qu’après le consentement d’un administrateur de %@ à ces autorisations déléguées. Les rôles de ressources Azure continuent de fonctionner en attendant."
+          }
+        }
+      }
+    },
+    "Microsoft answered “%@”: the request was not applied. Check the role in the Azure portal." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft a répondu « %@ » : la demande n’a pas été appliquée. Vérifiez le rôle dans le portail Azure."
+          }
+        }
+      }
+    },
+    "Microsoft returned a token for another identity than %@. Sign in again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft a renvoyé un jeton pour une autre identité que %@. Reconnectez-vous."
+          }
+        }
+      }
+    },
+    "Microsoft sign-in" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion Microsoft"
+          }
+        }
+      }
+    },
+    "Microsoft sign-in is not configured in this build (no client ID), so no consent link can be built." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion Microsoft n’est pas configurée dans cette version (pas d’ID client) : aucun lien de consentement ne peut être créé."
+          }
+        }
+      }
+    },
+    "Microsoft sign-in is not configured in this build (no client ID)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion Microsoft n’est pas configurée dans cette version (pas d’ID client)."
+          }
+        }
+      }
+    },
+    "Must be a GUID." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doit être un GUID."
+          }
+        }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom"
+          }
+        }
+      }
+    },
+    "Needs a ticket number: activate it from the panel instead." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exige un numéro de ticket : activez-le plutôt depuis le panneau."
+          }
+        }
+      }
+    },
+    "Needs your approval in System Settings › General › Login Items." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attend votre accord dans Réglages Système › Général › Ouverture."
+          }
+        }
+      }
+    },
+    "Never updated" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jamais actualisé"
+          }
+        }
+      }
+    },
+    "New favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveau favori"
+          }
+        }
+      }
+    },
+    "New favorite with this role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveau favori avec ce rôle"
+          }
+        }
+      }
+    },
+    "Next expiry in %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prochaine expiration dans %@"
+          }
+        }
+      }
+    },
+    "Next expiry: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prochaine expiration : %@"
+          }
+        }
+      }
+    },
+    "No" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non"
+          }
+        }
+      }
+    },
+    "No account" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun compte"
+          }
+        }
+      }
+    },
+    "No account yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun compte pour l’instant."
+          }
+        }
+      }
+    },
+    "No activation" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune activation"
+          }
+        }
+      }
+    },
+    "No active role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun rôle actif"
+          }
+        }
+      }
+    },
+    "No client ID" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas d’ID client"
+          }
+        }
+      }
+    },
+    "No eligible PIM role for %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun rôle PIM éligible pour %@"
+          }
+        }
+      }
+    },
+    "No eligible role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun rôle éligible"
+          }
+        }
+      }
+    },
+    "No favorite named “%@”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun favori nommé « %@ »."
+          }
+        }
+      }
+    },
+    "No favorite selected" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun favori sélectionné"
+          }
+        }
+      }
+    },
+    "No longer eligible" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "N’est plus éligible"
+          }
+        }
+      }
+    },
+    "No request yet" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune demande pour l’instant"
+          }
+        }
+      }
+    },
+    "No role matches" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun rôle ne correspond"
+          }
+        }
+      }
+    },
+    "No role to show" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun rôle à afficher"
+          }
+        }
+      }
+    },
+    "No server, no telemetry: your tokens never leave this Mac except to Microsoft." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ni serveur ni télémétrie : vos jetons ne quittent ce Mac que vers Microsoft."
+          }
+        }
+      }
+    },
+    "None" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun"
+          }
+        }
+      }
+    },
+    "Not available in this build yet (no app registration client ID)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore disponible dans cette version (pas d’ID client d’inscription d’app)."
+          }
+        }
+      }
+    },
+    "Not confirmed yet — refreshes in a moment" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore confirmée — actualisation dans un instant"
+          }
+        }
+      }
+    },
+    "Not signed in" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non connecté"
+          }
+        }
+      }
+    },
+    "Notify %@ before expiry" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avertir %@ avant l’expiration"
+          }
+        }
+      }
+    },
+    "Notify me before an activation expires" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "M’avertir avant l’expiration d’une activation"
+          }
+        }
+      }
+    },
+    "Offline" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hors ligne"
+          }
+        }
+      }
+    },
+    "Offline · data from %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hors ligne · données de %@"
+          }
+        }
+      }
+    },
+    "Open AzPim…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir AzPim…"
+          }
+        }
+      }
+    },
+    "Open Login Items" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Ouverture"
+          }
+        }
+      }
+    },
+    "Opens a search from any app: ↩ activates with the default duration, ⌘↩ opens the sheet. In the panel, ⌥-click Activate to skip the sheet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvre une recherche depuis n’importe quelle app : ↩ active avec la durée par défaut, ⌘↩ ouvre la fiche. Dans le panneau, ⌥-cliquez sur Activer pour passer la fiche."
+          }
+        }
+      }
+    },
+    "Optional" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facultative"
+          }
+        }
+      }
+    },
+    "PIM group" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groupe PIM"
+          }
+        }
+      }
+    },
+    "PIM groups" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groupes PIM"
+          }
+        }
+      }
+    },
+    "Panel opened → role provisioned" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panneau ouvert → rôle accordé"
+          }
+        }
+      }
+    },
+    "Pending" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente"
+          }
+        }
+      }
+    },
+    "Pending approval" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente d’approbation"
+          }
+        }
+      }
+    },
+    "Pending approval (sent elsewhere)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente d’approbation (envoyées ailleurs)"
+          }
+        }
+      }
+    },
+    "Permanent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanent"
+          }
+        }
+      }
+    },
+    "Permanent assignment, managed by your administrator" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attribution permanente, gérée par votre administrateur"
+          }
+        }
+      }
+    },
+    "Permanent assignment: managed by your administrator, not through PIM." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attribution permanente : gérée par votre administrateur, pas via PIM."
+          }
+        }
+      }
+    },
+    "Policy" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stratégie"
+          }
+        }
+      }
+    },
+    "Policy unavailable" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stratégie indisponible"
+          }
+        }
+      }
+    },
+    "Preferences" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Préférences"
+          }
+        }
+      }
+    },
+    "Prepare email" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Préparer un e-mail"
+          }
+        }
+      }
+    },
+    "Privacy" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confidentialité"
+          }
+        }
+      }
+    },
+    "Provisioned" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accordée"
+          }
+        }
+      }
+    },
+    "Provisioned, kept %lld days" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Provisioned, kept %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Provisioned, kept %lld days"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Accordées, conservées %lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Accordées, conservées %lld jours"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Quick activate" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activation rapide"
+          }
+        }
+      }
+    },
+    "Quit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter"
+          }
+        }
+      }
+    },
+    "Quit AzPim" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter AzPim"
+          }
+        }
+      }
+    },
+    "Quit AzurePim, then open AzPim again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quittez AzurePim, puis rouvrez AzPim."
+          }
+        }
+      }
+    },
+    "Refresh" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualiser"
+          }
+        }
+      }
+    },
+    "Refresh every %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualiser toutes les %@"
+          }
+        }
+      }
+    },
+    "Refreshing…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualisation…"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer"
+          }
+        }
+      }
+    },
+    "Remove %@?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer %@ ?"
+          }
+        }
+      }
+    },
+    "Remove account" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le compte"
+          }
+        }
+      }
+    },
+    "Remove from favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirer du favori"
+          }
+        }
+      }
+    },
+    "Replaced by Microsoft sign-in" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplacé par la connexion Microsoft"
+          }
+        }
+      }
+    },
+    "Request sent — not confirmed yet. Check the panel in a moment." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demande envoyée — pas encore confirmée. Regardez le panneau dans un instant."
+          }
+        }
+      }
+    },
+    "Request sent — pending approval." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demande envoyée — en attente d’approbation."
+          }
+        }
+      }
+    },
+    "Requests" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demandes"
+          }
+        }
+      }
+    },
+    "Required" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requise"
+          }
+        }
+      }
+    },
+    "Reset" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser"
+          }
+        }
+      }
+    },
+    "Retry" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
+          }
+        }
+      }
+    },
+    "Role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôle"
+          }
+        }
+      }
+    },
+    "Role deactivated; re-activation failed: %@. Activate it from the panel." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôle désactivé ; échec de la réactivation : %@. Activez-le depuis le panneau."
+          }
+        }
+      }
+    },
+    "Role deactivated; the new activation is waiting for approval." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôle désactivé ; la nouvelle activation attend une approbation."
+          }
+        }
+      }
+    },
+    "Role deactivated; the new activation was sent but not confirmed yet. Check the panel in a moment." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôle désactivé ; la nouvelle activation a été envoyée mais pas encore confirmée. Regardez le panneau dans un instant."
+          }
+        }
+      }
+    },
+    "Roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles"
+          }
+        }
+      }
+    },
+    "Roles, history and favorites" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles, historique et favoris"
+          }
+        }
+      }
+    },
+    "Run now" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer maintenant"
+          }
+        }
+      }
+    },
+    "Scope" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étendue"
+          }
+        }
+      }
+    },
+    "Scope path" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chemin de l’étendue"
+          }
+        }
+      }
+    },
+    "Search" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher"
+          }
+        }
+      }
+    },
+    "Search roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des rôles"
+          }
+        }
+      }
+    },
+    "Search roles and scopes" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des rôles et des étendues"
+          }
+        }
+      }
+    },
+    "Search roles by name, scope or group" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des rôles par nom, étendue ou groupe"
+          }
+        }
+      }
+    },
+    "Search roles to activate" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des rôles à activer"
+          }
+        }
+      }
+    },
+    "Select a role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionnez un rôle"
+          }
+        }
+      }
+    },
+    "Sent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyée"
+          }
+        }
+      }
+    },
+    "Settings…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages…"
+          }
+        }
+      }
+    },
+    "Show %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher %@"
+          }
+        }
+      }
+    },
+    "Sign in with Microsoft" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter avec Microsoft"
+          }
+        }
+      }
+    },
+    "Sign in — AzPim" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion — AzPim"
+          }
+        }
+      }
+    },
+    "Sign in…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter…"
+          }
+        }
+      }
+    },
+    "Sign-in cancelled." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion annulée."
+          }
+        }
+      }
+    },
+    "Signs out every account and deletes cached roles, favorites, history and preferences. Your roles in Azure are not changed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déconnecte tous les comptes et supprime les rôles en cache, les favoris, l’historique et les préférences. Vos rôles dans Azure ne changent pas."
+          }
+        }
+      }
+    },
+    "Skip" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer"
+          }
+        }
+      }
+    },
+    "Source" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source"
+          }
+        }
+      }
+    },
+    "Sparkle" : {
+      "shouldTranslate" : false
+    },
+    "State" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "État"
+          }
+        }
+      }
+    },
+    "Still waiting for admin consent." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours en attente du consentement administrateur."
+          }
+        }
+      }
+    },
+    "The Microsoft sign-in of the same account is used instead: this one is not refreshed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion Microsoft du même compte est utilisée à sa place : celui-ci n’est plus actualisé."
+          }
+        }
+      }
+    },
+    "The copy at %@ was removed; AzurePim's data at %@ was not changed.\n%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy at %1$@ was removed; AzurePim's data at %2$@ was not changed.\n%3$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copie située à %1$@ a été supprimée ; les données d’AzurePim situées à %2$@ n’ont pas été modifiées.\n%3$@"
+          }
+        }
+      }
+    },
+    "The request timed out." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La requête a expiré."
+          }
+        }
+      }
+    },
+    "This activation has no eligibility to extend." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette activation n’a pas d’éligibilité à prolonger."
+          }
+        }
+      }
+    },
+    "This assignment is permanent and cannot be deactivated." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette attribution est permanente et ne peut pas être désactivée."
+          }
+        }
+      }
+    },
+    "This role is no longer eligible." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce rôle n’est plus éligible."
+          }
+        }
+      }
+    },
+    "Ticket" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ticket"
+          }
+        }
+      }
+    },
+    "Ticket number" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numéro de ticket"
+          }
+        }
+      }
+    },
+    "Ticket required" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ticket requis"
+          }
+        }
+      }
+    },
+    "Unknown MSAL error" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erreur MSAL inconnue"
+          }
+        }
+      }
+    },
+    "Unknown role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôle inconnu"
+          }
+        }
+      }
+    },
+    "Unreadable Microsoft token" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeton Microsoft illisible"
+          }
+        }
+      }
+    },
+    "Updated %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualisé à %@"
+          }
+        }
+      }
+    },
+    "Updated at %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualisé à %@"
+          }
+        }
+      }
+    },
+    "Use Azure CLI session" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser la session Azure CLI"
+          }
+        }
+      }
+    },
+    "Use Azure CLI session (%@, %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Azure CLI session (%1$@, %2$@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser la session Azure CLI (%1$@, %2$@)"
+          }
+        }
+      }
+    },
+    "Uses the last justification of this role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reprend la dernière justification de ce rôle"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        }
+      }
+    },
+    "Via group" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Via un groupe"
+          }
+        }
+      }
+    },
+    "Waiting for approval — see History" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente d’approbation — voir Historique"
+          }
+        }
+      }
+    },
+    "Welcome to AzPim" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bienvenue dans AzPim"
+          }
+        }
+      }
+    },
+    "Why do you need this role?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pourquoi avez-vous besoin de ce rôle ?"
+          }
+        }
+      }
+    },
+    "Your organization requires a new sign-in (MFA) — run `%@` in Terminal." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre organisation exige une nouvelle connexion (MFA) — exécutez `%@` dans Terminal."
+          }
+        }
+      }
+    },
+    "Your organization requires you to sign in again (MFA)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre organisation vous demande de vous reconnecter (MFA)."
+          }
+        }
+      }
+    },
+    "activate / deactivate your own Entra roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "activer / désactiver vos propres rôles Microsoft Entra"
+          }
+        }
+      }
+    },
+    "activate your own PIM group membership" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "activer votre propre appartenance aux groupes PIM"
+          }
+        }
+      }
+    },
+    "also permanent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "aussi permanent"
+          }
+        }
+      }
+    },
+    "deactivation failed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "échec de la désactivation"
+          }
+        }
+      }
+    },
+    "esc Close" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "esc Fermer"
+          }
+        }
+      }
+    },
+    "identify the signed-in user" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "identifier l’utilisateur connecté"
+          }
+        }
+      }
+    },
+    "list eligible Entra roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lister les rôles Microsoft Entra éligibles"
+          }
+        }
+      }
+    },
+    "list eligible PIM groups" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lister les groupes PIM éligibles"
+          }
+        }
+      }
+    },
+    "no longer eligible" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "n’est plus éligible"
+          }
+        }
+      }
+    },
+    "read PIM group rules" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lire les règles PIM des groupes"
+          }
+        }
+      }
+    },
+    "read PIM rules" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lire les règles PIM"
+          }
+        }
+      }
+    },
+    "unknown" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "inconnu"
+          }
+        }
+      }
+    },
+    "unknown account" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "compte inconnu"
+          }
+        }
+      }
+    },
+    "unknown error" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "erreur inconnue"
+          }
+        }
+      }
+    },
+    "v%@" : {
+      "shouldTranslate" : false
+    },
+    "— %@" : {
+      "shouldTranslate" : false
+    },
+    "↑↓ Select · esc Close" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑↓ Sélectionner · esc Fermer"
+          }
+        }
+      }
+    },
+    "↩" : {
+      "shouldTranslate" : false
+    },
+    "↩ Activate for %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↩ Activer pour %@"
+          }
+        }
+      }
+    },
+    "↩ Activate… (justification needed)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↩ Activer… (justification requise)"
+          }
+        }
+      }
+    },
+    "↩ Activate… (ticket needed)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↩ Activer… (ticket requis)"
+          }
+        }
+      }
+    },
+    "⌘↩ Options" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘↩ Options"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

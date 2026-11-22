@@ -2,32 +2,40 @@ import AppKit
 import AzPimCore
 import SwiftUI
 
+/// Time left on an activation, by the system formatters (rounded down to the minute, to the second in the last 5).
 enum Countdown {
+    /// Menu bar: « 5:16 » (hours:minutes), « 3:12 » (minutes:seconds) in the last 5 minutes.
     static func short(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds))
-        if total < 300 { return String(format: "%d:%02d", total / 60, total % 60) }
-        return String(format: "%d:%02d", total / 3600, (total % 3600) / 60)
+        if total < 300 { return clock(total) }
+        return Duration.seconds(total).formatted(.time(pattern: .hourMinute(padHourToLength: 1, roundSeconds: .down)))
     }
 
+    /// Tooltip: « 5 hr 16 min left » / « Reste 5 h 16 min ».
     static func long(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds))
-        let hours = total / 3600, minutes = (total % 3600) / 60
-        if total < 300 { return String(format: "%d:%02d left", total / 60, total % 60) }
-        return hours > 0 ? "\(hours) h \(String(format: "%02d", minutes)) left" : "\(minutes) min left"
+        let value = total < 300 ? clock(total) : units(total, width: .condensedAbbreviated)
+        return String(localized: "\(value) left")
     }
 
-    /// Hero card value: « 5h 16m », « 42m », « 3:12 » in the last 5 minutes.
+    /// Hero card and rows: « 5h 16m » / « 5h 16min », « 42m », « 3:12 » in the last 5 minutes.
     static func hero(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds))
-        if total < 300 { return String(format: "%d:%02d", total / 60, total % 60) }
-        let hours = total / 3600, minutes = (total % 3600) / 60
-        return hours > 0 ? "\(hours)h \(String(format: "%02d", minutes))m" : "\(minutes)m"
+        return total < 300 ? clock(total) : units(total, width: .narrow)
     }
 
+    /// VoiceOver: « 5 hours, 16 minutes ».
     static func spoken(_ seconds: TimeInterval?) -> String {
-        guard let seconds else { return "unknown" }
-        let minutes = max(0, Int(seconds) / 60)
-        return minutes >= 60 ? "\(minutes / 60) hours \(minutes % 60) minutes" : "\(minutes) minutes"
+        guard let seconds else { return String(localized: "unknown") }
+        return units(max(0, Int(seconds)), width: .wide)
+    }
+
+    private static func clock(_ total: Int) -> String {
+        Duration.seconds(total).formatted(.time(pattern: .minuteSecond))
+    }
+
+    private static func units(_ total: Int, width: Duration.UnitsFormatStyle.UnitWidth) -> String {
+        Duration.seconds(total / 60 * 60).formatted(.units(allowed: [.hours, .minutes], width: width))
     }
 
     static func color(_ seconds: TimeInterval?) -> Color {
@@ -76,7 +84,7 @@ struct EligibleRow: View {
                 Image(systemName: SourceIcon.name(role.source)).frame(width: 22).foregroundStyle(Theme.accent)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(role.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                    Text(role.scopeName + (role.memberType == .group ? " · via group" : ""))
+                    Text(role.memberType == .group ? String(localized: "\(role.scopeName) · via group") : role.scopeName)
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 }
                 Spacer()
@@ -250,7 +258,7 @@ struct ErrorBanner: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Label {
-                Text(account.map { "\($0): \(kind.message)" } ?? kind.message).font(.system(size: 12))
+                Text(account.map { String(localized: "\($0): \(kind.message)") } ?? kind.message).font(.system(size: 12))
             } icon: {
                 Image(systemName: icon).foregroundStyle(Theme.warning)
             }
@@ -309,12 +317,12 @@ struct FavoriteChips: View {
                             .tint(Theme.violet)
                             .controlSize(.regular)
                             .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id) || store.isOffline)
-                            .help("Activate \(favorite.items.count) role(s)")
+                            .help("Activate \(favorite.items.count) roles")
                         }
                     }
                 }
                 if let toast = store.favoriteToast {
-                    let name = favorites.first { $0.id == toast.favoriteId }?.name ?? "Favorite"
+                    let name = favorites.first { $0.id == toast.favoriteId }?.name ?? String(localized: "Favorite")
                     HStack(alignment: .top) {
                         Text("\(name): \(toast.text)").font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                         Spacer()

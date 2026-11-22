@@ -53,7 +53,7 @@ struct AdminConsentSheet: View {
                     Button("Copy consent link") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(link.absoluteString, forType: .string)
-                        status = "Link copied."
+                        status = String(localized: "Link copied.")
                     }
                     Button("Prepare email") {
                         if let mail = ConsentRequest.mailto(account: account, link: link) { NSWorkspace.shared.open(mail) }
@@ -77,11 +77,11 @@ struct AdminConsentSheet: View {
         do {
             try await accounts.enableDirectoryAccess(for: account)
             if account.directoryAccess == .enabled {
-                status = "Consent granted — loading Entra roles."
+                status = String(localized: "Consent granted — loading Entra roles.")
                 await store.refresh()
                 dismissWindow()
             } else {
-                status = "Still waiting for admin consent."
+                status = String(localized: "Still waiting for admin consent.")
             }
         } catch {
             status = AccountService.message(for: error)
@@ -90,15 +90,15 @@ struct AdminConsentSheet: View {
 }
 
 enum ConsentRequest {
-    static let permissions: [(String, String)] = [
-        ("User.Read", "identify the signed-in user"),
-        ("RoleEligibilitySchedule.Read.Directory", "list eligible Entra roles"),
-        ("RoleAssignmentSchedule.ReadWrite.Directory", "activate / deactivate your own Entra roles"),
-        ("RoleManagementPolicy.Read.Directory", "read PIM rules"),
-        ("PrivilegedEligibilitySchedule.Read.AzureADGroup", "list eligible PIM groups"),
-        ("PrivilegedAssignmentSchedule.ReadWrite.AzureADGroup", "activate your own PIM group membership"),
-        ("RoleManagementPolicy.Read.AzureADGroup", "read PIM group rules")
-    ]
+    static var permissions: [(String, String)] { [
+        ("User.Read", String(localized: "identify the signed-in user")),
+        ("RoleEligibilitySchedule.Read.Directory", String(localized: "list eligible Entra roles")),
+        ("RoleAssignmentSchedule.ReadWrite.Directory", String(localized: "activate / deactivate your own Entra roles")),
+        ("RoleManagementPolicy.Read.Directory", String(localized: "read PIM rules")),
+        ("PrivilegedEligibilitySchedule.Read.AzureADGroup", String(localized: "list eligible PIM groups")),
+        ("PrivilegedAssignmentSchedule.ReadWrite.AzureADGroup", String(localized: "activate your own PIM group membership")),
+        ("RoleManagementPolicy.Read.AzureADGroup", String(localized: "read PIM group rules"))
+    ] }
 
     static func link(tenantId: String, clientId: String?) -> URL? {
         guard let clientId else { return nil }

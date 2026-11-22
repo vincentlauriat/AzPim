@@ -41,7 +41,7 @@ final class MSALTokenProvider: TokenProvider {
     func identity(tenantId: String?) async throws -> SignedInIdentity {
         let token = try await token(for: .arm, tenantId: tenantId, claims: nil)
         guard let claims = JWTClaims(token: token.value), let oid = claims.objectId, let tid = claims.tenantId else {
-            throw TokenError.failed("Unreadable Microsoft token")
+            throw TokenError.failed(String(localized: "Unreadable Microsoft token"))
         }
         return SignedInIdentity(upn: claims.upn ?? oid, objectId: oid, tenantId: tid, tenantName: nil)
     }
@@ -54,7 +54,7 @@ final class MSALTokenProvider: TokenProvider {
                                            tenantId: nil, claims: nil, prompt: .selectAccount)
         homeAccountId = result.account.identifier
         guard let claims = JWTClaims(token: result.accessToken), let oid = claims.objectId, let tid = claims.tenantId else {
-            throw TokenError.failed("Unreadable Microsoft token")
+            throw TokenError.failed(String(localized: "Unreadable Microsoft token"))
         }
         return SignedInIdentity(upn: result.account.username ?? claims.upn ?? oid, objectId: oid, tenantId: tid,
                                 tenantName: nil)
@@ -81,7 +81,8 @@ final class MSALTokenProvider: TokenProvider {
             let account = try application.account(forIdentifier: id)
             try application.remove(account)
         } catch {
-            throw TokenError.failed("Could not remove the Microsoft session from the Keychain: \(error.localizedDescription)")
+            let detail = error.localizedDescription
+            throw TokenError.failed(String(localized: "Could not remove the Microsoft session from the Keychain: \(detail)"))
         }
         homeAccountId = nil
     }
@@ -139,7 +140,7 @@ final class MSALTokenProvider: TokenProvider {
         if let claims {
             var parseError: NSError?
             let request = MSALClaimsRequest(jsonString: claims, error: &parseError)
-            if let parseError { throw TokenError.failed("Invalid claims challenge: \(parseError.localizedDescription)") }
+            if let parseError { throw TokenError.failed(String(localized: "Invalid claims challenge: \(parseError.localizedDescription)")) }
             parameters.claimsRequest = request
         }
         if let tenantId {
@@ -166,7 +167,7 @@ final class MSALTokenProvider: TokenProvider {
     }
 
     nonisolated static func map(_ error: Error?) -> TokenError {
-        guard let nsError = error as NSError? else { return .failed("Unknown MSAL error") }
+        guard let nsError = error as NSError? else { return .failed(String(localized: "Unknown MSAL error")) }
         let description = (nsError.userInfo[MSALErrorDescriptionKey] as? String) ?? nsError.localizedDescription
         // AADSTS65001: consent missing; AADSTS90094 / 90095: admin consent required.
         if description.contains("AADSTS65001") || description.contains("AADSTS90094") || description.contains("AADSTS90095") {
@@ -187,7 +188,7 @@ final class MSALTokenProvider: TokenProvider {
         if let controller = NSApp.keyWindow?.contentViewController { return controller }
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 640),
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        window.title = "Sign in — AzPim"
+        window.title = String(localized: "Sign in — AzPim")
         window.isReleasedWhenClosed = false
         let controller = NSViewController()
         controller.view = NSView(frame: window.contentRect(forFrameRect: window.frame))

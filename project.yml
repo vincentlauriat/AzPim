@@ -4,6 +4,8 @@ options:
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
+  # English source; French from the String Catalogs (AzPim/Localizable.xcstrings, core .lproj tables).
+  developmentLanguage: en
 
 packages:
   AzPimCore:
@@ -28,6 +30,11 @@ schemes:
       config: Debug
       targets:
         - AzPimTests
+      # Hosted tests assert English text: run the host in English whatever the Mac's language (launch arguments,
+      # no UserDefaults domain is written).
+      commandLineArguments:
+        "-AppleLanguages (en)": true
+        "-AppleLocale en_US": true
     archive:
       config: Release
 
@@ -56,6 +63,8 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
+        # Writes the .stringsdata the String Catalog check reads (Scripts/check-localizations.py).
+        SWIFT_EMIT_LOC_STRINGS: YES
         MARKETING_VERSION: "0.9.4"
         CURRENT_PROJECT_VERSION: "6"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
@@ -70,6 +79,9 @@ targets:
       path: AzPim/Info.plist
       properties:
         CFBundleName: AzPim
+        # English and French; the app follows the system language (no in-app switch).
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, fr]
         CFBundleDisplayName: AzPim
         CFBundleIdentifier: fr.vincentlauriat.azpim
         CFBundleShortVersionString: "$(MARKETING_VERSION)"

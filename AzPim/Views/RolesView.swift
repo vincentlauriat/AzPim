@@ -17,6 +17,15 @@ struct RolesView: View {
     enum StateFilter: String, CaseIterable, Identifiable {
         case all = "All", eligible = "Eligible", active = "Active", permanent = "Permanent"
         var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .all: String(localized: "All")
+            case .eligible: String(localized: "Eligible")
+            case .active: String(localized: "Active")
+            case .permanent: String(localized: "Permanent")
+            }
+        }
     }
 
     /// Accounts in use: an Azure CLI account replaced by a Microsoft sign-in of the same identity is left out.
@@ -92,15 +101,17 @@ struct RolesView: View {
         let permanent = merged.filter { $0.type == .assigned }
         let next = activated.compactMap(\.endAt).min()
         return HStack(spacing: 10) {
-            StatTile(label: "Active PIM", value: "\(activated.count)",
-                     note: next.map { "Next expiry in \(Countdown.hero($0.timeIntervalSince(store.now)))" } ?? "No activation",
+            StatTile(label: String(localized: "Active PIM"), value: "\(activated.count)",
+                     note: next.map { String(localized: "Next expiry in \(Countdown.hero($0.timeIntervalSince(store.now)))") }
+                        ?? String(localized: "No activation"),
                      tint: activated.isEmpty ? .secondary : Theme.active, icon: "bolt.fill")
-            StatTile(label: "Permanent", value: "\(permanent.count)",
-                     note: "Managed by your administrator", icon: "lock.fill")
-            StatTile(label: "Eligible", value: "\(activeRoles.count)", note: "Activatable through PIM",
-                     tint: Theme.accent, icon: "key.horizontal.fill")
-            StatTile(label: "Accounts", value: "\(activeAccounts.count)",
-                     note: activeAccounts.first.map { $0.tenantName ?? $0.upn } ?? "None", icon: "person.crop.circle")
+            StatTile(label: String(localized: "Permanent"), value: "\(permanent.count)",
+                     note: String(localized: "Managed by your administrator"), icon: "lock.fill")
+            StatTile(label: String(localized: "Eligible"), value: "\(activeRoles.count)",
+                     note: String(localized: "Activatable through PIM"), tint: Theme.accent, icon: "key.horizontal.fill")
+            StatTile(label: String(localized: "Accounts"), value: "\(activeAccounts.count)",
+                     note: activeAccounts.first.map { $0.tenantName ?? $0.upn } ?? String(localized: "None"),
+                     icon: "person.crop.circle")
         }
     }
 
@@ -112,7 +123,7 @@ struct RolesView: View {
                 }
                 TableColumn("Scope") { row in Text(row.scopeName).truncationMode(.middle) }
                 TableColumn("State") { row in StateBadge(row: row, now: store.now) }
-                    .width(min: 90, ideal: 110)
+                    .width(min: 90, ideal: 170)
                 // Always present: conditional table columns need macOS 14.4.
                 TableColumn("Account") { row in Text(row.account?.tenantName ?? row.account?.upn ?? "") }
             }
@@ -127,8 +138,9 @@ struct RolesView: View {
                 if let row = rows.first(where: { $0.id == selection }) {
                     RoleDetail(row: row)
                 } else {
-                    ContentUnavailableView(activeRoles.isEmpty ? emptyTitle : "Select a role", systemImage: "key.horizontal",
-                                           description: Text(accounts.isEmpty ? "Add an account to get started." : ""))
+                    ContentUnavailableView(activeRoles.isEmpty ? emptyTitle : String(localized: "Select a role"),
+                                           systemImage: "key.horizontal",
+                                           description: Text(accounts.isEmpty ? String(localized: "Add an account to get started.") : ""))
                 }
             }
             .frame(minWidth: 260, idealWidth: 300, maxWidth: 380, maxHeight: .infinity)
@@ -137,10 +149,10 @@ struct RolesView: View {
 
     /// No eligible role at all: say why (error, first load) before claiming there is none.
     private var emptyTitle: String {
-        if accounts.isEmpty { return "No account" }
-        if store.refreshErrors.values.contains(where: { !$0.isEmpty }) { return "Eligible roles couldn't be loaded" }
-        if accounts.allSatisfy({ $0.lastRefreshAt == nil }) { return "Loading eligible roles…" }
-        return "No eligible role"
+        if accounts.isEmpty { return String(localized: "No account") }
+        if store.refreshErrors.values.contains(where: { !$0.isEmpty }) { return String(localized: "Eligible roles couldn't be loaded") }
+        if accounts.allSatisfy({ $0.lastRefreshAt == nil }) { return String(localized: "Loading eligible roles…") }
+        return String(localized: "No eligible role")
     }
 
     @ToolbarContentBuilder private var toolbarItems: some ToolbarContent {
@@ -152,7 +164,7 @@ struct RolesView: View {
                 Text("PIM groups").tag(RoleSource?.some(.pimGroup))
             }
             Picker("State", selection: $state) {
-                ForEach(StateFilter.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(StateFilter.allCases) { Text($0.title).tag($0) }
             }
             if activeAccounts.count > 1 {
                 Picker("Account", selection: $accountId) {
@@ -220,7 +232,8 @@ private struct StateBadge: View {
         if row.isPermanent {
             Text("Permanent").foregroundStyle(.secondary)
         } else if let end = row.assignment?.endAt {
-            Text(Countdown.long(end.timeIntervalSince(now)) + (row.heldPermanently ? " · also permanent" : ""))
+            let left = Countdown.long(end.timeIntervalSince(now))
+            Text(row.heldPermanently ? String(localized: "\(left) · also permanent") : left)
                 .foregroundStyle(.green).monospacedDigit()
         } else if row.heldPermanently {
             Text("Active · permanent").foregroundStyle(.green)
@@ -254,7 +267,7 @@ private struct RoleDetail: View {
                     detail("Source", sourceName(row.source))
                     detail("Account", row.account?.upn ?? "—")
                     if let role = row.role {
-                        detail("Assignment", role.memberType == .group ? "Via group" : role.memberType.rawValue.capitalized)
+                        detail("Assignment", memberName(role.memberType))
                     }
                     detail("Scope path", row.scope)
                     if let end = row.assignment?.endAt {
@@ -291,16 +304,17 @@ private struct RoleDetail: View {
 
     @ViewBuilder private func policy(_ role: EligibleRole) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionLabel(text: "Policy")
+            SectionLabel(text: String(localized: "Policy"))
             if role.policyFetchedAt == nil {
                 Text("Policy unavailable").font(.callout).foregroundStyle(.secondary)
             } else {
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 4) {
-                    detail("Maximum", role.maxDuration.flatMap(ISODuration.seconds).map(ISODuration.label) ?? "—")
-                    detail("Justification", role.requiresJustification ? "Required" : "Optional")
-                    detail("Ticket", role.requiresTicket ? "Required" : "No")
-                    detail("MFA", role.requiresMFA ? "Required" : "No")
-                    detail("Approval", role.requiresApproval ? "Required" : "No")
+                    detail("Maximum", role.maxDuration.flatMap(ISODuration.seconds).map { ISODuration.label($0) } ?? "—")
+                    let required = String(localized: "Required"), notRequired = String(localized: "No")
+                    detail("Justification", role.requiresJustification ? required : String(localized: "Optional"))
+                    detail("Ticket", role.requiresTicket ? required : notRequired)
+                    detail("MFA", role.requiresMFA ? required : notRequired)
+                    detail("Approval", role.requiresApproval ? required : notRequired)
                 }
                 .font(.callout)
             }
@@ -345,7 +359,7 @@ private struct RoleDetail: View {
                                      policyMax: role.maxDuration, requiresJustification: false))
     }
 
-    private func detail(_ label: String, _ value: String) -> some View {
+    private func detail(_ label: LocalizedStringKey, _ value: String) -> some View {
         GridRow {
             Text(label).foregroundStyle(.secondary)
             Text(value).textSelection(.enabled).lineLimit(3).truncationMode(.middle)
@@ -354,45 +368,17 @@ private struct RoleDetail: View {
 
     private func sourceName(_ source: RoleSource) -> String {
         switch source {
-        case .azureResource: "Azure resource"
-        case .entraRole: "Entra role"
-        case .pimGroup: "PIM group"
+        case .azureResource: String(localized: "Azure resource")
+        case .entraRole: String(localized: "Entra role")
+        case .pimGroup: String(localized: "PIM group")
         }
     }
-}
 
-/// Menu items adding a role to an existing favorite or to a new one.
-struct AddToFavoriteMenu: View {
-    @Environment(\.modelContext) private var context
-    @Environment(RoleStore.self) private var store
-    @Query(sort: \Favorite.sortOrder) private var favorites: [Favorite]
-    let role: EligibleRole
-
-    /// The last duration used for the role, else 1 h (least privilege), not the policy maximum.
-    private var item: FavoriteItem { FavoriteItem(eligibleRoleId: role.id, duration: store.defaultFavoriteDuration(for: role)) }
-
-    var body: some View {
-        ForEach(favorites) { favorite in
-            Button(favorite.name) {
-                guard !favorite.items.contains(where: { $0.eligibleRoleId == role.id }) else { return }
-                favorite.items.append(item)
-                try? context.save()
-            }
-            .disabled(favorite.items.contains { $0.eligibleRoleId == role.id })
-        }
-        if !favorites.isEmpty { Divider() }
-        Button("New favorite with this role") {
-            let names = favorites.map(\.name)
-            let base = String(role.roleName.prefix(34))   // room for " 99" under the 40-char limit
-            var name = base
-            var index = 2
-            while case .failure = Validation.favoriteName(name, existing: names), index < 1000 {
-                name = "\(base) \(index)"
-                index += 1
-            }
-            context.insert(Favorite(name: name, items: [item],
-                                    sortOrder: (favorites.map(\.sortOrder).max() ?? -1) + 1))
-            try? context.save()
+    private func memberName(_ type: MemberType) -> String {
+        switch type {
+        case .direct: String(localized: "Direct")
+        case .group: String(localized: "Via group")
+        case .inherited: String(localized: "Inherited")
         }
     }
 }

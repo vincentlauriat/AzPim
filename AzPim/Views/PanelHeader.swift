@@ -68,7 +68,7 @@ struct CompactHeroCard: View {
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .help(nextRole.map { "Next expiry: \($0)" } ?? "")
+                    .help(nextRole.map { String(localized: "Next expiry: \($0)") } ?? "")
                 Spacer(minLength: 6)
                 // Never truncated by a long summary.
                 statusLine.fixedSize().layoutPriority(1)
@@ -89,8 +89,8 @@ struct CompactHeroCard: View {
     }
 
     private var accessibilityText: String {
-        guard signedIn else { return "Not signed in" }
-        let next = nextRole.map { ", ending first: \($0)" } ?? ""
+        guard signedIn else { return String(localized: "Not signed in") }
+        let next = nextRole.map { String(localized: ", ending first: \($0)") } ?? ""
         let offline = store.isOffline ? ", \(offlineText)" : ""
         return summary.line + next + offline
     }
@@ -121,7 +121,7 @@ struct CompactHeroCard: View {
     }
 
     private var offlineText: String {
-        guard let last = store.lastOnline else { return "Offline" }
-        return "Offline · data from \(last.formatted(date: .omitted, time: .shortened))"
+        guard let last = store.lastOnline else { return String(localized: "Offline") }
+        return String(localized: "Offline · data from \(last.formatted(date: .omitted, time: .shortened))")
     }
 }

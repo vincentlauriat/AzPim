@@ -14,11 +14,11 @@ func plain(_ text: String) -> String {
 /// French and English strings of the core (its `.strings` / `.stringsdict`), with an explicit locale.
 struct LocalizationTests {
     @Test func heroSummaryPlurals() {
-        #expect(HeroSummary(activeCount: 0, nextExpiry: nil, pendingCount: 0, locale: french).line == "0 rôle actif")
+        #expect(HeroSummary(activeCount: 0, nextExpiry: nil, pendingCount: 0, locale: french).line == "0 actif")
         #expect(HeroSummary(activeCount: 1, nextExpiry: "42 min", pendingCount: 0, locale: french).line
-                == "1 rôle actif · expire dans 42 min")
+                == "1 actif · fin dans 42 min")
         #expect(HeroSummary(activeCount: 4, nextExpiry: nil, pendingCount: 2, locale: french).line
-                == "4 rôles actifs · 2 en attente")
+                == "4 actifs · 2 en attente")
         #expect(HeroSummary(activeCount: 1, nextExpiry: "42m", pendingCount: 1, locale: english).line
                 == "1 active · next expiry in 42m · 1 pending")
     }

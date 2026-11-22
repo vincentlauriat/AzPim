@@ -47,12 +47,12 @@ enum DeepLinkHandler {
             NSApp.activate(ignoringOtherApps: true)
             // The name comes from the link: shown short and quoted, never as instructions.
             let shown = name.count > 40 ? String(name.prefix(40)) + "…" : name
-            alert("No favorite named “\(shown)”.", info: "Create it in AzPim › Favorites.")
+            alert(String(localized: "No favorite named “\(shown)”."), info: String(localized: "Create it in AzPim › Favorites."))
             return
         }
         NSApp.activate(ignoringOtherApps: true)
         let confirm = NSAlert()
-        confirm.messageText = "Activate “\(favorite.name)”?"
+        confirm.messageText = String(localized: "Activate “\(favorite.name)”?")
         // Same policy as the run reads (fetched if never read), so the lines below match what is sent.
         for role in favorite.items.compactMap({ store.favoriteRole(for: $0) }) {
             await store.ensurePolicy(for: role)
@@ -60,25 +60,27 @@ enum DeepLinkHandler {
         // Everything the request will send: account, tenant, duration and justification of each role.
         let lines = favorite.items.compactMap { item -> String? in
             guard let role = store.favoriteRole(for: item) else { return nil }
-            let account = role.account.map { "\($0.upn) (tenant \($0.tenantName ?? $0.tenantId))" } ?? "unknown account"
+            let account = role.account.map { String(localized: "\($0.upn) (tenant \($0.tenantName ?? $0.tenantId))") }
+                ?? String(localized: "unknown account")
+            let heading = "• \(role.roleName) — \(role.scopeName)\n   "
             // Same skip as the run: a request still waiting is not sent again.
             if store.waitingRequest(for: role) != nil {
-                return "• \(role.roleName) — \(role.scopeName)\n   \(account): skipped (already requested, waiting)"
+                return heading + String(localized: "\(account): skipped (already requested, waiting)")
             }
             // Same computation as the run itself: what is shown is what will be sent (capped duration, fallback reason).
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
             case .success(let input):
                 let duration = ISODuration.label(ISODuration.seconds(input.duration) ?? 0)
-                return "• \(role.roleName) — \(role.scopeName)\n   \(account), \(duration), “\(input.justification)”"
+                return heading + "\(account), \(duration), “\(input.justification)”"
             case .failure(let failure):
-                return "• \(role.roleName) — \(role.scopeName)\n   \(account): not sent (\(failure.userMessage))"
+                return heading + String(localized: "\(account): not sent (\(failure.userMessage))")
             }
         }
-        confirm.informativeText = "A link asked AzPim to activate:\n" + lines.joined(separator: "\n")
+        confirm.informativeText = String(localized: "A link asked AzPim to activate:") + "\n" + lines.joined(separator: "\n")
         // Cancel is the default button: a Return typed for another app must not activate privileged roles.
-        let activate = confirm.addButton(withTitle: "Activate")
+        let activate = confirm.addButton(withTitle: String(localized: "Activate"))
         activate.keyEquivalent = ""
-        let cancel = confirm.addButton(withTitle: "Cancel")
+        let cancel = confirm.addButton(withTitle: String(localized: "Cancel"))
         cancel.keyEquivalent = "\r"
         confirm.alertStyle = .warning
         guard confirm.runModal() == .alertFirstButtonReturn else { return }

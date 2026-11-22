@@ -64,4 +64,4 @@
 "Your organization requires a new sign-in (MFA) — run `%@` in Terminal, then refresh." = "Votre organisation exige une nouvelle connexion (MFA) — exécutez `%@` dans Terminal, puis actualisez.";
 "Your organization requires you to sign in again (MFA)." = "Votre organisation vous demande de vous reconnecter (MFA).";
 "failed" = "échec";
-"next expiry in %@" = "expire dans %@";
+"next expiry in %@" = "fin dans %@";
