@@ -11,6 +11,16 @@ struct AzPimApp: App {
     @State private var store: RoleStore
 
     init() {
+        #if DEBUG
+        // Snapshot mode: fixtures in memory only, before anything opens or migrates the user's store.
+        if let env = SnapshotRunner.makeEnvironment() {
+            container = env.container
+            _accounts = State(initialValue: env.accounts)
+            _store = State(initialValue: env.store)
+            SnapshotRunner.run(env)
+            return
+        }
+        #endif
         let migrating = AzPimStore.needsLegacyMigration()
         // A store being written by AzurePim could be copied half-way: ask to quit it first.
         if migrating, !NSRunningApplication.runningApplications(withBundleIdentifier: PreferenceKeys.legacyDomain).isEmpty {
@@ -54,9 +64,6 @@ struct AzPimApp: App {
         // Started at launch, independent of any view (a menu bar label is not guaranteed to run `.task`).
         DeepLinkHandler.store = roleStore
         Task { @MainActor in roleStore.start() }
-        #if DEBUG
-        SnapshotRunner.run(container: container, accounts: accountService, store: roleStore)
-        #endif
     }
 
     /// Shows a launch error and quits: used before any window exists, so it cannot be a sheet.

@@ -67,6 +67,12 @@ final class MSALTokenProvider: TokenProvider {
                                   prompt: .default)
     }
 
+    /// Directory scopes from the token cache only, never a window: true when already consented (by the user before,
+    /// or by the tenant admin for everyone). False when MSAL would need the user.
+    func silentDirectoryAccess(tenantId: String) async throws -> Bool {
+        try await silent(scopes: GraphScopes.directory, tenantId: tenantId) != nil
+    }
+
     /// Removes the account from the MSAL token cache. Throws if the cache cannot be purged, so the caller
     /// never forgets an account whose tokens are still in the Keychain.
     func signOut() throws {

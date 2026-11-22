@@ -57,6 +57,13 @@ final class RoleStore {
     var focusedRoleId: String?
     /// Account filter of the panel (nil = all accounts, T4.4).
     var accountFilter: UUID?
+    /// Sources each account loaded without error in this launch: a Microsoft sign-in supersedes an Azure CLI account
+    /// source by source, once it has loaded it (stored rows count too, see `Account.facts`).
+    var loadedSources: [UUID: Set<RoleSource>] = [:]
+    #if DEBUG
+    /// Snapshot fixtures: never refreshed (no `az`, no Keychain).
+    @ObservationIgnored var snapshotFrozen = false
+    #endif
 
     init(context: ModelContext, accounts: AccountService, notifications: NotificationScheduler) {
         self.context = context
@@ -114,6 +121,9 @@ final class RoleStore {
 
     /// A refresh asked while one runs is not dropped: it runs once more right after (an action's result must show).
     func refresh() async {
+        #if DEBUG
+        if snapshotFrozen { return }
+        #endif
         guard !isRefreshing else {
             refreshRequested = true
             if !TokenInteraction.isBackground { userRefreshRequested = true }
@@ -133,7 +143,14 @@ final class RoleStore {
             // A rerun asked by the user (Sign in, ⌘R) may open a sign-in window even if this run started in the background.
             await TokenInteraction.$isBackground.withValue(background) {
                 for account in list {
-                    await self.refresh(account)
+                    // Decided per account: the Microsoft sign-in may have just loaded its sources in this pass.
+                    let supersession = self.supersession(list)
+                    if supersession.isRetired(account.id) {
+                        self.retire(account, into: list.first { $0.id == supersession.replacedBy[account.id] },
+                                    supersession: supersession)
+                    } else {
+                        await self.refresh(account)
+                    }
                 }
             }
             background = !userRefreshRequested
@@ -146,6 +163,10 @@ final class RoleStore {
     }
 
     private func refresh(_ account: Account) async {
+        // Accounts that never had directory access offered: one silent try per launch, no window (decision 5).
+        if account.mode == .msal, account.directoryAccess == .notRequested {
+            await accounts.trySilentDirectoryAccess(for: account)
+        }
         let service: PIMService
         do {
             service = PIMService(sources: try sources(for: account))
@@ -165,6 +186,7 @@ final class RoleStore {
             }
         }
         refreshErrors[account.id] = errors
+        loadedSources[account.id, default: []].formUnion(service.sources.map(\.source).filter { snapshot.errors[$0] == nil })
         apply(snapshot, to: account, failedSources: Set(snapshot.errors.keys))
         account.lastRefreshAt = snapshot.fetchedAt
         await refreshPolicies(of: account, service: service)
@@ -185,22 +207,6 @@ final class RoleStore {
                 policyFailedAt[role.id] = .now
             }
         }
-    }
-
-    func sources(for account: Account) throws -> [any PIMSource] {
-        let provider = try accounts.provider(for: account)
-        let tenantId = account.tenantId, objectId = account.objectId.lowercased(), upn = account.upn, mode = account.mode
-        return PIMService.sources(token: { resource, claims in
-            let token = try await provider.token(for: resource, tenantId: tenantId, claims: claims)
-            // `az` follows whoever last ran `az login`: never act for one account with another identity's token.
-            // Fails closed: a token without readable `oid` and `tid` is refused too (security review, low 1).
-            let jwt = JWTClaims(token: token.value)
-            guard jwt?.objectId?.lowercased() == objectId, jwt?.tenantId?.lowercased() == tenantId.lowercased() else {
-                throw mode == .azureCLI ? TokenError.cliNotSignedIn(command: "az login --tenant \(tenantId)  # as \(upn)")
-                    : TokenError.failed("Microsoft returned a token for another identity than \(upn). Sign in again.")
-            }
-            return token
-        }, directory: account.directoryAccess == .enabled)
     }
 
     // MARK: - Actions
@@ -306,11 +312,6 @@ final class RoleStore {
         return opened
     }
 
-    func activeActivations() -> [ActiveAssignment] {
-        let all = (try? context.fetch(FetchDescriptor<ActiveAssignment>(sortBy: [SortDescriptor(\.endAt)]))) ?? []
-        return all.filter { $0.assignmentType == .activated && $0.isLive() }
-    }
-
     static func message(for error: Error) -> String {
         ErrorKind.classify(error).message
     }
@@ -347,53 +348,27 @@ extension RoleStore {
         for id in refreshErrors.keys where !ids.contains(id) { refreshErrors[id] = nil }
         for id in pending.keys where !ids.contains(id) { pending[id] = nil }
         for id in pendingErrors.keys where !ids.contains(id) { pendingErrors[id] = nil }
+        for id in loadedSources.keys where !ids.contains(id) { loadedSources[id] = nil }
         if let filter = accountFilter, !ids.contains(filter) { accountFilter = nil }
     }
 
-    /// Replaces the cache of one account. Sources that failed keep their previous rows (offline / throttled).
-    private func apply(_ snapshot: AccountSnapshot, to account: Account, failedSources: Set<RoleSource>) {
-        var existing = Dictionary(account.eligibleRoles.map { ($0.remoteId, $0) }, uniquingKeysWith: { first, _ in first })
-        var kept: [String: EligibleRole] = [:]
-        for remote in snapshot.eligibilities {
-            let role = existing.removeValue(forKey: remote.id)
-                ?? EligibleRole(id: remote.id, account: account, source: remote.source, roleDefinitionId: remote.roleDefinitionId,
-                                roleName: remote.roleName, scope: remote.scope, scopeName: remote.scopeName,
-                                scopeType: remote.scopeType, memberType: remote.memberType)
-            if role.modelContext == nil { context.insert(role) }
-            role.roleName = remote.roleName
-            role.scopeName = remote.scopeName
-            role.fetchedAt = snapshot.fetchedAt
-            kept[remote.matchKey] = role
+    /// A superseded account is not refreshed: its cached assignments go (they would count, notify and show twice) and
+    /// its errors and pending requests are forgotten (a stale Offline would disable every action). Its eligible roles
+    /// stay, hidden, so favorites made on it resolve and the account works again at once if the MSAL one is removed.
+    /// Requests still waiting move to the superseding account (same identity, same request id) so they keep being polled.
+    fileprivate func retire(_ account: Account, into replacement: Account?, supersession: Supersession) {
+        refreshErrors[account.id] = nil
+        pending[account.id] = nil
+        pendingErrors[account.id] = nil
+        loadedSources[account.id] = nil
+        if accountFilter == account.id { accountFilter = nil }
+        for assignment in account.activeAssignments {
+            context.delete(assignment)
         }
-        for stale in existing.values where !failedSources.contains(stale.source) {
-            context.delete(stale)
-        }
-
-        // Assignments are updated in place, not deleted and recreated: views and actions holding a row
-        // (popover, Deactivate in flight) keep a live object, and `notifiedAt` keeps its meaning.
-        var current = Dictionary(account.activeAssignments.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        var seen = Set<String>()
-        for remote in snapshot.assignments {
-            let id = ActiveAssignment.localId(accountId: account.id, remoteId: remote.id)
-            guard seen.insert(id).inserted else { continue }   // same instance twice in the answer
-            let eligible = snapshot.eligibility(for: remote).flatMap { kept[$0.matchKey] }
-            guard let row = current.removeValue(forKey: id) else {
-                context.insert(ActiveAssignment(id: remote.id, account: account, source: remote.source, roleName: remote.roleName,
-                                                scope: remote.scope, scopeName: remote.scopeName, assignmentType: remote.type,
-                                                startAt: remote.startAt, endAt: remote.endAt, eligibleRole: eligible))
-                continue
-            }
-            if row.endAt != remote.endAt { row.notifiedAt = nil }
-            row.roleName = remote.roleName
-            row.scopeName = remote.scopeName
-            row.assignmentTypeRaw = remote.type.rawValue
-            row.startAt = remote.startAt
-            row.endAt = remote.endAt
-            row.eligibleRole = eligible
-            row.fetchedAt = snapshot.fetchedAt
-        }
-        for stale in current.values where !failedSources.contains(stale.source) {
-            context.delete(stale)
+        guard let replacement else { return }
+        for record in account.records where Self.needsPolling(record) {
+            record.eligibleRoleId = supersession.resolve(eligibleRoleId: record.eligibleRoleId, source: record.source)
+            record.account = replacement
         }
     }
 }

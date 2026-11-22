@@ -20,8 +20,9 @@ public struct EntraRoleClient: PIMSource {
                   seen.insert(scheduleId).inserted,
                   let roleDefinitionId = item["roleDefinitionId"] as? String else { return nil }
             let scope = item["directoryScopeId"] as? String ?? "/"
+            let name = (item["roleDefinition"] as? [String: Any])?["displayName"] as? String
             return RemoteEligibility(id: scheduleId, source: .entraRole, roleDefinitionId: roleDefinitionId,
-                                     roleName: (item["roleDefinition"] as? [String: Any])?["displayName"] as? String ?? "Entra role",
+                                     roleName: name ?? RoleMerge.fallbackEntraName,
                                      scope: scope, scopeName: scope == "/" ? "Directory" : scope, scopeType: "directory",
                                      memberType: ARMClient.memberType(item["memberType"]))
         }
@@ -34,8 +35,9 @@ public struct EntraRoleClient: PIMSource {
         return items.compactMap { item -> RemoteAssignment? in
             guard let id = item["id"] as? String, let roleDefinitionId = item["roleDefinitionId"] as? String else { return nil }
             let scope = item["directoryScopeId"] as? String ?? "/"
+            let name = (item["roleDefinition"] as? [String: Any])?["displayName"] as? String
             return RemoteAssignment(id: id, source: .entraRole, roleDefinitionId: roleDefinitionId,
-                                    roleName: (item["roleDefinition"] as? [String: Any])?["displayName"] as? String ?? "Entra role",
+                                    roleName: name ?? RoleMerge.fallbackEntraName,
                                     scope: scope, scopeName: scope == "/" ? "Directory" : scope,
                                     type: (item["assignmentType"] as? String) == "Activated" ? .activated : .assigned,
                                     startAt: PIMDates.parse(item["startDateTime"]) ?? .now,

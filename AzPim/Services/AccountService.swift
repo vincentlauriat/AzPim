@@ -17,6 +17,8 @@ final class AccountService {
     private let context: ModelContext
     private(set) var cliStatus: CLIStatus = .unknown
     private var msalProviders: [UUID: MSALTokenProvider] = [:]
+    /// MSAL accounts whose directory access was already tried silently in this launch (once is enough).
+    @ObservationIgnored private var silentDirectoryTried: Set<UUID> = []
 
     init(context: ModelContext) {
         self.context = context
@@ -75,19 +77,46 @@ final class AccountService {
         let account = try upsert(identity: identity, mode: .msal, homeAccountId: provider.homeAccountId,
                                  clientId: clientId)
         msalProviders[account.id] = provider
+        // Entra roles and PIM groups right away, as "Enable Entra roles" would. A cancel or a failure there must
+        // not undo the sign-in: the account keeps the button as fallback.
+        if account.directoryAccess == .notRequested {
+            try? await enableDirectoryAccess(for: account)
+        }
         return account
     }
 
-    /// "Enable Entra roles": incremental consent for directory scopes.
+    /// "Enable Entra roles": incremental consent for directory scopes. Tries the token cache first, so an
+    /// already consented tenant opens no window.
     func enableDirectoryAccess(for account: Account) async throws {
         let provider = try msalProvider(for: account)
         do {
-            try await provider.requestDirectoryAccess(tenantId: account.tenantId)
+            let cached: Bool
+            do {
+                cached = try await provider.silentDirectoryAccess(tenantId: account.tenantId)
+            } catch TokenError.consentRequired {
+                throw TokenError.consentRequired   // the prompt would not help: admin consent is missing
+            } catch {
+                cached = false
+            }
+            if !cached { try await provider.requestDirectoryAccess(tenantId: account.tenantId) }
             account.directoryAccess = .enabled
         } catch TokenError.consentRequired {
             account.directoryAccess = .consentRequired
         }
         try context.save()
+    }
+
+    /// Existing MSAL accounts still without directory access: one silent attempt per launch, never a window.
+    /// Any answer other than a token (consent missing, interaction needed, network) leaves the state and the
+    /// "Enable Entra roles" button as they are.
+    func trySilentDirectoryAccess(for account: Account) async {
+        guard account.mode == .msal, account.directoryAccess == .notRequested,
+              silentDirectoryTried.insert(account.id).inserted,
+              let provider = try? msalProvider(for: account),
+              (try? await provider.silentDirectoryAccess(tenantId: account.tenantId)) == true,
+              account.modelContext != nil, !account.isDeleted else { return }
+        account.directoryAccess = .enabled
+        try? context.save()
     }
 
     // MARK: - Common

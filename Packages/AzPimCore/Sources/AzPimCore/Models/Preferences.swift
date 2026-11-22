@@ -7,9 +7,17 @@ public enum PreferenceKeys {
     public static let panelShowPermanent = "panel.showPermanent"
     public static let panelShowFavorites = "panel.showFavorites"
     public static let panelShowEligible = "panel.showEligible"
+    /// Permanent assignments group of the Active card, collapsed by default (a new key: `panel.showPermanent` was
+    /// expanded by default and would keep the group open for whoever already had it stored).
+    public static let panelShowPermanentGroup = "panel.showPermanentGroup"
+    /// Eligible card groups, by role type.
+    public static let panelShowEligibleEntra = "panel.showEligibleEntra"
+    public static let panelShowEligibleAzure = "panel.showEligibleAzure"
+    public static let panelShowEligibleGroups = "panel.showEligibleGroups"
 
     public static let all: [String] = [allowLinkActivation, panelShowActive, panelShowPermanent,
-                                       panelShowFavorites, panelShowEligible]
+                                       panelShowFavorites, panelShowEligible, panelShowPermanentGroup,
+                                       panelShowEligibleEntra, panelShowEligibleAzure, panelShowEligibleGroups]
 
     /// Defaults domain of the 0.9.x releases, shipped as AzurePim (non-sandboxed: ~/Library/Preferences/<domain>.plist).
     /// It is also AzurePim's bundle id.

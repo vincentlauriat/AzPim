@@ -19,13 +19,41 @@ struct RolesView: View {
         var id: String { rawValue }
     }
 
-    private var rows: [RoleRow] {
-        var list = roles.map { role in
-            RoleRow(role: role, assignment: assignments.first {
-                $0.eligibleRole?.id == role.id && $0.assignmentType == .activated && $0.isLive(at: store.now)
-            })
+    /// Accounts in use: an Azure CLI account replaced by a Microsoft sign-in of the same identity is left out.
+    private var activeAccounts: [Account] {
+        let supersession = store.supersession(accounts)
+        return accounts.filter { !supersession.isRetired($0.id) }
+    }
+    /// Eligible roles of the accounts in use, without superseded ones.
+    private var activeRoles: [EligibleRole] {
+        let supersession = store.supersession(accounts)
+        return roles.filter { role in role.account.map { !supersession.hides($0.id, role.source) } == true }
+    }
+    /// Live assignments of the accounts in use, without superseded ones.
+    private var liveAssignments: [ActiveAssignment] {
+        let supersession = store.supersession(accounts)
+        return assignments.filter { row in
+            row.isLive(at: store.now) && row.account.map { !supersession.hides($0.id, row.source) } == true
         }
-        list += assignments.filter { $0.assignmentType == .assigned && $0.isLive(at: store.now) }.map { RoleRow(permanent: $0) }
+    }
+
+    private var rows: [RoleRow] {
+        let live = liveAssignments
+        let permanentKeys = Set(live.filter { $0.assignmentType == .assigned }.map(\.facts.key))
+        var list = activeRoles.map { role in
+            RoleRow(role: role, assignment: live.first { $0.eligibleRole?.id == role.id && $0.assignmentType == .activated },
+                    heldPermanently: permanentKeys.contains(role.heldKey))
+        }
+        // One row per permanent role. One also held as an activation is shown by that activation's eligible row
+        // ("also permanent"), when that row is listed; otherwise it keeps its own permanent row.
+        let byId = Dictionary(live.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let listed = Set(activeRoles.map(\.id))
+        list += RoleMerge.merge(live.map(\.facts)).compactMap { group -> ActiveAssignment? in
+            guard group.type == .activated else { return byId[group.primaryId] }
+            guard group.alsoPermanent else { return nil }
+            if let role = byId[group.primaryId]?.eligibleRole, listed.contains(role.id) { return nil }
+            return group.memberIds.compactMap { byId[$0] }.first { $0.assignmentType == .assigned }
+        }.map { RoleRow(permanent: $0) }
         return list.filter { row in
             (source == nil || row.source == source)
                 && (accountId == nil || row.account?.id == accountId)
@@ -59,8 +87,9 @@ struct RolesView: View {
 
     /// Juicy-style KPI tiles: what is active right now, what can be activated.
     private var statStrip: some View {
-        let activated = assignments.filter { $0.assignmentType == .activated && $0.isLive(at: store.now) }
-        let permanent = assignments.filter { $0.assignmentType == .assigned && $0.isLive(at: store.now) }
+        let merged = RoleMerge.merge(liveAssignments.map(\.facts))
+        let activated = liveAssignments.filter { $0.assignmentType == .activated }
+        let permanent = merged.filter { $0.type == .assigned }
         let next = activated.compactMap(\.endAt).min()
         return HStack(spacing: 10) {
             StatTile(label: "Active PIM", value: "\(activated.count)",
@@ -68,10 +97,10 @@ struct RolesView: View {
                      tint: activated.isEmpty ? .secondary : Theme.active, icon: "bolt.fill")
             StatTile(label: "Permanent", value: "\(permanent.count)",
                      note: "Managed by your administrator", icon: "lock.fill")
-            StatTile(label: "Eligible", value: "\(roles.count)", note: "Activatable through PIM",
+            StatTile(label: "Eligible", value: "\(activeRoles.count)", note: "Activatable through PIM",
                      tint: Theme.accent, icon: "key.horizontal.fill")
-            StatTile(label: "Accounts", value: "\(accounts.count)",
-                     note: accounts.first.map { $0.tenantName ?? $0.upn } ?? "None", icon: "person.crop.circle")
+            StatTile(label: "Accounts", value: "\(activeAccounts.count)",
+                     note: activeAccounts.first.map { $0.tenantName ?? $0.upn } ?? "None", icon: "person.crop.circle")
         }
     }
 
@@ -98,7 +127,7 @@ struct RolesView: View {
                 if let row = rows.first(where: { $0.id == selection }) {
                     RoleDetail(row: row)
                 } else {
-                    ContentUnavailableView(roles.isEmpty ? emptyTitle : "Select a role", systemImage: "key.horizontal",
+                    ContentUnavailableView(activeRoles.isEmpty ? emptyTitle : "Select a role", systemImage: "key.horizontal",
                                            description: Text(accounts.isEmpty ? "Add an account to get started." : ""))
                 }
             }
@@ -125,10 +154,10 @@ struct RolesView: View {
             Picker("State", selection: $state) {
                 ForEach(StateFilter.allCases) { Text($0.rawValue).tag($0) }
             }
-            if accounts.count > 1 {
+            if activeAccounts.count > 1 {
                 Picker("Account", selection: $accountId) {
                     Text("All accounts").tag(UUID?.none)
-                    ForEach(accounts) { Text($0.tenantName ?? $0.upn).tag(UUID?.some($0.id)) }
+                    ForEach(activeAccounts) { Text($0.tenantName ?? $0.upn).tag(UUID?.some($0.id)) }
                 }
             }
             Button {
@@ -146,17 +175,21 @@ struct RoleRow: Identifiable {
     let id: String
     let role: EligibleRole?
     let assignment: ActiveAssignment?
+    /// An eligible role also assigned permanently: it is held even without an activation.
+    let heldPermanently: Bool
 
-    init(role: EligibleRole, assignment: ActiveAssignment?) {
+    init(role: EligibleRole, assignment: ActiveAssignment?, heldPermanently: Bool = false) {
         id = role.id
         self.role = role
         self.assignment = assignment
+        self.heldPermanently = heldPermanently
     }
 
     init(permanent: ActiveAssignment) {
         id = permanent.id
         role = nil
         assignment = permanent
+        heldPermanently = true
     }
 
     var source: RoleSource { role?.source ?? assignment?.source ?? .azureResource }
@@ -172,8 +205,8 @@ extension RolesView.StateFilter {
     func matches(_ row: RoleRow) -> Bool {
         switch self {
         case .all: true
-        case .eligible: !row.isPermanent && row.assignment == nil
-        case .active: !row.isPermanent && row.assignment != nil
+        case .eligible: !row.isPermanent && row.assignment == nil && !row.heldPermanently
+        case .active: !row.isPermanent && (row.assignment != nil || row.heldPermanently)
         case .permanent: row.isPermanent
         }
     }
@@ -187,7 +220,11 @@ private struct StateBadge: View {
         if row.isPermanent {
             Text("Permanent").foregroundStyle(.secondary)
         } else if let end = row.assignment?.endAt {
-            Text(Countdown.long(end.timeIntervalSince(now))).foregroundStyle(.green).monospacedDigit()
+            Text(Countdown.long(end.timeIntervalSince(now)) + (row.heldPermanently ? " · also permanent" : ""))
+                .foregroundStyle(.green).monospacedDigit()
+        } else if row.heldPermanently {
+            Text("Active · permanent").foregroundStyle(.green)
+                .help("Also assigned permanently: already held without an activation")
         } else {
             Text("Eligible").foregroundStyle(.secondary)
         }
