@@ -65,10 +65,10 @@ struct RequestDecisionTests {
         #expect(text?.body == "Tenant Root Group — the role is active.")
     }
 
-    @Test(arguments: [RequestStatus.denied, .failed, .canceled])
-    func refused(status: RequestStatus) {
-        #expect(RequestDecision.notification(status: status, roleName: "Owner", scopeName: "rg")?.title
-            == "Request denied: Owner")
+    @Test(arguments: [(RequestStatus.denied, "Request denied: Owner"), (.failed, "Request expired or failed: Owner"),
+                      (.canceled, "Request canceled: Owner")])
+    func refused(status: RequestStatus, title: String) {
+        #expect(RequestDecision.notification(status: status, roleName: "Owner", scopeName: "rg")?.title == title)
     }
 
     @Test(arguments: [RequestStatus.sent, .pendingApproval])

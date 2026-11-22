@@ -151,6 +151,9 @@ extension RoleStore {
 
     /// Cancels a pending request (local record or request made elsewhere).
     func cancel(requestId: String, source: RoleSource, account: Account) async -> String? {
+        let key = requestId.lowercased()
+        cancellingRequests.insert(key)
+        defer { cancellingRequests.remove(key) }
         do {
             guard let pim = try PIMService(sources: sources(for: account)).source(for: source) else {
                 throw TokenError.consentRequired
@@ -196,7 +199,9 @@ extension RoleStore {
             guard let requestId = record.remoteRequestId, !open.contains(requestId.lowercased()),
                   let source = service.source(for: record.source),
                   let status = try? await source.status(ofRequest: requestId),
-                  status != .pendingApproval, status != .sent else { continue }
+                  status != .pendingApproval, status != .sent,
+                  // Checked after the await: a cancel from the app may have started or ended meanwhile.
+                  !cancellingRequests.contains(requestId.lowercased()), Self.needsPolling(record) else { continue }
             let wasPending = record.status == .pendingApproval
             record.status = status
             if status == .provisioned {
@@ -204,6 +209,7 @@ extension RoleStore {
                 // The approver's delay is not app speed: keep it out of the time-to-activation median.
                 if wasPending { record.panelOpenedAt = nil }
             }
+            try? context.save()   // the decision is recorded before it is announced
             guard wasPending, Date.now.timeIntervalSince(record.sentAt) < 86_400,
                   let text = RequestDecision.notification(status: status, roleName: record.roleName,
                                                           scopeName: record.scopeName) else { continue }

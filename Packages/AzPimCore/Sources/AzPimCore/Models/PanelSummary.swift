@@ -66,8 +66,8 @@ public enum RequestDecision {
         switch status {
         case .provisioned: ("Request approved: \(roleName)", "\(scopeName) — the role is active.")
         case .denied: ("Request denied: \(roleName)", "\(scopeName) — the approver denied the request.")
-        case .failed: ("Request denied: \(roleName)", "\(scopeName) — the request failed.")
-        case .canceled: ("Request denied: \(roleName)", "\(scopeName) — the request was canceled.")
+        case .failed: ("Request expired or failed: \(roleName)", "\(scopeName) — no approval in time, or the request failed.")
+        case .canceled: ("Request canceled: \(roleName)", "\(scopeName) — the request was canceled or revoked.")
         case .sent, .pendingApproval: nil
         }
     }

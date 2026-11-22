@@ -13,7 +13,12 @@ struct PanelSearchField: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .focused(focused)
-                .onExitCommand { query = "" }
+                // Escape clears a search; with nothing typed it goes on to close the panel.
+                .onKeyPress(.escape) {
+                    guard !query.isEmpty else { return .ignored }
+                    query = ""
+                    return .handled
+                }
                 .accessibilityLabel("Search roles by name, scope or group")
             if !query.isEmpty {
                 Button {
@@ -39,7 +44,8 @@ struct PanelSearchField: View {
     }
 }
 
-/// Compact hero card: one line « 2 active · next expiry in 42m · 1 pending » and the refresh status.
+/// Compact hero card: one line « 2 active · next expiry in 42m · 1 pending » and the refresh status; when offline, a
+/// second line « Offline · data from 10:42 ».
 struct CompactHeroCard: View {
     @Environment(RoleStore.self) private var store
     let summary: HeroSummary
@@ -53,23 +59,40 @@ struct CompactHeroCard: View {
     private var hasActive: Bool { activeCount > 0 }
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: hasActive ? "key.horizontal.fill" : "key.fill")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(hasActive ? Theme.active : Color.secondary)
-            line
-                .font(.system(size: 13, weight: .semibold))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(1)
-                .help(nextRole.map { "Next expiry: \($0)" } ?? "")
-            Spacer(minLength: 6)
-            statusLine
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Image(systemName: hasActive ? "key.horizontal.fill" : "key.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(hasActive ? Theme.active : Color.secondary)
+                line
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(nextRole.map { "Next expiry: \($0)" } ?? "")
+                Spacer(minLength: 6)
+                // Never truncated by a long summary.
+                statusLine.fixedSize().layoutPriority(1)
+            }
+            if store.isOffline {
+                Label(offlineText, systemImage: "wifi.slash")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Theme.warning)
+                    .lineLimit(1)
+                    .help("Actions are disabled until the network is back")
+            }
         }
         .padding(.horizontal, 12)
-        .frame(height: 38)
+        .padding(.vertical, 10)
         .card()
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var accessibilityText: String {
+        guard signedIn else { return "Not signed in" }
+        let next = nextRole.map { ", ending first: \($0)" } ?? ""
+        let offline = store.isOffline ? ", \(offlineText)" : ""
+        return summary.line + next + offline
     }
 
     private var line: Text {
@@ -89,9 +112,7 @@ struct CompactHeroCard: View {
         if store.isRefreshing {
             ProgressView().controlSize(.small)
         } else if store.isOffline {
-            Label("Offline", systemImage: "wifi.slash").font(.system(size: 11)).foregroundStyle(Theme.warning)
-                .lineLimit(1)
-                .help(offlineHelp)
+            EmptyView()   // its own line below
         } else if let last = store.lastRefresh {
             Text(last.formatted(date: .omitted, time: .shortened))
                 .font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
@@ -99,8 +120,8 @@ struct CompactHeroCard: View {
         }
     }
 
-    private var offlineHelp: String {
-        let data = store.lastOnline.map { "Data from \($0.formatted(date: .omitted, time: .shortened)). " } ?? ""
-        return data + "Actions are disabled until the network is back"
+    private var offlineText: String {
+        guard let last = store.lastOnline else { return "Offline" }
+        return "Offline · data from \(last.formatted(date: .omitted, time: .shortened))"
     }
 }

@@ -57,25 +57,37 @@ struct PanelModel {
         }
     }
 
-    /// Eligible roles whose request waits for an approver (a request just sent is not counted).
-    func pendingApprovalCount(in records: [ActivationRecord], now: Date) -> Int {
-        eligible.filter { waiting($0, in: records, now: now)?.status == .pendingApproval }.count
+    /// Eligible roles with a request waiting for an approver (a request just sent is not counted), including one
+    /// sent through a superseded Azure CLI account. The menu bar badge counts every account in use; the hero counts
+    /// the accounts the panel shows (account menu), so the two differ only while one account is picked.
+    func pendingApprovalCount(in records: [ActivationRecord]) -> Int {
+        let waiting = Set(records.filter { $0.status == .pendingApproval }.map {
+            supersession.resolve(eligibleRoleId: $0.eligibleRoleId, source: $0.source)
+        })
+        return eligible.filter { waiting.contains($0.id) }.count
     }
 
     /// No row at all (after a search).
     var isEmpty: Bool { activations.isEmpty && permanents.isEmpty && eligible.isEmpty }
 
-    /// The rows matching the panel search: role name, scope or group name, role type.
+    /// The rows matching the panel search: role name, scope or group name, role type, tenant name.
     func filtered(by query: String) -> PanelModel {
         guard !RoleSearch.isEmpty(query) else { return self }
-        let matches = { (name: String, scope: String, source: RoleSource) in
+        let matches = { (name: String, scope: String, source: RoleSource, tenant: String?) in
             RoleSearch.matches(query, fields: [name, scope, TypeTag.text(source),
-                                               PanelRoleType.allCases.first { $0.source == source }?.title ?? ""])
+                                               PanelRoleType.allCases.first { $0.source == source }?.title ?? "",
+                                               tenant ?? ""])
         }
         var copy = self
-        copy.activations = activations.filter { matches($0.assignment.roleName, $0.assignment.scopeName, $0.assignment.source) }
-        copy.permanents = permanents.filter { matches($0.assignment.roleName, $0.assignment.scopeName, $0.assignment.source) }
-        copy.eligible = eligible.filter { matches($0.roleName, $0.scopeName, $0.source) }
+        copy.activations = activations.filter { row in
+            let item = row.assignment
+            return matches(item.roleName, item.scopeName, item.source, item.account?.tenantName)
+        }
+        copy.permanents = permanents.filter { row in
+            let item = row.assignment
+            return matches(item.roleName, item.scopeName, item.source, item.account?.tenantName)
+        }
+        copy.eligible = eligible.filter { matches($0.roleName, $0.scopeName, $0.source, $0.account?.tenantName) }
         return copy
     }
 }

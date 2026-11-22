@@ -25,7 +25,7 @@ struct MenuBarLabel: View {
         let model = model
         label(activations: model.activations.map(\.assignment),
               badge: MenuBarBadge(activeCount: model.activations.count,
-                                  pendingCount: model.pendingApprovalCount(in: pendingRecords, now: store.now)))
+                                  pendingCount: model.pendingApprovalCount(in: pendingRecords)))
             .task {
                 if !accounts.settings.onboardingCompleted {
                     openWindow(id: WindowID.onboarding)
@@ -130,6 +130,7 @@ struct MenuBarPanel: View {
         }
         .background(WindowKeyObserver {
             store.panelOpenedAt = .now
+            if !store.snapshotFrozen { query = "" }   // each open starts without a search (snapshots keep theirs)
             Task { await store.refreshIfStale() }
         })
     }
@@ -204,7 +205,7 @@ struct MenuBarPanel: View {
     private func heroCard(_ model: PanelModel) -> some View {
         let next = nextActivation(model.activations.map(\.assignment))
         let summary = HeroSummary(activeCount: model.activations.count, nextExpiry: next.map { Countdown.hero($0.remaining) },
-                                  pendingCount: model.pendingApprovalCount(in: pendingRecords, now: store.now))
+                                  pendingCount: model.pendingApprovalCount(in: pendingRecords))
         return CompactHeroCard(summary: summary, activeCount: model.activations.count, remaining: next?.remaining,
                                nextRole: next.map { "\($0.assignment.roleName) · \($0.assignment.scopeName)" },
                                signedIn: !accountList.isEmpty)
