@@ -39,9 +39,9 @@ extension RoleStore {
 
     /// PIM sources of one account, acting only with a token of that account's own identity.
     func sources(for account: Account) throws -> [any PIMSource] {
-        let provider = try accounts.provider(for: account)
+        let provider = try tokenProvider(account)
         let tenantId = account.tenantId, objectId = account.objectId.lowercased(), upn = account.upn, mode = account.mode
-        return PIMService.sources(token: { resource, claims in
+        return makeSources(account, { resource, claims in
             let token = try await provider.token(for: resource, tenantId: tenantId, claims: claims)
             // `az` follows whoever last ran `az login`: never act for one account with another identity's token.
             // Fails closed: a token without readable `oid` and `tid` is refused too (security review, low 1).
@@ -51,6 +51,6 @@ extension RoleStore {
                     : TokenError.failed("Microsoft returned a token for another identity than \(upn). Sign in again.")
             }
             return token
-        }, directory: account.directoryAccess == .enabled)
+        }, account.directoryAccess == .enabled)
     }
 }

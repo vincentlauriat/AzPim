@@ -47,8 +47,8 @@ final class RoleStore {
     var lastActivationError: [String: (text: String, alreadyActive: Bool)] = [:]
     /// True while the History window is shown: pending requests are then listed on every refresh.
     var historyVisible = false
-    /// Roles with an extension in flight (a second tap on another notification is refused), and the active row
-    /// being extended.
+    /// Eligible roles with an extension in flight (a second tap on another notification is refused). Their active
+    /// row shows busy through `isBusy`.
     var extending: Set<String> = []
     private var refreshRequested = false
     /// The pending rerun was asked by the user, not by a timer (it may open a sign-in window).
@@ -65,10 +65,20 @@ final class RoleStore {
     @ObservationIgnored var snapshotFrozen = false
     #endif
 
+    // Seams (unit tests). The defaults are the production behaviour.
+    /// Token provider of an account (Azure CLI or MSAL).
+    @ObservationIgnored var tokenProvider: @MainActor (Account) throws -> any TokenProvider
+    /// PIM sources built on an account's token closure (ARM, plus Entra roles and PIM groups with directory access).
+    @ObservationIgnored var makeSources: @MainActor (Account, _ token: @escaping PIMService.TokenSource, _ directory: Bool)
+        -> [any PIMSource] = { PIMService.sources(token: $1, directory: $2) }
+    /// Waits: between Extend attempts, in the refresh loop and in the countdown clock.
+    @ObservationIgnored var sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+
     init(context: ModelContext, accounts: AccountService, notifications: NotificationScheduler) {
         self.context = context
         self.accounts = accounts
         self.notifications = notifications
+        tokenProvider = { [unowned accounts] in try accounts.provider(for: $0) }
     }
 
     // MARK: - Refresh
@@ -85,7 +95,7 @@ final class RoleStore {
                 self.now = .now
                 let next = self.refreshAfterExpiry()
                 let interval: Double = next.map { $0.timeIntervalSinceNow <= 300 ? 1 : 30 } ?? 30
-                try? await Task.sleep(for: .seconds(interval))
+                try? await self.sleep(.seconds(interval))
             }
         }
     }
@@ -94,13 +104,14 @@ final class RoleStore {
         autoRefreshGeneration += 1
         let generation = autoRefreshGeneration
         // The replaced loop is not cancelled: a cancellation would abort its refresh mid-request.
+        let sleep = self.sleep
         autoRefresh = Task { [weak self] in
-            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+            if delay > 0 { try? await sleep(.seconds(delay)) }
             while !Task.isCancelled, self?.autoRefreshGeneration == generation {
                 // Background: a token that needs the user surfaces as a banner, never as a sign-in window.
                 await TokenInteraction.$isBackground.withValue(true) { await self?.refresh() }
                 let minutes = self?.accounts.settings.refreshIntervalMinutes ?? 5
-                try? await Task.sleep(for: .seconds(minutes * 60))
+                try? await sleep(.seconds(minutes * 60))
             }
         }
     }
