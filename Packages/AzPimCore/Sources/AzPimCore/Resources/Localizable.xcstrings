@@ -1,0 +1,16 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld active" : {
+      "localizations" : {
+        "en" : { "variations" : { "plural" : {
+          "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld active" } },
+          "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld active" } } } } },
+        "fr" : { "variations" : { "plural" : {
+          "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld rôle actif" } },
+          "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld rôles actifs" } } } } }
+      }
+    }
+  },
+  "version" : "1.0"
+}
