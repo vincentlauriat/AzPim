@@ -125,7 +125,10 @@ struct ActiveRow: View {
                     Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
                     HStack(spacing: 4) {
                         if showTypeTag { TypeTag(source: assignment.source) }
-                        Text(assignment.scopeName).lineLimit(1).truncationMode(.middle)
+                        // "Directory" repeats the Entra tag: hide it so "also permanent" fits beside the countdown.
+                        if !(showTypeTag && assignment.source == .entraRole && assignment.scope == "/") {
+                            Text(assignment.scopeName).lineLimit(1).truncationMode(.middle)
+                        }
                         if alsoPermanent {
                             Label("also permanent", systemImage: "lock").labelStyle(.titleAndIcon).imageScale(.small)
                                 .lineLimit(1).fixedSize()
