@@ -104,10 +104,7 @@ struct MenuBarPanel: View {
         let model = model
         return VStack(spacing: 8) {
             header
-            if let keyboardMessage {
-                Text(keyboardMessage).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
-            }
+            PanelStatusLines(keyboardMessage: keyboardMessage)
             heroCard(model)
             errorBanners
             if RoleSearch.isEmpty(query) {

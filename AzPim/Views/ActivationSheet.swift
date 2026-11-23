@@ -4,7 +4,8 @@ import SwiftUI
 /// Activation Sheet (AppFlow): duration in 15-minute steps capped by policy (the last one used for the role, else 1 h),
 /// justification / ticket validation, send; when Activate is disabled, the reason is shown under it. The ticket system
 /// is prefilled from the tenant's last one, the ticket number from the role's last one if used within 8 hours.
-/// Shown inside the menu bar panel so the panel stays open while the user types.
+/// Shown inside the menu bar panel so the panel stays open while the user types. A request Azure accepted closes the
+/// sheet: its result is notified and shown inline (`RoleStore.announceActivation`); an error stays here.
 struct ActivationSheet: View {
     @Environment(RoleStore.self) private var store
     let role: EligibleRole
@@ -16,7 +17,6 @@ struct ActivationSheet: View {
     @State private var justification = ""
     @State private var ticketSystem = ""
     @State private var ticket = ""
-    @State private var result: RequestStatus?
     /// This sheet's own request is running: the busy state is not shown as a reason.
     @State private var sending = false
     /// The user changed the duration: a policy read afterwards no longer resets it.
@@ -57,12 +57,6 @@ struct ActivationSheet: View {
 
             if let error = store.rowErrors[role.id] {
                 Text(error).font(.caption).foregroundStyle(Theme.danger).textSelection(.enabled)
-            } else if result == .pendingApproval {
-                Label("Request sent — pending approval.", systemImage: "clock").font(.caption).foregroundStyle(Theme.warning)
-            } else if result != nil {
-                // Accepted but not confirmed yet (or already decided): sending it again would submit a second request.
-                Label("Request sent — not confirmed yet. Check the panel in a moment.", systemImage: "paperplane")
-                    .font(.caption).foregroundStyle(Theme.warning)
             }
 
             VStack(alignment: .trailing, spacing: 6) {
@@ -70,17 +64,14 @@ struct ActivationSheet: View {
                     Button("Cancel", action: close).keyboardShortcut(.cancelAction)
                     Spacer()
                     if store.busy.contains(role.id) { ProgressView().controlSize(.small) }
-                    // A request Azure accepted (any result) is never sent twice from the same sheet: the button becomes Done.
-                    Button(result != nil ? "Done" : "Activate") {
-                        if result != nil { close() } else { Task { await send() } }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.accentFill)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(result == nil && block != nil)
+                    Button("Activate") { Task { await send() } }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Theme.accentFill)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(block != nil || sending)
                 }
                 // One sentence under the button: why it cannot be pressed (not while this sheet's own request runs).
-                if result == nil, !sending, let block {
+                if !sending, let block {
                     Text(block.message).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -115,8 +106,10 @@ struct ActivationSheet: View {
         let input = ActivationInput(duration: duration, justification: justification.trimmingCharacters(in: .whitespacesAndNewlines),
                                     ticketNumber: role.requiresTicket ? ticket.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
                                     ticketSystem: role.requiresTicket ? ticketSystem.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
-        result = await store.activate(role, input: input, fromPanel: fromPanel)
-        if result == .provisioned { close() }
+        // Accepted (any status): never sent twice from this sheet, which closes on the announced result.
+        guard let status = await store.activate(role, input: input, fromPanel: fromPanel) else { return }
+        await store.announceActivation(of: role, status: status, input: input)
+        close()
     }
 }
 

@@ -3,7 +3,8 @@ import ServiceManagement
 import SwiftUI
 import UserNotifications
 
-/// Onboarding (AppFlow › First use): privacy promise, sign-in mode, notifications + launch at login.
+/// Onboarding (AppFlow › First use): privacy promise, sign-in mode (Microsoft recommended, Azure CLI for Azure roles
+/// only), then a summary of the account added with notifications, launch at login and the palette shortcut.
 struct OnboardingView: View {
     @Environment(AccountService.self) private var accounts
     @Environment(RoleStore.self) private var store
@@ -15,6 +16,13 @@ struct OnboardingView: View {
     @State private var launchAtLogin = true
     /// Login item problem shown on the last page; the next Done closes the window.
     @State private var loginItemError: String?
+    /// Counts of the account just added, read after its first refresh; nil when the sign-in was skipped.
+    @State private var added: (eligible: Int, active: Int)?
+
+    init(page: Int = 0, added: (eligible: Int, active: Int)? = nil) {
+        _page = State(initialValue: page)
+        _added = State(initialValue: added)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,7 +39,12 @@ struct OnboardingView: View {
             footer.padding(16)
         }
         .frame(width: 520, height: 420)
-        .task { await accounts.refreshCLIStatus() }
+        .task {
+            #if DEBUG
+            if store.snapshotFrozen { return }   // snapshots and the test host never run `az`
+            #endif
+            await accounts.refreshCLIStatus()
+        }
     }
 
     private var welcome: some View {
@@ -48,19 +61,23 @@ struct OnboardingView: View {
     private var signIn: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("How should AzPim sign in?").font(.title3.weight(.semibold))
-            cliOption
-            Button {
-                run { try await accounts.addMSALAccount() }
-            } label: {
-                Label("Sign in with Microsoft", systemImage: "person.crop.circle.badge.checkmark")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            // The client ID is built in (Info.plist `AzPimClientID`): hidden only in a build without one.
+            if accounts.isMSALConfigured {
+                Button {
+                    run { try await accounts.addMSALAccount() }
+                } label: {
+                    Label("Sign in with Microsoft", systemImage: "person.crop.circle.badge.checkmark")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .controlSize(.large)
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accentFill)
+                .disabled(busy)
+                Text("Recommended: Azure roles, Entra roles and PIM groups (Entra roles need your admin's consent).")
+                    .font(.caption).foregroundStyle(.secondary)
+                Divider()
             }
-            .controlSize(.large)
-            .disabled(busy || !accounts.isMSALConfigured)
-            Text(accounts.isMSALConfigured
-                 ? String(localized: "Azure resource roles, Entra roles and PIM groups (Entra roles need your admin's consent).")
-                 : String(localized: "Not available in this build yet (no app registration client ID)."))
-                .font(.caption).foregroundStyle(.secondary)
+            cliOption
             if busy { ProgressView().controlSize(.small) }
             if let error { Text(error).font(.callout).foregroundStyle(Theme.danger) }
         }
@@ -72,15 +89,14 @@ struct OnboardingView: View {
             Button {
                 run { try await accounts.addCLIAccount() }
             } label: {
-                Label("Use Azure CLI session (\(identity.upn), \(identity.tenantName ?? identity.tenantId))",
+                Label("Use Azure CLI (\(identity.upn), \(identity.tenantName ?? identity.tenantId))",
                       systemImage: "terminal")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .controlSize(.large)
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.accentFill)
+            .buttonStyle(.bordered)
             .disabled(busy)
-            Text("Azure resource roles, no admin consent needed.").font(.caption).foregroundStyle(.secondary)
+            Text("Azure roles only, no admin consent needed.").font(.caption).foregroundStyle(.secondary)
         case .notSignedIn(let command):
             Label("Azure CLI found but not signed in — run `\(command)` then retry.", systemImage: "terminal")
             Button("Retry") { Task { await accounts.refreshCLIStatus() } }
@@ -94,13 +110,28 @@ struct OnboardingView: View {
     }
 
     private var finish: some View {
-        Form {
-            Toggle("Notify me before an activation expires", isOn: $notifications)
-            Toggle("Launch AzPim at login", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { loginItemError = nil }   // Done tries again with the new choice
-            if let loginItemError { Text(loginItemError).foregroundStyle(Theme.danger) }
+        VStack(alignment: .leading, spacing: 8) {
+            if let added {
+                Label(RoleStore.summaryText(eligible: added.eligible, active: added.active), systemImage: "checkmark.circle.fill")
+                    .font(.title3.weight(.semibold))
+            } else {
+                Label("No account yet: add one later in Settings › Accounts.", systemImage: "person.crop.circle.badge.questionmark")
+                    .font(.headline)
+            }
+            Form {
+                Toggle("Notify me before an activation expires", isOn: $notifications)
+                Toggle("Launch AzPim at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { loginItemError = nil }   // Done tries again with the new choice
+                if let loginItemError { Text(loginItemError).foregroundStyle(Theme.danger) }
+                Label("Press \(shortcut) in any app to search your roles and activate one.", systemImage: "keyboard")
+            }
+            .formStyle(.grouped)
         }
-        .formStyle(.grouped)
+    }
+
+    /// The palette shortcut registered at launch (⌃⌥P unless changed in Settings › General).
+    private var shortcut: String {
+        (GlobalHotKey.current ?? GlobalShortcut.defaultShortcut).display
     }
 
     private var footer: some View {
@@ -115,15 +146,17 @@ struct OnboardingView: View {
         }
     }
 
-    private func run(_ action: @escaping @MainActor () async throws -> Void) {
+    private func run(_ action: @escaping @MainActor () async throws -> Account) {
         busy = true
         error = nil
         Task {
             defer { busy = false }
             do {
-                try await action()
-                page = 2
+                let account = try await action()
+                // Counted after the first refresh, then shown: the summary never reads zeros from an empty cache.
                 await store.refresh()
+                added = store.summary(of: account)
+                page = 2
             } catch {
                 self.error = AccountService.message(for: error)
             }

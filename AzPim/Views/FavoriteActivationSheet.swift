@@ -29,6 +29,10 @@ struct FavoriteActivationSheet: View {
     private var roles: [EligibleRole] { request.roles.map(\.role) }
     private var needs: FavoriteNeeds { store.favoriteNeeds(request.roles) }
     private var answers: FavoriteAnswers { FavoriteAnswers(justification: justification, tickets: tickets) }
+    /// The favorite spans several tenants: each role line names its tenant (same tenant key as the tickets).
+    private var spansTenants: Bool {
+        Set(roles.compactMap { $0.account.map { TicketRecall.tenantKey($0.tenantId) } }).count > 1
+    }
 
     private var block: ActivationBlock? {
         if store.isOffline { return .offline }
@@ -44,9 +48,10 @@ struct FavoriteActivationSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
+                let spansTenants = self.spansTenants
                 ForEach(roles) { role in
                     HStack(spacing: 6) {
-                        Text("\(role.displayRoleName) — \(role.displayScopeName)")
+                        Text(roleLine(role, tenant: spansTenants))
                             .lineLimit(1).truncationMode(.middle)
                         Spacer(minLength: 4)
                         if role.requiresTicket {
@@ -103,6 +108,13 @@ struct FavoriteActivationSheet: View {
                 set: { tickets[tenant, default: FavoriteAnswers.Ticket()][keyPath: path] = $0 })
     }
 
+    /// « Security Reader — Directory », plus « · Contoso » when the favorite spans tenants.
+    private func roleLine(_ role: EligibleRole, tenant: Bool) -> String {
+        let line = "\(role.displayRoleName) — \(role.displayScopeName)"
+        guard tenant, let account = role.account else { return line }
+        return "\(line) · \(account.tenantName ?? account.tenantId)"
+    }
+
     /// The tenant's display name, from one of its roles' accounts.
     private func tenantName(_ tenant: String) -> String {
         let account = roles.compactMap(\.account).first { TicketRecall.tenantKey($0.tenantId) == tenant }
@@ -112,8 +124,8 @@ struct FavoriteActivationSheet: View {
     private func send() async {
         sending = true
         defer { sending = false }
-        // The result shows as the favorite's toast, in the panel and in the Favorites editor.
-        await store.run(request.favorite, fromPanel: fromPanel, answers: answers)
+        // The result is notified, and shows as the favorite's toast in the panel and in the Favorites editor.
+        await store.run(request.favorite, fromPanel: fromPanel, answers: answers, announce: true)
         close()
     }
 }

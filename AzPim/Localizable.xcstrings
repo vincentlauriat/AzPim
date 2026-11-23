@@ -288,6 +288,86 @@
     "%lld" : {
       "shouldTranslate" : false
     },
+    "%lld active" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld active"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld actif"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld actifs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld eligible roles" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld eligible role"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld eligible roles"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rôle éligible"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rôles éligibles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld roles" : {
       "localizations" : {
         "en" : {
@@ -394,6 +474,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Compte"
+          }
+        }
+      }
+    },
+    "Account added: %@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account added: %1$@, %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compte ajouté : %1$@, %2$@"
           }
         }
       }
@@ -746,6 +842,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rôles actifs"
+          }
+        }
+      }
+    },
+    "Active until %@." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actif jusqu’à %@."
           }
         }
       }
@@ -1195,26 +1301,6 @@
         }
       }
     },
-    "Azure resource roles, Entra roles and PIM groups (Entra roles need your admin's consent)." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rôles de ressources Azure, rôles Microsoft Entra et groupes PIM (les rôles Microsoft Entra demandent le consentement de votre administrateur)."
-          }
-        }
-      }
-    },
-    "Azure resource roles, no admin consent needed." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rôles de ressources Azure, sans consentement administrateur."
-          }
-        }
-      }
-    },
     "Azure resources" : {
       "localizations" : {
         "fr" : {
@@ -1241,6 +1327,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rôles Azure"
+          }
+        }
+      }
+    },
+    "Azure roles only, no admin consent needed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles Azure uniquement, sans consentement administrateur."
           }
         }
       }
@@ -2630,6 +2726,16 @@
         }
       }
     },
+    "No account yet: add one later in Settings › Accounts." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun compte pour l’instant : ajoutez-en un plus tard dans Réglages › Comptes."
+          }
+        }
+      }
+    },
     "No activation" : {
       "localizations" : {
         "fr" : {
@@ -2786,16 +2892,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucun des rôles indiqués n’est actif."
-          }
-        }
-      }
-    },
-    "Not available in this build yet (no app registration client ID)." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pas encore disponible dans cette version (pas d’ID client d’inscription d’application)."
           }
         }
       }
@@ -3070,6 +3166,16 @@
         }
       }
     },
+    "Press %@ in any app to search your roles and activate one." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez sur %@ dans n’importe quelle app pour chercher vos rôles et en activer un."
+          }
+        }
+      }
+    },
     "Privacy" : {
       "localizations" : {
         "fr" : {
@@ -3166,6 +3272,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quittez AzurePim, puis rouvrez AzPim."
+          }
+        }
+      }
+    },
+    "Recommended: Azure roles, Entra roles and PIM groups (Entra roles need your admin's consent)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommandé : rôles Azure, rôles Microsoft Entra et groupes PIM (les rôles Microsoft Entra demandent le consentement de votre administrateur)."
           }
         }
       }
@@ -3852,28 +3968,28 @@
         }
       }
     },
+    "Use Azure CLI (%@, %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Azure CLI (%1$@, %2$@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser Azure CLI (%1$@, %2$@)"
+          }
+        }
+      }
+    },
     "Use Azure CLI session" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Utiliser la session Azure CLI"
-          }
-        }
-      }
-    },
-    "Use Azure CLI session (%@, %@)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use Azure CLI session (%1$@, %2$@)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utiliser la session Azure CLI (%1$@, %2$@)"
           }
         }
       }

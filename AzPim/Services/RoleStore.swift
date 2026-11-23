@@ -43,6 +43,8 @@ final class RoleStore {
     /// Favorites being run, and the last result toast per favorite.
     var runningFavorites: Set<UUID> = []
     var favoriteToast: (favoriteId: UUID, text: String)?
+    /// Last result of an action the user started, shown inline whether or not it was also notified (`announce`).
+    var lastResult: ActionResult?
     /// Last activation error per role, with whether it means "already active" (extend fallback).
     var lastActivationError: [String: (text: String, alreadyActive: Bool)] = [:]
     /// True while the History window is shown: pending requests are then listed on every refresh.

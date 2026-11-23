@@ -109,10 +109,11 @@ extension RoleStore {
     /// Activates every role of a favorite without a sheet. Returns the toast text. `answers`: what the grouped favorite
     /// sheet asked (`favoriteNeeds`); without them a role that requires a ticket is not sent. `requireKnownPolicy`
     /// (links, Shortcuts): the policy is never read here, and a role whose policy was never read is not sent. `only`:
-    /// the eligible role ids a confirmation listed as sent; any other role is not sent.
+    /// the eligible role ids a confirmation listed as sent; any other role is not sent. `announce`: the result is also
+    /// notified (grouped favorite sheet, links), see `announce(title:body:)`.
     @discardableResult
     func run(_ favorite: Favorite, fromPanel: Bool = true, answers: FavoriteAnswers? = nil,
-             requireKnownPolicy: Bool = false, only: Set<String>? = nil) async -> String {
+             requireKnownPolicy: Bool = false, only: Set<String>? = nil, announce: Bool = false) async -> String {
         // Value copies: the model may be deleted while requests are in flight.
         let favoriteId = favorite.id, favoriteName = favorite.name, items = favorite.items
         guard !runningFavorites.contains(favoriteId) else { return String(localized: "\(favoriteName) is already running.") }
@@ -158,6 +159,7 @@ extension RoleStore {
         await refresh()
         let text = FavoriteRun.summary(results)
         favoriteToast = (favoriteId, text)
+        if announce { await self.announce(title: favoriteName, body: text) }
         return text
     }
 

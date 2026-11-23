@@ -212,6 +212,12 @@ final class FakeNotificationCenter: NotificationCenterClient, @unchecked Sendabl
     private let lock = NSLock()
     private var pendingList: [LocalNotification] = []
     private var delivered: [LocalNotification] = []
+    private var allowed = true
+    /// What the user answered to the notification permission (false: denied).
+    var authorized: Bool {
+        get { lock.withLock { allowed } }
+        set { lock.withLock { allowed = newValue } }
+    }
 
     var pending: [LocalNotification] { lock.withLock { pendingList } }
     /// Immediate notifications (no delay).
@@ -229,6 +235,9 @@ final class FakeNotificationCenter: NotificationCenterClient, @unchecked Sendabl
 
     func removeDelivered(withIdentifiers ids: [String]) {}
 
+    func isAuthorized() async -> Bool { authorized }
+
+    /// Records every add, permission or not: a test of the denied case sees what the scheduler would have posted.
     func add(_ notification: LocalNotification) async {
         lock.withLock {
             if notification.delay == nil { delivered.append(notification) } else { pendingList.append(notification) }

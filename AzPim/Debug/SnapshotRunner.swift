@@ -375,8 +375,7 @@ extension SnapshotRunner {
         try? context.save()
     }
 
-    /// Quick-activate palette (a search and the second row selected; the global shortcut itself cannot be rendered)
-    /// and the shortcut row of Settings › General, at its default ⌃⌥P.
+    /// Palette (a search, second row selected), the Settings › General shortcut row at ⌃⌥P, and two onboarding pages.
     private static func renderKeyboard(env: Env, directory: URL, defaults: UserDefaults) {
         for scheme in [ColorScheme.dark, .light] {
             let suffix = scheme == .dark ? "dark" : "light"
@@ -393,6 +392,10 @@ extension SnapshotRunner {
                    to: directory.appending(path: "settings-shortcut-\(suffix).png"), env: env)
             render(GeneralSettingsView(), size: NSSize(width: 620, height: 300), scheme: scheme,
                    to: directory.appending(path: "settings-general-\(suffix).png"), env: env)
+            for (name, page) in [("signin", OnboardingView(page: 1)), ("summary", OnboardingView(page: 2, added: (9, 3)))] {
+                render(page, size: NSSize(width: 520, height: 420), scheme: scheme,
+                       to: directory.appending(path: "onboarding-\(name)-\(suffix).png"), env: env)
+            }
         }
     }
 }
