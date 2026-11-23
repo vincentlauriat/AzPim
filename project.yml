@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: fr.vincentlauriat
   deploymentTarget:
     macOS: "14.0"
+    iOS: "17.0"
   createIntermediateGroups: true
   # English source; French from the String Catalogs (AzPim/Localizable.xcstrings, core .lproj tables).
   developmentLanguage: en
@@ -35,6 +36,15 @@ schemes:
       commandLineArguments:
         "-AppleLanguages (en)": true
         "-AppleLocale en_US": true
+    archive:
+      config: Release
+  # AzPim 2.0 for iPhone (PLAN.md › Version 2.0).
+  AzPimMobile:
+    build:
+      targets:
+        AzPimMobile: all
+    run:
+      config: Debug
     archive:
       config: Release
 
@@ -128,3 +138,86 @@ targets:
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
+
+  # AzPim for iPhone (2.0, step 2): MSAL with the Microsoft Authenticator broker, no Azure CLI, no Sparkle.
+  # Platform-neutral app code (store, services, models glue, Activation Sheet) is compiled from AzPim/ by both
+  # targets; macOS-only files are excluded here, macOS-only lines are behind `#if os(macOS)`.
+  AzPimMobile:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: AzPimMobile
+        excludes:
+          - "**/*.entitlements"
+          - "Info.plist"
+      - path: AzPim/Services
+        excludes:
+          - DeepLinkHandler.swift
+          - DockPolicy.swift
+          - GlobalHotKey.swift
+          - UpdaterController.swift
+      - path: AzPim/Intents/RoleStore+Intents.swift
+      - path: AzPim/Intents/RoleStore+IntentFavorites.swift
+      - path: AzPim/Debug/DemoFixtures.swift
+      - path: AzPim/Views/Accessibility.swift
+      - path: AzPim/Views/ActivationSheet.swift
+      - path: AzPim/Views/AdminConsentSheet.swift
+      - path: AzPim/Views/Countdown.swift
+      - path: AzPim/Views/DisplayName.swift
+      - path: AzPim/Views/DurationPicker.swift
+      - path: AzPim/Views/ErrorBanner.swift
+      - path: AzPim/Views/FavoriteActivationSheet.swift
+      - path: AzPim/Views/PanelModel.swift
+      - path: AzPim/Views/ResultStatusLine.swift
+      - path: AzPim/Views/Theme.swift
+      - path: AzPim/Localizable.xcstrings
+    configFiles:
+      Debug: Config/AzPim.xcconfig
+      Release: Config/AzPim.xcconfig
+    dependencies:
+      - package: AzPimCore
+      - package: MSAL
+    settings:
+      base:
+        PRODUCT_NAME: AzPim
+        PRODUCT_BUNDLE_IDENTIFIER: fr.vincentlauriat.azpim.ios
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_EMIT_LOC_STRINGS: YES
+        MARKETING_VERSION: "2.0"
+        CURRENT_PROJECT_VERSION: "1"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        CODE_SIGN_ENTITLEMENTS: AzPimMobile/AzPimMobile.entitlements
+        # Simulator: ad-hoc signed so the keychain group entitlement applies (MSAL cache). Device and App Store
+        # builds need the team's App ID and provisioning profile (step 5).
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+    info:
+      path: AzPimMobile/Info.plist
+      properties:
+        CFBundleName: AzPim
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, fr]
+        CFBundleDisplayName: AzPim
+        CFBundleIdentifier: fr.vincentlauriat.azpim.ios
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # MSAL client id (Config/AzPim.xcconfig), same app registration as the Mac app.
+        AzPimClientID: "$(AZPIM_CLIENT_ID)"
+        NSHumanReadableCopyright: "© 2026 Vincent Lauriat. MIT License."
+        CFBundleURLTypes:
+          - CFBundleURLName: fr.vincentlauriat.azpim.ios
+            CFBundleURLSchemes:
+              # MSAL redirect URI msauth.<bundle id>://auth (to register in Entra) and broker responses.
+              - msauth.fr.vincentlauriat.azpim.ios
+        # Microsoft Authenticator / Company Portal broker (MSAL 2.x).
+        LSApplicationQueriesSchemes: [msauthv2, msauthv3]
