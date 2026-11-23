@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import AzPimCore
 import MSAL
 
@@ -25,8 +29,14 @@ final class MSALTokenProvider: TokenProvider {
         let authority = try MSALAADAuthority(url: URL(string: Self.organizationsAuthority)!)
         let redirect = "msauth.\(Bundle.main.bundleIdentifier ?? "fr.vincentlauriat.azpim")://auth"
         let config = MSALPublicClientApplicationConfig(clientId: clientId, redirectUri: redirect, authority: authority)
+        #if os(macOS)
         // Explicit token-cache group (S-L5): MSAL prefixes the team id; the entitlement and the embedded profile allow it.
         config.cacheConfig.keychainSharingGroup = "com.microsoft.identity.universalstorage"
+        #else
+        // iOS: MSAL's default group (com.microsoft.adalcache, AzPimMobile.entitlements). Sign-in goes through
+        // Microsoft Authenticator when installed (device compliance, MFA), else the system web session.
+        MSALGlobalConfig.brokerAvailability = .auto
+        #endif
         application = try MSALPublicClientApplication(configuration: config)
         self.homeAccountId = homeAccountId
     }
@@ -132,7 +142,11 @@ final class MSALTokenProvider: TokenProvider {
 
     private func interactive(scopes: [String], extraScopes: [String], tenantId: String?, claims: String?,
                              prompt: MSALPromptType) async throws -> MSALResult {
+        #if os(iOS)
+        let anchor = try Self.presentationController()
+        #else
         let anchor = Self.presentationController()
+        #endif
         let webview = MSALWebviewParameters(authPresentationViewController: anchor)
         let parameters = MSALInteractiveTokenParameters(scopes: scopes, webviewParameters: webview)
         parameters.promptType = prompt
@@ -149,7 +163,9 @@ final class MSALTokenProvider: TokenProvider {
         if let id = homeAccountId, let account = try? application.account(forIdentifier: id) {
             parameters.account = account
         }
+        #if os(macOS)
         NSApp.activate(ignoringOtherApps: true)
+        #endif
         return try await withCheckedThrowingContinuation { continuation in
             application.acquireToken(with: parameters) { result, error in
                 Self.resume(continuation, result, error)
@@ -177,12 +193,31 @@ final class MSALTokenProvider: TokenProvider {
             switch MSALError(rawValue: nsError.code) {
             case .userCanceled: return .cancelled
             case .interactionRequired: return .interactionRequired(claims: nil)
+            #if os(iOS)
+            // Conditional Access "Require app protection policy": needs the Intune App SDK, which AzPim does not
+            // ship (PLAN › Version 2.0, step 6). A clear message instead of Microsoft's raw error.
+            case .serverProtectionPoliciesRequired:
+                return .failed(String(localized: "Your organization requires app protection for this app. Ask IT."))
+            #endif
             default: break
             }
         }
         return .failed(description)
     }
 
+    #if os(iOS)
+    /// MSAL presents its web view (or hands over to Microsoft Authenticator) from the topmost view controller of the
+    /// key window: the root one would be refused while a SwiftUI sheet is up.
+    private static func presentationController() throws -> UIViewController {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow) ?? scenes.first?.windows.first
+        guard var controller = window?.rootViewController else {
+            throw TokenError.failed(String(localized: "AzPim has no window to show the Microsoft sign-in."))
+        }
+        while let presented = controller.presentedViewController, !presented.isBeingDismissed { controller = presented }
+        return controller
+    }
+    #else
     /// MSAL needs a view controller to present its web view; use the key window's or a transient one.
     private static func presentationController() -> NSViewController {
         if let controller = NSApp.keyWindow?.contentViewController { return controller }
@@ -197,4 +232,5 @@ final class MSALTokenProvider: TokenProvider {
         window.makeKeyAndOrderFront(nil)
         return controller
     }
+    #endif
 }

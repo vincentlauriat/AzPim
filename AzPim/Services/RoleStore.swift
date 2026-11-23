@@ -157,7 +157,7 @@ final class RoleStore {
             userRefreshRequested = false
             // A pass the user asked for (⌘R, Sign in, even queued behind a timer refresh) reads the Azure CLI again:
             // `az login` / `az logout` count now.
-            if !background { await accounts.cliProvider.clearCache() }
+            if !background { await accounts.clearCLICache() }
             let list = (try? context.fetch(FetchDescriptor<Account>(sortBy: [SortDescriptor(\.sortOrder)]))) ?? []
             forgetRemovedAccounts(keeping: Set(list.map(\.id)))
             // A rerun asked by the user (Sign in, ⌘R) may open a sign-in window even if this run started in the background.

@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import AzPimCore
 import SwiftData
 import SwiftUI
@@ -8,7 +12,12 @@ import SwiftUI
 struct AdminConsentSheet: View {
     @Environment(AccountService.self) private var accounts
     @Environment(RoleStore.self) private var store
+    #if os(macOS)
     @Environment(\.dismissWindow) private var dismissWindow
+    #else
+    @Environment(\.dismiss) private var dismissWindow
+    @Environment(\.openURL) private var openURL
+    #endif
     let accountId: UUID?
     @Query private var allAccounts: [Account]
     @State private var status: String?
@@ -24,7 +33,9 @@ struct AdminConsentSheet: View {
                 ContentUnavailableView("Account not found", systemImage: "person.crop.circle.badge.questionmark")
             }
         }
+        #if os(macOS)
         .frame(width: 560)
+        #endif
         .padding(20)
     }
 
@@ -51,12 +62,20 @@ struct AdminConsentSheet: View {
                 Text(link.absoluteString).font(.caption.monospaced()).textSelection(.enabled).lineLimit(3)
                 HStack {
                     Button("Copy consent link") {
+                        #if os(macOS)
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(link.absoluteString, forType: .string)
+                        #else
+                        UIPasteboard.general.string = link.absoluteString
+                        #endif
                         status = String(localized: "Link copied.")
                     }
                     Button("Prepare email") {
+                        #if os(macOS)
                         if let mail = ConsentRequest.mailto(account: account, link: link) { NSWorkspace.shared.open(mail) }
+                        #else
+                        if let mail = ConsentRequest.mailto(account: account, link: link) { openURL(mail) }
+                        #endif
                     }
                     Spacer()
                     if checking { ProgressView().controlSize(.small) }

@@ -6,6 +6,7 @@ import SwiftData
 @MainActor
 @Observable
 final class AccountService {
+    #if os(macOS)
     enum CLIStatus: Equatable {
         case unknown
         case notInstalled
@@ -14,8 +15,12 @@ final class AccountService {
         case error(String)
     }
 
+    #endif
+
     private let context: ModelContext
+    #if os(macOS)
     private(set) var cliStatus: CLIStatus = .unknown
+    #endif
     private var msalProviders: [UUID: MSALTokenProvider] = [:]
     /// MSAL accounts whose directory access was already tried silently in this launch (once is enough).
     @ObservationIgnored private var silentDirectoryTried: Set<UUID> = []
@@ -26,6 +31,7 @@ final class AccountService {
 
     var settings: AppSettings { (try? AzPimStore.settings(in: context)) ?? AppSettings() }
 
+    #if os(macOS)
     /// One provider per configured `az` path: its token cache and in-flight requests live across refreshes
     /// (a new provider would start an `az` process per call).
     @ObservationIgnored private var cachedCLI: (path: String?, provider: AzureCLITokenProvider)?
@@ -38,10 +44,21 @@ final class AccountService {
         return provider
     }
 
+    #endif
+
+    /// Forgets the Azure CLI tokens read so far (a pass the user asked for); nothing to forget on iPhone.
+    func clearCLICache() async {
+        #if os(macOS)
+        await cliProvider.clearCache()
+        #endif
+    }
+
     var msalClientId: String? { MSALTokenProvider.configuredClientId(override: settings.customClientId) }
     var isMSALConfigured: Bool { msalClientId != nil }
 
     // MARK: - Azure CLI
+
+    #if os(macOS)
 
     /// Detects the CLI and its session (Onboarding preselection, Accounts Settings).
     func refreshCLIStatus() async {
@@ -66,6 +83,8 @@ final class AccountService {
         let identity = try await cliProvider.identity(tenantId: tenantId)
         return try upsert(identity: identity, mode: .azureCLI, homeAccountId: nil, clientId: nil)
     }
+
+    #endif
 
     // MARK: - MSAL
 
@@ -123,7 +142,12 @@ final class AccountService {
 
     func provider(for account: Account) throws -> any TokenProvider {
         switch account.mode {
+        #if os(macOS)
         case .azureCLI: cliProvider
+        #else
+        // No Azure CLI on iPhone: such an account cannot be added there (no `az`, no `Process`).
+        case .azureCLI: throw TokenError.cliNotFound
+        #endif
         case .msal: try msalProvider(for: account)
         }
     }

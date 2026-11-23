@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import AzPimCore
 import SwiftUI
 
@@ -20,8 +24,12 @@ struct ErrorBanner: View {
             .textSelection(.enabled)
             if let command = kind.command {
                 Button(copied ? "Copied" : "Copy “\(command)”") {
+                    #if os(macOS)
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(command, forType: .string)
+                    #else
+                    UIPasteboard.general.string = command
+                    #endif
                     copied = true
                 }
                 .controlSize(.small)
