@@ -43,6 +43,32 @@
         }
       }
     },
+    "%@ is active until %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is active until %2$@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ est actif jusqu’à %2$@."
+          }
+        }
+      }
+    },
+    "%@ is already active." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est déjà actif."
+          }
+        }
+      }
+    },
     "%@ is already running." : {
       "localizations" : {
         "fr" : {
@@ -242,6 +268,26 @@
         }
       }
     },
+    "%@: the request is waiting for approval." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : la demande attend une approbation."
+          }
+        }
+      }
+    },
+    "%@: the request was sent, not confirmed yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : la demande a été envoyée, pas encore confirmée."
+          }
+        }
+      }
+    },
     "%lld" : {
       "shouldTranslate" : false
     },
@@ -415,12 +461,38 @@
         }
       }
     },
+    "Activate ${role}" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer ${role}"
+          }
+        }
+      }
+    },
     "Activate %@" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activer %@"
+          }
+        }
+      }
+    },
+    "Activate %@ on %@?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activate %1$@ on %2$@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer %1$@ sur %2$@ ?"
           }
         }
       }
@@ -481,6 +553,16 @@
         }
       }
     },
+    "Activate Role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer un rôle"
+          }
+        }
+      }
+    },
     "Activate a role" : {
       "localizations" : {
         "fr" : {
@@ -517,6 +599,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activez, suivez et terminez vos rôles Microsoft PIM depuis la barre des menus."
+          }
+        }
+      }
+    },
+    "Activates an eligible Azure role after you confirm its scope, account and duration. Asks for a justification or a ticket number when the role's policy requires one." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active un rôle Azure éligible après confirmation de son étendue, de son compte et de sa durée. Demande une justification ou un numéro de ticket quand la stratégie du rôle l’exige."
+          }
+        }
+      }
+    },
+    "Activates every role of an AzPim favorite after you confirm what each one will send." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active tous les rôles d’un favori AzPim après confirmation de ce que chacun enverra."
           }
         }
       }
@@ -561,6 +663,16 @@
         }
       }
     },
+    "Activation from links and Shortcuts is turned off in AzPim › Settings › Accounts." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’activation depuis les liens et Raccourcis est désactivée dans AzPim › Réglages › Comptes."
+          }
+        }
+      }
+    },
     "Activations" : {
       "localizations" : {
         "fr" : {
@@ -597,6 +709,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PIM actifs"
+          }
+        }
+      }
+    },
+    "Active Roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles actifs"
           }
         }
       }
@@ -904,12 +1026,32 @@
         }
       }
     },
+    "AzPim favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favori AzPim"
+          }
+        }
+      }
+    },
     "AzPim history" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Historique AzPim"
+          }
+        }
+      }
+    },
+    "AzPim isn't ready yet. Open AzPim, then try again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim n’est pas encore prêt. Ouvrez AzPim, puis réessayez."
           }
         }
       }
@@ -1052,6 +1194,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ressources Azure"
+          }
+        }
+      }
+    },
+    "Azure role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôle Azure"
           }
         }
       }
@@ -1322,6 +1474,16 @@
         }
       }
     },
+    "Couldn't read the role's policy: nothing was sent. Try again in a moment." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de lire la stratégie du rôle : rien n’a été envoyé. Réessayez dans un instant."
+          }
+        }
+      }
+    },
     "Create it in AzPim › Favorites." : {
       "localizations" : {
         "fr" : {
@@ -1398,6 +1560,46 @@
         }
       }
     },
+    "Deactivate All" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout désactiver"
+          }
+        }
+      }
+    },
+    "Deactivate All Roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactiver tous les rôles"
+          }
+        }
+      }
+    },
+    "Deactivate these roles?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactiver ces rôles ?"
+          }
+        }
+      }
+    },
+    "Deactivates every active Azure role after you confirm the list." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactive tous les rôles Azure actifs après confirmation de la liste."
+          }
+        }
+      }
+    },
     "Deactivating %@…" : {
       "localizations" : {
         "fr" : {
@@ -1424,6 +1626,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lien direct : %@"
+          }
+        }
+      }
+    },
+    "Default: the last duration used for this role, else 1 hour." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par défaut : la dernière durée utilisée pour ce rôle, sinon 1 heure."
           }
         }
       }
@@ -1548,12 +1760,32 @@
         }
       }
     },
-    "Each request is still confirmed. Turn off if you never start favorites from links or scripts." : {
+    "Duration (minutes)" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaque demande reste confirmée. Désactivez si vous ne lancez jamais de favoris depuis des liens ou des scripts."
+            "value" : "Durée (minutes)"
+          }
+        }
+      }
+    },
+    "Duration: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durée : %@"
+          }
+        }
+      }
+    },
+    "Each request is still confirmed. Turn off if you never activate from links, scripts or Shortcuts." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque demande reste confirmée. Désactivez si vous n’activez jamais depuis des liens, des scripts ou Raccourcis."
           }
         }
       }
@@ -1912,6 +2144,16 @@
         }
       }
     },
+    "Justification: “%@”" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Justification : « %@ »"
+          }
+        }
+      }
+    },
     "Keep history %lld days" : {
       "localizations" : {
         "en" : {
@@ -2022,12 +2264,32 @@
         }
       }
     },
-    "Links can ask to activate favorites (azpim://activate)" : {
+    "Links and Shortcuts can ask to activate roles and favorites (azpim://activate)" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les liens peuvent demander d’activer des favoris (azpim://activate)"
+            "value" : "Les liens et Raccourcis peuvent demander d’activer des rôles et des favoris (azpim://activate)"
+          }
+        }
+      }
+    },
+    "List Active Roles" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lister les rôles actifs"
+          }
+        }
+      }
+    },
+    "Lists the Azure roles active now, with their scope and the time left." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liste les rôles Azure actifs, avec leur étendue et le temps restant."
           }
         }
       }
@@ -2341,6 +2603,26 @@
         }
       }
     },
+    "No active role to deactivate." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun rôle actif à désactiver."
+          }
+        }
+      }
+    },
+    "No active role." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun rôle actif."
+          }
+        }
+      }
+    },
     "No client ID" : {
       "localizations" : {
         "fr" : {
@@ -2467,6 +2749,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pas encore confirmée — actualisation dans un instant"
+          }
+        }
+      }
+    },
+    "Not confirmed: nothing was sent." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non confirmé : rien n’a été envoyé."
           }
         }
       }
@@ -3011,6 +3303,26 @@
         }
       }
     },
+    "Run ${favorite}" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer ${favorite}"
+          }
+        }
+      }
+    },
+    "Run Favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer un favori"
+          }
+        }
+      }
+    },
     "Run now" : {
       "localizations" : {
         "fr" : {
@@ -3253,6 +3565,26 @@
         }
       }
     },
+    "The policy requires a justification. Why do you need this role?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La stratégie exige une justification. Pourquoi avez-vous besoin de ce rôle ?"
+          }
+        }
+      }
+    },
+    "The policy requires a ticket number. Which ticket?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La stratégie exige un numéro de ticket. Lequel ?"
+          }
+        }
+      }
+    },
     "The request timed out." : {
       "localizations" : {
         "fr" : {
@@ -3279,6 +3611,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cette attribution est permanente et ne peut pas être désactivée."
+          }
+        }
+      }
+    },
+    "This favorite no longer exists." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce favori n’existe plus."
           }
         }
       }
@@ -3329,6 +3671,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Système de ticket"
+          }
+        }
+      }
+    },
+    "Ticket: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ticket : %@"
           }
         }
       }
@@ -3545,6 +3897,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "esc Fermer"
+          }
+        }
+      }
+    },
+    "failed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "échec"
           }
         }
       }
