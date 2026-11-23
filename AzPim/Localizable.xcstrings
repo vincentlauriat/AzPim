@@ -831,6 +831,16 @@
         }
       }
     },
+    "Asks for the ticket when the favorite runs." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le ticket est demandé au lancement du favori."
+          }
+        }
+      }
+    },
     "Assignment" : {
       "localizations" : {
         "fr" : {
@@ -1819,6 +1829,9 @@
         }
       }
     },
+    "INC0012345" : {
+      "shouldTranslate" : false
+    },
     "Icon" : {
       "localizations" : {
         "fr" : {
@@ -1985,6 +1998,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouverture à la connexion : %@ Vous pourrez la modifier plus tard dans Réglages Système › Général › Ouverture."
+          }
+        }
+      }
+    },
+    "Leave empty to keep each role’s own" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laisser vide pour garder celle de chaque rôle"
           }
         }
       }
@@ -2204,16 +2227,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nom"
-          }
-        }
-      }
-    },
-    "Needs a ticket number: activate it from the panel instead." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exige un numéro de ticket : activez-le plutôt depuis le panneau."
           }
         }
       }
@@ -2868,6 +2881,16 @@
         }
       }
     },
+    "Replaces each role’s justification." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplace la justification de chaque rôle."
+          }
+        }
+      }
+    },
     "Request sent — not confirmed yet. Check the panel in a moment." : {
       "localizations" : {
         "fr" : {
@@ -3088,6 +3111,9 @@
         }
       }
     },
+    "ServiceNow, Jira…" : {
+      "shouldTranslate" : false
+    },
     "Settings…" : {
       "localizations" : {
         "fr" : {
@@ -3297,6 +3323,16 @@
         }
       }
     },
+    "Ticket system" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Système de ticket"
+          }
+        }
+      }
+    },
     "Unknown MSAL error" : {
       "localizations" : {
         "fr" : {
@@ -3419,6 +3455,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bienvenue dans AzPim"
+          }
+        }
+      }
+    },
+    "Why do you need these roles?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pourquoi avez-vous besoin de ces rôles ?"
           }
         }
       }

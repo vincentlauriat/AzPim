@@ -47,8 +47,9 @@ extension RoleStore {
     }
 
     /// Keeps only the durations of roles still cached (after each refresh's history purge, and after an account is
-    /// removed or all local data deleted).
+    /// removed or all local data deleted). The remembered ticket fields are pruned with them.
     func pruneDurations() {
+        pruneTickets()
         let all = durationMemory.load()
         guard !all.isEmpty else { return }
         let roles = (try? context.fetch(FetchDescriptor<EligibleRole>())) ?? []

@@ -35,6 +35,7 @@ enum SnapshotRunner {
         let store = RoleStore(context: context, accounts: accounts, notifications: NotificationScheduler())
         store.snapshotFrozen = true   // a window becoming key must not refresh the fixtures
         store.durationMemory = .inMemory()   // never the user's preferences
+        store.ticketMemory = .inMemory()
         return Env(container: demo, accounts: accounts, store: store)
     }
 
@@ -58,6 +59,7 @@ enum SnapshotRunner {
         let store = RoleStore(context: memory.mainContext, accounts: accounts, notifications: NotificationScheduler())
         store.snapshotFrozen = true
         store.durationMemory = .inMemory()   // never the user's preferences
+        store.ticketMemory = .inMemory()
         return Env(container: memory, accounts: accounts, store: store)
     }
 
@@ -291,7 +293,8 @@ enum SnapshotRunner {
 extension SnapshotRunner {
     /// Activation Sheet states, after the other renders (the pending request would show in History and the panel):
     /// a remembered duration, the 1 h default with a missing justification, a policy under one hour with a ticket, and
-    /// a request already waiting.
+    /// a request already waiting. Then the grouped favorite sheet: a ticket role and a role without a justification,
+    /// with the tenant's ticket system and a ticket number used an hour ago prefilled.
     private static func renderSheets(env: Env, directory: URL, defaults: UserDefaults) {
         let context = env.container.mainContext
         let msal = ((try? context.fetch(FetchDescriptor<Account>())) ?? []).first { $0.mode == .msal }
@@ -315,6 +318,11 @@ extension SnapshotRunner {
             record.remoteRequestId = "req-ops"
             context.insert(record)
         }
+        // A ticket used an hour ago for the Security Reader role: the same incident, so both sheets prefill it.
+        if let ticket {
+            env.store.rememberTicket(ActivationInput(duration: "PT30M", justification: "", ticketNumber: "INC0042137",
+                                                     ticketSystem: "ServiceNow"), for: ticket, at: .now - 3600)
+        }
         try? context.save()
         let sheets = [("remembered", remembered), ("justification", fresh), ("ticket", ticket), ("pending", waiting)]
         for scheme in [ColorScheme.dark, .light] {
@@ -331,6 +339,38 @@ extension SnapshotRunner {
             render(FavoritesView(initialSelection: favorite?.id), size: NSSize(width: 900, height: 520), scheme: scheme,
                    to: directory.appending(path: "favorite-editor-\(suffix).png"), env: env)
         }
+        renderFavoriteSheets(env: env, directory: directory, defaults: defaults, roles: [ticket, fresh].compactMap { $0 })
+    }
+
+    /// Grouped favorite sheet: a ticket role and a role without a justification in one tenant (prefilled), then the
+    /// same with a ticket role of a second tenant (one empty ticket per tenant). The favorites are never saved.
+    private static func renderFavoriteSheets(env: Env, directory: URL, defaults: UserDefaults, roles: [EligibleRole]) {
+        let context = env.container.mainContext
+        let other = Account(mode: .azureCLI, upn: "v.admin@fabrikam.com", objectId: "oid-2", tenantId: "tenant-fabrikam",
+                            tenantName: "Fabrikam", sortOrder: 9)
+        let foreign = EligibleRole(id: "f-secreader", account: other, source: .entraRole, roleDefinitionId: "rd-secreader",
+                                   roleName: "Security Reader", scope: "/", scopeName: "Directory", scopeType: "directory")
+        foreign.policy = RolePolicy(maxDuration: "PT1H", requiresTicket: true)
+        context.insert(other)
+        context.insert(foreign)
+        func request(_ name: String, _ list: [EligibleRole]) -> FavoriteRunRequest {
+            let items = list.map { FavoriteItem(eligibleRoleId: $0.id, duration: "PT30M") }
+            return FavoriteRunRequest(favorite: Favorite(name: name, items: items),
+                                      roles: zip(items, list).map { (item: $0, role: $1) })
+        }
+        let requests = [("ticket", request("Incident response", roles)),
+                        ("tenants", request("Incident response", roles + [foreign]))]
+        for scheme in [ColorScheme.dark, .light] {
+            defaults.removePersistentDomain(forName: suiteName)
+            for (name, request) in requests {
+                render(FavoriteActivationSheet(request: request) {}, size: NSSize(width: Theme.panelWidth, height: 1400),
+                       scheme: scheme, to: directory.appending(path: "sheet-favorite-\(name)-\(scheme == .dark ? "dark" : "light").png"),
+                       env: env)
+            }
+        }
+        context.delete(foreign)
+        context.delete(other)
+        try? context.save()
     }
 
     /// Quick-activate palette (a search and the second row selected; the global shortcut itself cannot be rendered)

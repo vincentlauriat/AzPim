@@ -16,13 +16,17 @@ public enum PreferenceKeys {
     public static let panelShowEligibleGroups = "panel.showEligibleGroups"
     /// Last activation duration per eligible role: `[ActivationDuration.roleKey: ISO 8601 duration]`.
     public static let lastDurations = "activation.lastDurations"
+    /// Ticket system per tenant: `[TicketRecall.tenantKey: system]`.
+    public static let ticketSystems = "activation.ticketSystems"
+    /// Last ticket number per eligible role: `[ActivationDuration.roleKey: ["number": String, "usedAt": Date]]`.
+    public static let lastTickets = "activation.lastTickets"
     /// Global shortcut of the quick-activate palette (`GlobalShortcut.storageValue`, « none » when off; unset = ⌃⌥P).
     public static let quickActivateShortcut = "shortcut.quickActivate"
 
     public static let all: [String] = [allowLinkActivation, panelShowActive, panelShowPermanent,
                                        panelShowFavorites, panelShowEligible, panelShowPermanentGroup,
                                        panelShowEligibleEntra, panelShowEligibleAzure, panelShowEligibleGroups,
-                                       lastDurations, quickActivateShortcut]
+                                       lastDurations, ticketSystems, lastTickets, quickActivateShortcut]
 
     /// Defaults domain of the 0.9.x releases, shipped as AzurePim (non-sandboxed: ~/Library/Preferences/<domain>.plist).
     /// It is also AzurePim's bundle id.

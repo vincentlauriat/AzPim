@@ -64,11 +64,12 @@ struct LocalizationTests {
     /// A key the tables miss falls back to English silently: every sentence must read differently in French.
     @Test func everyMessageIsTranslated() {
         let blocks: [ActivationBlock] = [.inProgress, .pending, .offline, .durationTooLong(maxMinutes: 90), .durationTooShort,
-                                         .justificationRequired, .justificationTooLong, .ticketRequired, .ticketTooLong]
+                                         .justificationRequired, .justificationTooLong, .ticketSystemRequired,
+                                         .ticketSystemTooLong, .ticketRequired, .ticketTooLong]
         let errors: [ErrorKind] = [.offline, .timedOut, .throttled(retryAfter: 10), .cliNotFound, .cliExpired(command: "az login"),
                                    .cliStepUp(command: "az login"), .interactionRequired, .consentRequired, .forbidden("x")]
-        let failures: [Validation.Failure] = [.empty("name"), .empty("justification"), .empty("ticket"), .empty("duration"),
-                                              .tooLong("justification", max: 500), .outOfRange("duration", 5...60),
+        let failures: [Validation.Failure] = [.empty("name"), .empty("justification"), .empty("ticket"), .empty("ticketSystem"),
+                                              .empty("duration"), .tooLong("justification", max: 500), .outOfRange("duration", 5...60),
                                               .invalidFormat("clientId"), .invalidFormat("azCLIPath"), .duplicate("name"),
                                               .duplicate("ticket"), .exceedsPolicy(max: 3_600)]
         var pairs = blocks.map { ($0.message(locale: english), $0.message(locale: french)) }

@@ -2,7 +2,8 @@ import AzPimCore
 import SwiftUI
 
 /// Activation Sheet (AppFlow): duration in 15-minute steps capped by policy (the last one used for the role, else 1 h),
-/// justification / ticket validation, send; when Activate is disabled, the reason is shown under it.
+/// justification / ticket validation, send; when Activate is disabled, the reason is shown under it. The ticket system
+/// is prefilled from the tenant's last one, the ticket number from the role's last one if used within 8 hours.
 /// Shown inside the menu bar panel so the panel stays open while the user types.
 struct ActivationSheet: View {
     @Environment(RoleStore.self) private var store
@@ -13,6 +14,7 @@ struct ActivationSheet: View {
 
     @State private var minutes = ActivationDuration.fallbackMinutes
     @State private var justification = ""
+    @State private var ticketSystem = ""
     @State private var ticket = ""
     @State private var result: RequestStatus?
     /// This sheet's own request is running: the busy state is not shown as a reason.
@@ -30,7 +32,7 @@ struct ActivationSheet: View {
                                      pending: store.waitingRequest(for: role, at: store.now) != nil,
                                      offline: store.isOffline, minutes: minutes, policyMax: role.maxDuration,
                                      requiresJustification: role.requiresJustification, justification: justification,
-                                     requiresTicket: role.requiresTicket, ticket: ticket))
+                                     requiresTicket: role.requiresTicket, ticketSystem: ticketSystem, ticket: ticket))
     }
 
     var body: some View {
@@ -50,7 +52,7 @@ struct ActivationSheet: View {
                 .focused($focused)
 
             if role.requiresTicket {
-                TextField("Ticket number", text: $ticket)
+                TicketFields(system: $ticketSystem, number: $ticket)
             }
 
             if let error = store.rowErrors[role.id] {
@@ -86,6 +88,8 @@ struct ActivationSheet: View {
         .padding(14)
         .task {
             justification = role.lastJustification ?? ""
+            ticketSystem = store.ticketSystem(for: role)
+            ticket = store.recentTicket(for: [role])
             // Shown at once from the cached policy; read again once the policy is known, unless already changed.
             minutes = store.defaultDurationMinutes(for: role)
             await store.ensurePolicy(for: role)
@@ -107,8 +111,34 @@ struct ActivationSheet: View {
         sending = true
         defer { sending = false }
         let input = ActivationInput(duration: duration, justification: justification.trimmingCharacters(in: .whitespacesAndNewlines),
-                                    ticketNumber: role.requiresTicket ? ticket : nil)
+                                    ticketNumber: role.requiresTicket ? ticket.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+                                    ticketSystem: role.requiresTicket ? ticketSystem.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
         result = await store.activate(role, input: input, fromPanel: fromPanel)
         if result == .provisioned { close() }
+    }
+}
+
+/// Ticket system and number, side by side under their labels (Activation Sheet, grouped favorite sheet). `tenant`:
+/// shown above when the grouped sheet asks one ticket per tenant.
+struct TicketFields: View {
+    @Binding var system: String
+    @Binding var number: String
+    var tenant: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let tenant { Text(tenant).font(.caption.weight(.semibold)) }
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ticket system").font(.caption).foregroundStyle(.secondary)
+                    TextField("Ticket system", text: $system, prompt: Text("ServiceNow, Jira…")).labelsHidden()
+                }
+                .frame(maxWidth: 130)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ticket number").font(.caption).foregroundStyle(.secondary)
+                    TextField("Ticket number", text: $number, prompt: Text("INC0012345")).labelsHidden()
+                }
+            }
+        }
     }
 }

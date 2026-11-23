@@ -134,7 +134,8 @@ struct ARMClientTests {
                                             scope: rootScope, scopeName: "Tenant Root Group", scopeType: "managementgroup",
                                             memberType: .direct)
         let outcome = try await ARMClient(client: client(transport)).activate(
-            eligibility, principalId: "oid", input: ActivationInput(duration: "PT4H", justification: "deploy", ticketNumber: "INC1"))
+            eligibility, principalId: "oid",
+            input: ActivationInput(duration: "PT4H", justification: "deploy", ticketNumber: " INC1 ", ticketSystem: "ServiceNow"))
         // No `id` in the reply: the full resource id is rebuilt from the scope (needed by status and cancel).
         #expect(outcome.status == .provisioned)
         let requestId = try #require(outcome.requestId)
@@ -147,7 +148,7 @@ struct ARMClientTests {
         #expect(props["principalId"] as? String == "oid")
         #expect(props["linkedRoleEligibilityScheduleId"] as? String == eligibility.id)
         #expect(((props["scheduleInfo"] as? [String: Any])?["expiration"] as? [String: Any])?["duration"] as? String == "PT4H")
-        #expect((props["ticketInfo"] as? [String: Any])?["ticketNumber"] as? String == "INC1")
+        #expect(props["ticketInfo"] as? [String: String] == ["ticketNumber": "INC1", "ticketSystem": "ServiceNow"])
     }
 
     @Test func deactivationIsSelfDeactivate() async throws {
@@ -294,10 +295,11 @@ struct GraphClientTests {
         let eligibility = try #require(try await entra.eligibilities().first)
         #expect(eligibility.roleName == "Application Administrator")
         #expect(eligibility.scopeName == "Directory")
-        let input = ActivationInput(duration: "PT1H", justification: "j")
+        let input = ActivationInput(duration: "PT1H", justification: "j", ticketNumber: "CHG-7", ticketSystem: "Jira")
         let outcome = try await entra.activate(eligibility, principalId: "oid", input: input)
         #expect(outcome.status == .pendingApproval)
         let body = transport.body(1)
+        #expect(body["ticketInfo"] as? [String: String] == ["ticketNumber": "CHG-7", "ticketSystem": "Jira"])
         #expect(body["action"] as? String == "selfActivate")
         #expect(body["directoryScopeId"] as? String == "/")
         #expect(transport.requests[0].url?.absoluteString.contains("filterByCurrentUser(on='principal')") == true)
@@ -312,8 +314,11 @@ struct GraphClientTests {
         let groups = PIMGroupClient(client: client(transport))
         let eligibility = try #require(try await groups.eligibilities().first)
         #expect(eligibility.scopeName == "SG-RBAC-PAGES")
-        _ = try await groups.activate(eligibility, principalId: "oid", input: ActivationInput(duration: "PT2H", justification: "j"))
+        _ = try await groups.activate(eligibility, principalId: "oid",
+                                      input: ActivationInput(duration: "PT2H", justification: "j", ticketNumber: "INC9",
+                                                             ticketSystem: "ServiceNow"))
         #expect(transport.body(1)["groupId"] as? String == "g1")
+        #expect(transport.body(1)["ticketInfo"] as? [String: String] == ["ticketNumber": "INC9", "ticketSystem": "ServiceNow"])
         #expect(transport.body(1)["accessId"] as? String == "member")
     }
 }

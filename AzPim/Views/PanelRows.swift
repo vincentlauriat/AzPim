@@ -300,6 +300,10 @@ struct ErrorBanner: View {
 struct FavoriteChips: View {
     @Environment(RoleStore.self) private var store
     let favorites: [Favorite]
+    /// A role needs a ticket, or a justification it does not have: the grouped sheet asks first.
+    let ask: (FavoriteRunRequest) -> Void
+    /// Favorites whose roles and policies are being read before the run or the grouped sheet.
+    @State private var checking: Set<UUID> = []
 
     var body: some View {
         if !favorites.isEmpty {
@@ -308,10 +312,10 @@ struct FavoriteChips: View {
                     HStack(spacing: 6) {
                         ForEach(favorites) { favorite in
                             Button {
-                                Task { await store.run(favorite) }
+                                Task { await start(favorite) }
                             } label: {
                                 HStack(spacing: 4) {
-                                    if store.runningFavorites.contains(favorite.id) {
+                                    if store.runningFavorites.contains(favorite.id) || checking.contains(favorite.id) {
                                         ProgressView().controlSize(.mini)
                                     } else {
                                         Image(systemName: "star.fill").imageScale(.small)
@@ -322,7 +326,8 @@ struct FavoriteChips: View {
                             .buttonStyle(.bordered)
                             .tint(Theme.violet)
                             .controlSize(.regular)
-                            .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id) || store.isOffline)
+                            .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id)
+                                      || checking.contains(favorite.id) || store.isOffline)
                             .help("Activate \(favorite.items.count) roles")
                         }
                     }
@@ -341,6 +346,20 @@ struct FavoriteChips: View {
                     }
                 }
             }
+        }
+    }
+}
+
+extension FavoriteChips {
+    /// Reads the roles once: runs at once, or hands them to the grouped sheet.
+    private func start(_ favorite: Favorite) async {
+        guard checking.insert(favorite.id).inserted else { return }
+        let roles = await store.favoriteRolesToSend(favorite)
+        checking.remove(favorite.id)
+        if store.favoriteNeeds(roles).any {
+            ask(FavoriteRunRequest(favorite: favorite, roles: roles))
+        } else {
+            await store.run(favorite)
         }
     }
 }

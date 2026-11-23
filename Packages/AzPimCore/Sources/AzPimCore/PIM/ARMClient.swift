@@ -76,9 +76,7 @@ public struct ARMClient: PIMSource {
             "justification": input.justification,
             "scheduleInfo": ["expiration": ["type": "AfterDuration", "duration": input.duration]]
         ]
-        if let ticket = input.ticketNumber, !ticket.isEmpty {
-            properties["ticketInfo"] = ["ticketNumber": ticket, "ticketSystem": input.ticketSystem ?? "AzPim"]
-        }
+        if let ticketInfo = input.ticketInfo { properties["ticketInfo"] = ticketInfo }
         return try await send(eligibility, properties)
     }
 

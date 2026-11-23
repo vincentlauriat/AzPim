@@ -54,9 +54,7 @@ public struct EntraRoleClient: PIMSource {
         var body = request(eligibility, principalId: principalId, action: "selfActivate")
         body["justification"] = input.justification
         body["scheduleInfo"] = GraphURL.schedule(input.duration)
-        if let ticket = input.ticketNumber, !ticket.isEmpty {
-            body["ticketInfo"] = ["ticketNumber": ticket, "ticketSystem": input.ticketSystem ?? "AzPim"]
-        }
+        if let ticketInfo = input.ticketInfo { body["ticketInfo"] = ticketInfo }
         return try await GraphURL.outcome(client.json("POST", GraphURL.make("/roleManagement/directory/roleAssignmentScheduleRequests"),
                                                       body: body))
     }
@@ -124,9 +122,7 @@ public struct PIMGroupClient: PIMSource {
         var body = request(eligibility, principalId: principalId, action: "selfActivate")
         body["justification"] = input.justification
         body["scheduleInfo"] = GraphURL.schedule(input.duration)
-        if let ticket = input.ticketNumber, !ticket.isEmpty {
-            body["ticketInfo"] = ["ticketNumber": ticket, "ticketSystem": input.ticketSystem ?? "AzPim"]
-        }
+        if let ticketInfo = input.ticketInfo { body["ticketInfo"] = ticketInfo }
         return try await GraphURL.outcome(client.json(
             "POST", GraphURL.make("/identityGovernance/privilegedAccess/group/assignmentScheduleRequests"), body: body))
     }

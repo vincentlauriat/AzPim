@@ -129,10 +129,21 @@ public enum FavoriteRun {
     }
 
     /// Input for one favorite item: duration capped by policy, justification from the item or the last one used.
-    public static func input(for item: FavoriteItem, policy: RolePolicy, lastJustification: String?)
-        -> Result<ActivationInput, Validation.Failure> {
-        if policy.requiresTicket { return .failure(.empty("ticket")) }
-        let justification = (item.justification?.isEmpty == false ? item.justification : lastJustification) ?? ""
+    /// `answers`: what the grouped favorite sheet asked once. Its justification, when typed, goes to every role; its
+    /// ticket (the one of the role's tenant) only to the roles whose policy requires one. Without answers a ticket is
+    /// never taken from memory: the role is not sent.
+    public static func input(for item: FavoriteItem, policy: RolePolicy, lastJustification: String?,
+                             answers: FavoriteAnswers? = nil, tenantId: String = "") -> Result<ActivationInput, Validation.Failure> {
+        var ticketNumber: String?, ticketSystem: String?
+        if policy.requiresTicket {
+            guard let ticket = answers?.tickets[TicketRecall.tenantKey(tenantId)],
+                  Validation.ticketSystem(ticket.system, required: true) == nil,
+                  Validation.ticketNumber(ticket.number, required: true) == nil else { return .failure(.empty("ticket")) }
+            ticketNumber = ticket.number.trimmingCharacters(in: .whitespacesAndNewlines)
+            ticketSystem = ticket.system.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let typed = (answers?.justification ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let justification = typed.isEmpty ? ownJustification(item, last: lastJustification) : typed
         if let error = Validation.justification(justification, required: policy.requiresJustification) {
             return .failure(error)
         }
@@ -143,7 +154,8 @@ public enum FavoriteRun {
             duration = ISODuration.string(cap)
         }
         if case .failure(let error) = Validation.duration(duration, policyMax: policy.maxDuration) { return .failure(error) }
-        return .success(ActivationInput(duration: duration, justification: justification))
+        return .success(ActivationInput(duration: duration, justification: justification, ticketNumber: ticketNumber,
+                                        ticketSystem: ticketSystem))
     }
 }
 
@@ -160,7 +172,7 @@ public enum ExtendPlan: Equatable, Sendable {
                                         locale: locale))
         }
         if policy.requiresTicket {
-            return .blocked(L10n.string("This role needs a ticket number: open the panel to activate it again.", locale: locale))
+            return .blocked(L10n.string("This role needs a ticket: open the panel to activate it again.", locale: locale))
         }
         if policy.requiresMFA {
             return .blocked(L10n.string("This role needs MFA: open the panel to activate it again.", locale: locale))
