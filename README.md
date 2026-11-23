@@ -908,9 +908,26 @@ AZPIM_SNAPSHOT=/tmp/shots build/Build/Products/Debug/AzPim.app/Contents/MacOS/Az
   2. core tests (`swift test --parallel`);
   3. `xcodegen generate`;
   4. a Debug build;
-  5. `plutil -lint` on the core tables, then the localization check against the compiler's `.stringsdata`;
-  6. hosted app tests, failing if zero tests ran;
-  7. an unsigned Release build that checks `SUFeedURL`, `SUPublicEDKey` and a universal `x86_64` + `arm64` binary.
+  5. a Debug build of the iPhone app for the simulator;
+  6. `plutil -lint` on the core tables, then the localization check against the `.stringsdata` of both apps;
+  7. hosted app tests, failing if zero tests ran;
+  8. an unsigned Release build that checks `SUFeedURL`, `SUPublicEDKey` and a universal `x86_64` + `arm64` binary.
+
+**iPhone app (2.0, in progress).** The `AzPimMobile` target (iOS 17, iPhone, bundle id
+`fr.vincentlauriat.azpim.ios`) compiles the Mac app's platform-neutral code from `AzPim/` (store, services,
+Activation Sheet, theme) with its own compact UI in `AzPimMobile/`. macOS-only lines (Azure CLI, AppKit, pasteboard)
+are behind `#if os(macOS)`; macOS-only files (hot key, deep links, Sparkle, menu bar, windows) are not in the target.
+Sign-in is MSAL only, through Microsoft Authenticator when installed (redirect URI
+`msauth.fr.vincentlauriat.azpim.ios://auth`, keychain group `com.microsoft.adalcache`). A Conditional Access "app
+protection policy" answer is shown as a clear message (no Intune SDK). Both apps share `AzPim/Localizable.xcstrings`.
+Demo mode (Debug only) runs the app on the snapshot fixtures without a tenant:
+
+```bash
+xcodebuild -project AzPim.xcodeproj -scheme AzPimMobile -configuration Debug \
+  -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DD-ios build
+xcrun simctl install booted build/DD-ios/Build/Products/Debug-iphonesimulator/AzPim.app
+SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim.ios   # or eligible, activate, settings, onboarding
+```
 
 **Release pipeline.** `Scripts/release.sh <version>`, in order:
 
@@ -986,6 +1003,7 @@ fixed by the next build.
 | Path | Content |
 |---|---|
 | `AzPim/` | SwiftUI app: `AzPimApp.swift`, `Services/` (stores, MSAL, notifications, hot key, deep links, updater), `Intents/` (App Intents), `Views/`, `Debug/` (snapshot mode), String Catalogs, entitlements |
+| `AzPimMobile/` | iPhone app (2.0): compact SwiftUI UI, demo mode; shares the store and services of `AzPim/` |
 | `AzPimTests/` | Unit tests hosted in the Debug app (`RoleStore` with fakes) |
 | `Packages/AzPimCore/` | UI-free logic: `Auth/` (token providers, `az` runner, JWT claims), `PIM/` (ARM and Graph clients, HTTP client, errors), `Models/` (SwiftData schema, validation, supersession, preferences, deep links), `Activity/` (durations, tickets, quick activation, Extend, favorites, intents), `Resources/` (core strings), tests |
 | `Config/AzPim.xcconfig` | `AZPIM_CLIENT_ID` (optional git-ignored `AzPim.local.xcconfig` override) |
@@ -1013,6 +1031,8 @@ fixed by the next build.
 - [ ] Step 5 — quality: error states, accessibility, performance, security reviews (in progress)
 - [x] Step 6 — signed and notarized DMG, automatic updates (Sparkle): 1.0 shipped (build 7); 0.9.4 was the first AzPim build
 - [ ] Later — Mac App Store version
+- [ ] 2.0 — AzPim for iPhone: iOS target and Microsoft sign-in done (simulator); adaptive layout, Live Activity and
+  widgets, App Store next
 
 ## License
 
