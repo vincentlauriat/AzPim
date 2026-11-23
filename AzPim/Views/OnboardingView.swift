@@ -18,6 +18,8 @@ struct OnboardingView: View {
     @State private var loginItemError: String?
     /// Counts of the account just added, read after its first refresh; nil when the sign-in was skipped.
     @State private var added: (eligible: Int, active: Int)?
+    /// Why the account just added did not load fully (refresh error, admin consent, still loading); nil when it did.
+    @State private var addedProblem: String?
 
     init(page: Int = 0, added: (eligible: Int, active: Int)? = nil) {
         _page = State(initialValue: page)
@@ -111,10 +113,14 @@ struct OnboardingView: View {
 
     private var finish: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let added {
+            if let addedProblem {
+                // Never a green check over zeros: the account did not load, say why.
+                Label(addedProblem, systemImage: "exclamationmark.triangle.fill").font(.headline).foregroundStyle(.orange)
+            }
+            if let added, addedProblem == nil || added.eligible + added.active > 0 {
                 Label(RoleStore.summaryText(eligible: added.eligible, active: added.active), systemImage: "checkmark.circle.fill")
                     .font(.title3.weight(.semibold))
-            } else {
+            } else if added == nil {
                 Label("No account yet: add one later in Settings › Accounts.", systemImage: "person.crop.circle.badge.questionmark")
                     .font(.headline)
             }
@@ -144,6 +150,7 @@ struct OnboardingView: View {
             }
             .keyboardShortcut(.defaultAction)
         }
+        .disabled(busy)   // a sign-in or its first refresh is running
     }
 
     private func run(_ action: @escaping @MainActor () async throws -> Account) {
@@ -155,14 +162,30 @@ struct OnboardingView: View {
                 let account = try await action()
                 // Counted after the first refresh, then shown: the summary never reads zeros from an empty cache.
                 await store.refresh()
-                // A refresh already running (launch, panel open) queues a rerun and returns at once: wait for it.
-                while store.isRefreshing { try? await Task.sleep(for: .milliseconds(200)) }
+                // A refresh already running (launch, panel open) queues a rerun and returns at once: wait for it, 30 s
+                // at most. Cancelled (window closed): stop here.
+                let deadline = Date.now.addingTimeInterval(30)
+                while store.isRefreshing, Date.now < deadline {
+                    try await Task.sleep(for: .milliseconds(200))
+                }
+                try Task.checkCancellation()
                 added = store.summary(of: account)
+                addedProblem = problem(loading: account)
                 page = 2
+            } catch is CancellationError {
+                return
             } catch {
                 self.error = AccountService.message(for: error)
             }
         }
+    }
+
+    /// Why the account's roles are missing or partial, nil when it loaded.
+    private func problem(loading account: Account) -> String? {
+        if store.isRefreshing { return String(localized: "Your roles are still loading: the panel shows them in a moment.") }
+        if let error = store.refreshErrors[account.id]?.values.first { return error.message }
+        if account.directoryAccess == .consentRequired { return String(localized: "Entra roles: admin consent required") }
+        return nil
     }
 
     private func complete() async {

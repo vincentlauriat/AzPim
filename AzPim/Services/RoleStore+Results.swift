@@ -15,12 +15,41 @@ struct ActionResult: Equatable {
     func isRecent(at now: Date) -> Bool { now.timeIntervalSince(date) < 600 }
 }
 
+/// What a favorite run did, role by role (`RoleStore.runFavorite`).
+struct FavoriteOutcome: Equatable {
+    /// Full summary (toast, dialog): may hold Azure's error text, never put in a notification.
+    var text: String
+    var results: [FavoriteRoleResult]
+    /// The favorite was already running: nothing was sent.
+    var alreadyRunning = false
+
+    var isFullSuccess: Bool { !alreadyRunning && !results.isEmpty && results.allSatisfy(\.succeeded) }
+
+    /// Counts only, for a notification (« Activated: 2 of 3, failed: 1 — open AzPim. »).
+    var notificationBody: String {
+        let activated = results.filter { $0.status == .provisioned }.count
+        let waiting = results.filter { $0.succeeded && $0.status != .provisioned }.count
+        let failed = results.filter { !$0.succeeded }.count
+        var text = String(localized: "Activated: \(activated) of \(results.count)")
+        if waiting > 0 { text += String(localized: ", waiting: \(waiting)") }
+        if failed > 0 { text += String(localized: ", failed: \(failed) — open AzPim") }
+        return text + "."
+    }
+}
+
 extension RoleStore {
     /// Sets the inline status, then posts the notification if allowed. Returns whether a notification was posted.
     @discardableResult
-    func announce(title: String, body: String, roleId: String? = nil, extendable: Bool = false) async -> Bool {
+    func announce(title: String, body: String, roleId: String? = nil) async -> Bool {
         lastResult = ActionResult(title: title, body: body, roleId: roleId, date: .now)
-        return await notifications.notifyResult(title: title, body: body, roleId: roleId, extendable: extendable)
+        return await notifications.notifyResult(title: title, body: body, roleId: roleId)
+    }
+
+    /// A favorite's result: the favorite's toast is its inline status (no second line in the panel); the notification
+    /// carries the counts only.
+    @discardableResult
+    func announce(favorite name: String, _ outcome: FavoriteOutcome) async -> Bool {
+        await notifications.notifyResult(title: name, body: outcome.notificationBody)
     }
 
     /// Announces an activation Azure accepted (`status` from `activate`). A refusal is not announced: it stays on
@@ -36,7 +65,6 @@ extension RoleStore {
         default:
             body = String(localized: "Request sent — not confirmed yet. Check the panel in a moment.")
         }
-        await announce(title: "\(role.displayRoleName) — \(role.displayScopeName)", body: body, roleId: role.id,
-                       extendable: status == .provisioned)
+        await announce(title: "\(role.displayRoleName) — \(role.displayScopeName)", body: body, roleId: role.id)
     }
 }

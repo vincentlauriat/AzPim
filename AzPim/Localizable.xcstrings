@@ -418,6 +418,26 @@
         }
       }
     },
+    ", failed: %lld — open AzPim" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", échecs : %lld — ouvrez AzPim"
+          }
+        }
+      }
+    },
+    ", waiting: %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", en attente : %lld"
+          }
+        }
+      }
+    },
     "15-minute steps, up to the policy maximum (%@)" : {
       "localizations" : {
         "fr" : {
@@ -712,6 +732,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activez, suivez et terminez vos rôles Microsoft PIM depuis la barre des menus."
+          }
+        }
+      }
+    },
+    "Activated: %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activated: %1$lld of %2$lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activés : %1$lld sur %2$lld"
           }
         }
       }
@@ -4090,6 +4126,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Votre organisation vous demande de vous reconnecter (MFA)."
+          }
+        }
+      }
+    },
+    "Your roles are still loading: the panel shows them in a moment." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos rôles sont encore en cours de chargement : le panneau les affichera dans un instant."
           }
         }
       }

@@ -109,14 +109,21 @@ extension RoleStore {
     /// Activates every role of a favorite without a sheet. Returns the toast text. `answers`: what the grouped favorite
     /// sheet asked (`favoriteNeeds`); without them a role that requires a ticket is not sent. `requireKnownPolicy`
     /// (links, Shortcuts): the policy is never read here, and a role whose policy was never read is not sent. `only`:
-    /// the eligible role ids a confirmation listed as sent; any other role is not sent. `announce`: the result is also
-    /// notified (grouped favorite sheet, links), see `announce(title:body:)`.
+    /// the eligible role ids a confirmation listed as sent; any other role is not sent.
     @discardableResult
     func run(_ favorite: Favorite, fromPanel: Bool = true, answers: FavoriteAnswers? = nil,
-             requireKnownPolicy: Bool = false, only: Set<String>? = nil, announce: Bool = false) async -> String {
+             requireKnownPolicy: Bool = false, only: Set<String>? = nil) async -> String {
+        await runFavorite(favorite, fromPanel: fromPanel, answers: answers, requireKnownPolicy: requireKnownPolicy, only: only).text
+    }
+
+    /// `run`, with each role's result: links tell a full success (notified) from anything else (a dialog).
+    func runFavorite(_ favorite: Favorite, fromPanel: Bool = true, answers: FavoriteAnswers? = nil,
+                     requireKnownPolicy: Bool = false, only: Set<String>? = nil) async -> FavoriteOutcome {
         // Value copies: the model may be deleted while requests are in flight.
         let favoriteId = favorite.id, favoriteName = favorite.name, items = favorite.items
-        guard !runningFavorites.contains(favoriteId) else { return String(localized: "\(favoriteName) is already running.") }
+        guard !runningFavorites.contains(favoriteId) else {
+            return FavoriteOutcome(text: String(localized: "\(favoriteName) is already running."), results: [], alreadyRunning: true)
+        }
         runningFavorites.insert(favoriteId)
         defer { runningFavorites.remove(favoriteId) }
         let active = Set(activeActivations().compactMap { $0.eligibleRole?.id })
@@ -159,8 +166,7 @@ extension RoleStore {
         await refresh()
         let text = FavoriteRun.summary(results)
         favoriteToast = (favoriteId, text)
-        if announce { await self.announce(title: favoriteName, body: text) }
-        return text
+        return FavoriteOutcome(text: text, results: results)
     }
 
     /// The request of this role still waiting for its outcome, if any (`ActivationRecord.isWaiting`), including one

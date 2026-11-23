@@ -46,11 +46,11 @@ enum DeepLinkHandler {
         confirming = true
         defer { confirming = false }
         guard let favorite = store.favorite(named: name) else {
-            // The name comes from the link: shown short and quoted, never as instructions. Nothing to decide: a
-            // notification (or the panel's status), not a modal.
+            NSApp.activate(ignoringOtherApps: true)
+            // The name comes from the link: shown short and quoted, never as instructions. A dialog, not a
+            // notification: any local process can open links, and must not post notifications through AzPim.
             let shown = name.count > 40 ? String(name.prefix(40)) + "…" : name
-            await store.announce(title: String(localized: "No favorite named “\(shown)”."),
-                                 body: String(localized: "Create it in AzPim › Favorites."))
+            alert(String(localized: "No favorite named “\(shown)”."), info: String(localized: "Create it in AzPim › Favorites."))
             return
         }
         NSApp.activate(ignoringOtherApps: true)
@@ -92,7 +92,21 @@ enum DeepLinkHandler {
         confirm.alertStyle = .warning
         guard confirm.runModal() == .alertFirstButtonReturn else { return }
         // The policies the lines above were built from: never read again (nor sent on defaults) by the run.
-        // The result is notified (or shown in the panel when notifications are off), never a modal.
-        await store.run(favorite, fromPanel: false, requireKnownPolicy: true, announce: true)
+        // A full success is notified (or shown as the favorite's toast when notifications are off). Anything else
+        // (a role failed, sign-in or consent needed, already running) is never silent: a dialog with the details.
+        let outcome = await store.runFavorite(favorite, fromPanel: false, requireKnownPolicy: true)
+        if outcome.isFullSuccess {
+            await store.announce(favorite: favorite.name, outcome)
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+            alert(favorite.name, info: outcome.text)
+        }
+    }
+
+    private static func alert(_ message: String, info: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = info
+        alert.runModal()
     }
 }

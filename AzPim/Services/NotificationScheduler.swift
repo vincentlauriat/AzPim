@@ -22,7 +22,7 @@ protocol NotificationCenterClient: Sendable {
     func removePending(withIdentifiers ids: [String])
     func removeDelivered(withIdentifiers ids: [String])
     func add(_ notification: LocalNotification) async
-    /// The user lets AzPim post alerts (authorized or provisional).
+    /// The user lets AzPim post alerts (authorized or provisional, alerts enabled).
     func isAuthorized() async -> Bool
 }
 
@@ -63,8 +63,9 @@ struct SystemNotificationCenter: NotificationCenterClient {
     }
 
     func isAuthorized() async -> Bool {
-        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
-        return [.authorized, .provisional].contains(status)
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        // Allowed but with banners and Notification Center off: nothing would be seen.
+        return [.authorized, .provisional].contains(settings.authorizationStatus) && settings.alertSetting == .enabled
     }
 }
 
@@ -131,13 +132,12 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// Result of an action, posted only when notifications are allowed: false when not posted (the caller's inline
-    /// status is then the only feedback, never a modal). `roleId`: a tap opens the role; `extendable` adds the
-    /// Extend / Dismiss actions of the expiry notification (an activation that is now active).
+    /// status is then the only feedback, never a modal). `roleId`: a tap opens the role. No category: Extend belongs to
+    /// the expiry reminder.
     @discardableResult
-    func notifyResult(title: String, body: String, roleId: String? = nil, extendable: Bool = false) async -> Bool {
+    func notifyResult(title: String, body: String, roleId: String? = nil) async -> Bool {
         guard await center.isAuthorized() else { return false }
-        await center.add(LocalNotification(id: Self.resultPrefix + UUID().uuidString, title: title, body: body,
-                                           category: extendable && roleId != nil ? Self.category : nil, roleId: roleId))
+        await center.add(LocalNotification(id: Self.resultPrefix + UUID().uuidString, title: title, body: body, roleId: roleId))
         return true
     }
 

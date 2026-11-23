@@ -4,19 +4,22 @@ import Foundation
 import SwiftData
 import Testing
 
-/// 1.0 item 9: action results are notified (never a modal) and always shown inline; onboarding summary counts.
+/// 1.0 item 9: action results are notified (counts only, never a modal for a success) and shown inline; failures from
+/// links stay dialogs; onboarding summary counts.
 @MainActor
 struct ResultNotificationTests {
     let harness: Harness
     let account: Account
+    let arm: FakeSource
 
     init() async throws {
         harness = try Harness()
         let (account, sources) = harness.addAccount()
         self.account = account
+        arm = sources[0]
         let reader = Fixture.eligibility("e1", role: "Reader"), owner = Fixture.eligibility("e2", role: "Owner")
-        await sources[0].set(eligible: [reader, owner, Fixture.eligibility("e3", role: "Contributor")],
-                             assignments: [Fixture.activation(owner, instance: "i2")])
+        await arm.set(eligible: [reader, owner, Fixture.eligibility("e3", role: "Contributor")],
+                      assignments: [Fixture.activation(owner, instance: "i2")])
         await harness.refresh()
     }
 
@@ -28,26 +31,56 @@ struct ResultNotificationTests {
         return favorite
     }
 
-    /// A link or the grouped sheet: the run's result becomes a notification, plus the inline status.
-    @Test func favoriteRunResultIsNotified() async throws {
-        let text = await harness.store.run(favorite(), fromPanel: false, announce: true)
-        let posted = harness.center.immediate
-        #expect(posted.count == 1)
-        #expect(posted.first?.title == "Morning")
-        #expect(posted.first?.body == text)
-        #expect(posted.first?.id.hasPrefix(NotificationScheduler.resultPrefix) == true)
-        #expect(harness.store.lastResult?.body == text)
+    /// A full success (link, grouped sheet): the counts are notified; the favorite's toast is the inline status.
+    @Test func favoriteSuccessIsNotifiedWithCountsOnly() async throws {
+        let favorite = favorite()
+        let outcome = await harness.store.runFavorite(favorite, fromPanel: false)
+        #expect(outcome.isFullSuccess)
+        #expect(await harness.store.announce(favorite: favorite.name, outcome))
+        let posted = try #require(harness.center.immediate.first)
+        #expect(posted.title == "Morning")
+        #expect(posted.body == "Activated: 1 of 1.")
+        #expect(posted.id.hasPrefix(NotificationScheduler.resultPrefix))
+        #expect(posted.category == nil)
+        #expect(harness.store.favoriteToast?.text == outcome.text)
+        #expect(harness.store.lastResult == nil)   // no second line under the toast
     }
 
-    /// Notifications denied: nothing is posted (and no modal exists to fall back on), the inline status stays.
+    /// A failed role is not a full success (a link shows a dialog); the notification body holds counts, never
+    /// Azure's error text.
+    @Test func failedRoleIsNotAFullSuccess() async throws {
+        await arm.set(activate: [.failure(PIMError.http(status: 403, code: nil, message: "Secret detail"))], for: "e1")
+        let outcome = await harness.store.runFavorite(favorite(), fromPanel: false)
+        #expect(!outcome.isFullSuccess)
+        #expect(outcome.text.contains("Reader"))
+        #expect(outcome.notificationBody == "Activated: 0 of 1, failed: 1 — open AzPim.")
+        #expect(!outcome.notificationBody.contains("Secret"))
+    }
+
+    /// Already running: nothing sent, and never reported as a success.
+    @Test func alreadyRunningIsReported() async throws {
+        let favorite = favorite()
+        harness.store.runningFavorites.insert(favorite.id)
+        let outcome = await harness.store.runFavorite(favorite, fromPanel: false)
+        #expect(outcome.alreadyRunning)
+        #expect(!outcome.isFullSuccess)
+        #expect(outcome.text == "Morning is already running.")
+        #expect(await arm.activateCount == 0)
+    }
+
+    /// Notifications denied: nothing is posted, the inline status stays (never a modal).
     @Test func deniedPermissionFallsBackToInlineStatus() async throws {
         harness.center.authorized = false
-        let text = await harness.store.run(favorite(), fromPanel: false, announce: true)
-        #expect(harness.center.immediate.isEmpty)
-        #expect(harness.store.lastResult?.title == "Morning")
-        #expect(harness.store.lastResult?.body == text)
+        let role = try #require(harness.role(account, "e1"))
+        await harness.store.announceActivation(of: role, status: .pendingApproval,
+                                               input: ActivationInput(duration: "PT1H", justification: ""))
+        #expect(harness.store.lastResult?.body == "Request sent — pending approval.")
         #expect(harness.store.lastResult?.isRecent(at: .now) == true)
-        #expect(harness.store.favoriteToast?.text == text)
+        let favorite = favorite()
+        let outcome = await harness.store.runFavorite(favorite)
+        #expect(await harness.store.announce(favorite: favorite.name, outcome) == false)
+        #expect(harness.center.immediate.isEmpty)
+        #expect(harness.store.favoriteToast?.text == outcome.text)
     }
 
     /// A one-click run from the panel keeps its toast only: no notification while the user looks at the result.
@@ -57,7 +90,8 @@ struct ResultNotificationTests {
         #expect(harness.store.lastResult == nil)
     }
 
-    /// Activation Sheet: an activation Azure accepted is notified with Extend (now active) and the role to open.
+    /// Activation Sheet: an accepted activation is notified with the role to open, without Extend (the expiry
+    /// reminder has it).
     @Test func activationResultIsNotified() async throws {
         let role = try #require(harness.role(account, "e1"))
         let input = ActivationInput(duration: "PT1H", justification: "Audit")
@@ -67,17 +101,8 @@ struct ResultNotificationTests {
         #expect(posted.title == "\(role.displayRoleName) — \(role.displayScopeName)")
         #expect(posted.body.hasPrefix("Active until"))
         #expect(posted.roleId == role.id)
-        #expect(posted.category == NotificationScheduler.category)
-        #expect(harness.store.lastResult?.roleId == role.id)
-    }
-
-    @Test func pendingApprovalIsNotifiedWithoutExtend() async throws {
-        let role = try #require(harness.role(account, "e1"))
-        await harness.store.announceActivation(of: role, status: .pendingApproval,
-                                               input: ActivationInput(duration: "PT1H", justification: ""))
-        let posted = try #require(harness.center.immediate.first)
-        #expect(posted.body == "Request sent — pending approval.")
         #expect(posted.category == nil)
+        #expect(harness.store.lastResult?.roleId == role.id)
     }
 
     @Test func onboardingSummaryCountsTheAccountAdded() async throws {
