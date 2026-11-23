@@ -103,9 +103,9 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             }
             assignment.notifiedAt = fireAt
             let roleId = assignment.eligibleRole?.id
-            let time = end.formatted(date: .omitted, time: .shortened), lead = ISODuration.label(Double(leadMinutes) * 60)
+            let time = end.appFormatted(date: .omitted, time: .shortened), lead = ISODuration.label(Double(leadMinutes) * 60)
             requests.append(LocalNotification(
-                id: Self.prefix + (roleId ?? assignment.id), title: "\(assignment.roleName) — \(assignment.scopeName)",
+                id: Self.prefix + (roleId ?? assignment.id), title: "\(assignment.displayRoleName) — \(assignment.displayScopeName)",
                 body: String(localized: "Expires at \(time) (\(lead))."), sound: true,
                 category: roleId == nil ? nil : Self.category, roleId: roleId, delay: max(1, fireAt.timeIntervalSince(now))))
         }

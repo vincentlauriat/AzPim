@@ -22,6 +22,7 @@ APP_CATALOG = ROOT / "AzPim/Localizable.xcstrings"
 CORE = ROOT / "Packages/AzPimCore/Sources/AzPimCore"
 CORE_RESOURCES = CORE / "Resources"
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?(?:lld|ld|d|@|lf|f)")
+FRENCH_SPACE = re.compile(r" [:;?!»]|« ")
 errors = []
 
 
@@ -34,11 +35,22 @@ def placeholders(text):
     return [re.sub(r"%\d+\$", "%", p) for p in found]
 
 
-def check_value(where, key, value):
+def check_value(where, key, value, form=None):
+    """Same placeholders, of the same types (`%lld` ≠ `%@` ≠ `%lf`), as the key. A plural `one` form may leave the
+    count out (« Un rôle »). French typography: a no-break space (U+00A0 / U+202F), never an ordinary one, before
+    `: ; ? ! »` and after `«`."""
     if not value:
         errors.append(f"{where}: empty French value for {key!r}")
-    elif placeholders(value) != placeholders(key):
-        errors.append(f"{where}: placeholders differ for {key!r}: {value!r}")
+        return
+    expected, found = placeholders(key), placeholders(value)
+    if found != expected:
+        without_count = list(expected)
+        if "%lld" in without_count:
+            without_count.remove("%lld")
+        if not (form == "one" and found == without_count):
+            errors.append(f"{where}: placeholders differ for {key!r}: {value!r}")
+    if FRENCH_SPACE.search(value):
+        errors.append(f"{where}: ordinary space around French punctuation in {value!r} (use U+00A0)")
 
 
 def check_app_catalog():
@@ -65,7 +77,12 @@ def check_app_catalog():
                 unit = plural.get(form, {}).get("stringUnit", {})
                 if unit.get("state") != "translated":
                     errors.append(f"{APP_CATALOG.name}: French plural {form!r} of {key!r} missing")
-                check_value(APP_CATALOG.name, key, unit.get("value"))
+                check_value(APP_CATALOG.name, key, unit.get("value"), form)
+            # English needs its own one/other too, or it shows « 1 roles ».
+            english = entry["localizations"].get("en", {}).get("variations", {}).get("plural", {})
+            for form in ("one", "other"):
+                if not english.get(form, {}).get("stringUnit", {}).get("value"):
+                    errors.append(f"{APP_CATALOG.name}: English plural {form!r} of {key!r} missing")
     return catalog
 
 
@@ -124,7 +141,7 @@ def check_core():
                 if not rule.get(form):
                     errors.append(f"core {language}: plural {form!r} of {key!r} missing")
                 elif language == "fr":
-                    check_value("core fr", key, rule[form])
+                    check_value("core fr", key, rule[form], form)
     if set(plurals["en"]) != set(plurals["fr"]):
         errors.append(f"core: English and French plural keys differ: {set(plurals['en']) ^ set(plurals['fr'])}")
     for key, value in french.items():

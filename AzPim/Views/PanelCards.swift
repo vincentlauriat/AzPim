@@ -74,7 +74,9 @@ struct PanelModel {
     func filtered(by query: String) -> PanelModel {
         guard !RoleSearch.isEmpty(query) else { return self }
         let matches = { (name: String, scope: String, source: RoleSource, tenant: String?) in
-            RoleSearch.matches(query, fields: [name, scope, TypeTag.text(source),
+            // Raw and displayed names: « Owner » and « Propriétaire », « Directory » and « Annuaire » both match.
+            RoleSearch.matches(query, fields: [name, scope, DisplayName.role(name, source: source),
+                                               DisplayName.scope(scope, source: source), TypeTag.text(source),
                                                PanelRoleType.allCases.first { $0.source == source }?.title ?? "",
                                                tenant ?? ""])
         }

@@ -16,7 +16,7 @@ struct LocalizationTests {
     @Test func heroSummaryPlurals() {
         #expect(HeroSummary(activeCount: 0, nextExpiry: nil, pendingCount: 0, locale: french).line == "0 actif")
         #expect(HeroSummary(activeCount: 1, nextExpiry: "42 min", pendingCount: 0, locale: french).line
-                == "1 actif · fin dans 42 min")
+                == "1 actif · prochaine expiration dans 42 min")
         #expect(HeroSummary(activeCount: 4, nextExpiry: nil, pendingCount: 2, locale: french).line
                 == "4 actifs · 2 en attente")
         #expect(HeroSummary(activeCount: 1, nextExpiry: "42m", pendingCount: 1, locale: english).line
@@ -88,6 +88,14 @@ struct LocalizationTests {
     @Test func extendPlanReasonsInFrench() {
         let plan = ExtendPlan.decide(policy: RolePolicy(requiresMFA: true), lastJustification: "x", lastDuration: nil,
                                      activeSince: .distantPast, locale: french)
-        #expect(plan == .blocked("Ce rôle exige l’authentification multifacteur\u{00A0}: ouvrez le panneau pour l’activer à nouveau."))
+        #expect(plan == .blocked("Ce rôle exige la MFA\u{00A0}: ouvrez le panneau pour l’activer à nouveau."))
+    }
+
+    /// A language the core has no table for reads English, not whatever `Bundle.module` would pick for the system.
+    @Test func unsupportedLanguageFallsBackToEnglish() {
+        let german = Locale(identifier: "de_DE")
+        #expect(L10n.bundle(for: german).bundlePath.hasSuffix("en.lproj"))
+        #expect(HeroSummary(activeCount: 2, nextExpiry: nil, pendingCount: 1, locale: german).line == "2 active · 1 pending")
+        #expect(MenuBarBadge(activeCount: 0, pendingCount: 1).spokenPending(locale: german) == "1 request waiting for approval")
     }
 }

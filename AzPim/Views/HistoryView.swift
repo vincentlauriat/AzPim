@@ -41,8 +41,8 @@ struct HistoryView: View {
                             ForEach(externalPending, id: \.1.id) { account, request in
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text("\(request.roleName) — \(request.scopeName)")
-                                        Text(request.createdAt?.formatted(date: .abbreviated, time: .shortened) ?? "")
+                                        Text("\(request.displayRoleName) — \(request.displayScopeName)")
+                                        Text(request.createdAt?.appFormatted(date: .abbreviated, time: .shortened) ?? "")
                                             .font(.caption).foregroundStyle(.secondary)
                                     }
                                     Spacer()
@@ -107,7 +107,8 @@ struct HistoryView: View {
     /// « 12.3 sec » / « 12,3 s ».
     static func seconds(_ value: TimeInterval) -> String {
         Measurement(value: value, unit: UnitDuration.seconds)
-            .formatted(.measurement(width: .abbreviated, numberFormatStyle: .number.precision(.fractionLength(1))))
+            .formatted(.measurement(width: .abbreviated, numberFormatStyle: .number.precision(.fractionLength(1)))
+                .locale(AppLanguage.locale))
     }
 
     @ViewBuilder private func cancelButton(id: String, source: RoleSource, account: Account) -> some View {
@@ -154,7 +155,7 @@ private struct HistoryRow<Trailing: View>: View {
 
     /// « Activate Reader — Tenant Root Group ».
     private var title: String {
-        let role = record.roleName, scope = record.scopeName
+        let role = record.displayRoleName, scope = record.displayScopeName
         return switch record.action {
         case .activate: String(localized: "Activate \(role) — \(scope)")
         case .deactivate: String(localized: "Deactivate \(role) — \(scope)")
@@ -163,7 +164,7 @@ private struct HistoryRow<Trailing: View>: View {
     }
 
     private var detail: String {
-        var parts = [record.sentAt.formatted(date: .abbreviated, time: .shortened)]
+        var parts = [record.sentAt.appFormatted(date: .abbreviated, time: .shortened)]
         if let duration = record.requestedDuration, let seconds = ISODuration.seconds(duration) {
             parts.append(ISODuration.label(seconds))
         }

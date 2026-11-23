@@ -62,7 +62,7 @@ enum DeepLinkHandler {
             guard let role = store.favoriteRole(for: item) else { return nil }
             let account = role.account.map { String(localized: "\($0.upn) (tenant \($0.tenantName ?? $0.tenantId))") }
                 ?? String(localized: "unknown account")
-            let heading = "• \(role.roleName) — \(role.scopeName)\n   "
+            let heading = "• \(role.displayRoleName) — \(role.displayScopeName)\n   "
             // Same skip as the run: a request still waiting is not sent again.
             if store.waitingRequest(for: role) != nil {
                 return heading + String(localized: "\(account): skipped (already requested, waiting)")

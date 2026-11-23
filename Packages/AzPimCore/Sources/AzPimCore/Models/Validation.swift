@@ -135,10 +135,10 @@ public enum ISODuration {
     }
 
     /// Short label for a duration, rounded to the minute, by the system formatter: « 45 min », « 2 hr », « 1 hr 30 min »
-    /// in English, « 1 h 30 min » in French (never « 0 h » for a policy under one hour). `locale` nil: the system's.
+    /// in English, « 1 h 30 min » in French (never « 0 h » for a policy under one hour). `locale` nil: the app's language.
     public static func label(_ seconds: TimeInterval, locale: Locale? = nil) -> String {
         Duration.seconds(Int((seconds / 60).rounded()) * 60)
-            .formatted(.units(allowed: [.hours, .minutes], width: .condensedAbbreviated).locale(locale ?? .current))
+            .formatted(.units(allowed: [.hours, .minutes], width: .condensedAbbreviated).locale(locale ?? AppLanguage.locale))
     }
 }
 

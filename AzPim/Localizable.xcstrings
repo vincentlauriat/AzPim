@@ -88,7 +88,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ pour activer"
+            "value" : "activé en %@"
           }
         }
       }
@@ -127,7 +127,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ — « %2$@ » conservé."
+            "value" : "%1$@ — « %2$@ » conservé."
           }
         }
       }
@@ -436,7 +436,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activation %1$@ — %2$@"
+            "value" : "Activation de %1$@ — %2$@"
           }
         }
       }
@@ -506,7 +506,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activer « %@ » ?"
+            "value" : "Activer « %@ » ?"
           }
         }
       }
@@ -859,7 +859,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inscription d’app AzPim"
+            "value" : "Inscription d’application AzPim"
           }
         }
       }
@@ -1254,7 +1254,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copier « %@ »"
+            "value" : "Copier « %@ »"
           }
         }
       }
@@ -1363,7 +1363,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Désactivation %1$@ — %2$@"
+            "value" : "Désactivation de %1$@ — %2$@"
           }
         }
       }
@@ -1473,7 +1473,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer « %@ » ?"
+            "value" : "Supprimer « %@ » ?"
           }
         }
       }
@@ -1494,6 +1494,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Directe"
+          }
+        }
+      }
+    },
+    "Directory" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuaire"
           }
         }
       }
@@ -1688,7 +1698,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prolongation %1$@ — %2$@"
+            "value" : "Prolongation de %1$@ — %2$@"
           }
         }
       }
@@ -1915,13 +1925,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Conserver l’historique %lld jour"
+                  "value" : "Conserver l’historique : %lld jour"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "Conserver l’historique %lld jours"
+                  "value" : "Conserver l’historique : %lld jours"
                 }
               }
             }
@@ -2095,6 +2105,16 @@
         }
       }
     },
+    "Member" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Membre"
+          }
+        }
+      }
+    },
     "Menu bar" : {
       "localizations" : {
         "fr" : {
@@ -2123,7 +2143,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Microsoft a répondu « %@ » : la demande n’a pas été appliquée. Vérifiez le rôle dans le portail Azure."
+            "value" : "Microsoft a répondu « %@ » : la demande n’a pas été appliquée. Vérifiez le rôle dans le portail Azure."
           }
         }
       }
@@ -2343,7 +2363,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun favori nommé « %@ »."
+            "value" : "Aucun favori nommé « %@ »."
           }
         }
       }
@@ -2423,7 +2443,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pas encore disponible dans cette version (pas d’ID client d’inscription d’app)."
+            "value" : "Pas encore disponible dans cette version (pas d’ID client d’inscription d’application)."
           }
         }
       }
@@ -2483,7 +2503,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hors ligne · données de %@"
+            "value" : "Hors ligne · données datant de %@"
           }
         }
       }
@@ -2503,7 +2523,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ouvrir Ouverture"
+            "value" : "Ouvrir les réglages d’ouverture"
           }
         }
       }
@@ -2523,7 +2543,17 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Facultative"
+            "value" : "Facultatif"
+          }
+        }
+      }
+    },
+    "Owner" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propriétaire"
           }
         }
       }
@@ -2773,7 +2803,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Actualiser toutes les %@"
+            "value" : "Intervalle d’actualisation : %@"
           }
         }
       }
@@ -2873,7 +2903,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Requise"
+            "value" : "Obligatoire"
           }
         }
       }
@@ -3529,6 +3559,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "lire les règles PIM"
+          }
+        }
+      }
+    },
+    "tile.eligible" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eligible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éligibles"
+          }
+        }
+      }
+    },
+    "tile.permanent" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanent"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanents"
           }
         }
       }

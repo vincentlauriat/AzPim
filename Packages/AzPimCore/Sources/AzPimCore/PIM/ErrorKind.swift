@@ -85,6 +85,6 @@ public enum ErrorKind: Hashable, Sendable {
     /// « 30 s », « 2 min »: the wait Microsoft asks for.
     static func wait(_ seconds: TimeInterval, locale: Locale?) -> String {
         Duration.seconds(Int(seconds.rounded()))
-            .formatted(.units(allowed: [.minutes, .seconds], width: .condensedAbbreviated).locale(locale ?? .current))
+            .formatted(.units(allowed: [.minutes, .seconds], width: .condensedAbbreviated).locale(locale ?? AppLanguage.locale))
     }
 }

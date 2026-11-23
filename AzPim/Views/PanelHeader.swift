@@ -64,9 +64,11 @@ struct CompactHeroCard: View {
                 Image(systemName: hasActive ? "key.horizontal.fill" : "key.fill")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(hasActive ? Theme.active : Color.secondary)
+                // A second line rather than a cut summary (« prochaine expiration dans 3 h 24 min » is long).
                 line
                     .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                     .truncationMode(.tail)
                     .help(nextRole.map { String(localized: "Next expiry: \($0)") } ?? "")
                 Spacer(minLength: 6)
@@ -114,14 +116,14 @@ struct CompactHeroCard: View {
         } else if store.isOffline {
             EmptyView()   // its own line below
         } else if let last = store.lastRefresh {
-            Text(last.formatted(date: .omitted, time: .shortened))
+            Text(last.appFormatted(date: .omitted, time: .shortened))
                 .font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
-                .help("Updated at \(last.formatted(date: .omitted, time: .shortened))")
+                .help("Updated at \(last.appFormatted(date: .omitted, time: .shortened))")
         }
     }
 
     private var offlineText: String {
         guard let last = store.lastOnline else { return String(localized: "Offline") }
-        return String(localized: "Offline · data from \(last.formatted(date: .omitted, time: .shortened))")
+        return String(localized: "Offline · data from \(last.appFormatted(date: .omitted, time: .shortened))")
     }
 }

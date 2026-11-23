@@ -61,7 +61,7 @@ struct PanelActionList: View {
 
     private var refreshSubtitle: String {
         guard let last = store.lastRefresh else { return String(localized: "Never updated") }
-        return String(localized: "Updated \(last.formatted(date: .omitted, time: .shortened))")
+        return String(localized: "Updated \(last.appFormatted(date: .omitted, time: .shortened))")
     }
 
     private static let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"

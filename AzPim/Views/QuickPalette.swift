@@ -13,20 +13,23 @@ struct PaletteRow: Identifiable {
     /// Eligible roles first (Return activates them), then the activations.
     static func rows(_ model: PanelModel) -> [PaletteRow] {
         let eligible = model.eligible.map { role in
-            let entry = PaletteEntry(id: role.id, kind: .eligible, name: role.roleName, scope: role.scopeName,
-                                     types: types(role.source), tenant: role.account?.tenantName ?? "")
+            let entry = PaletteEntry(id: role.id, kind: .eligible, name: role.displayRoleName, scope: role.displayScopeName,
+                                     types: types(role.source) + [role.roleName, role.scopeName],
+                                     tenant: role.account?.tenantName ?? "")
             return PaletteRow(entry: entry, role: role, assignment: nil)
         }
         let active = model.activations.map { row -> PaletteRow in
             let item = row.assignment
-            let entry = PaletteEntry(id: item.id, kind: .active, name: item.roleName, scope: item.scopeName,
-                                     types: types(item.source), tenant: item.account?.tenantName ?? "")
+            let entry = PaletteEntry(id: item.id, kind: .active, name: item.displayRoleName, scope: item.displayScopeName,
+                                     types: types(item.source) + [item.roleName, item.scopeName],
+                                     tenant: item.account?.tenantName ?? "")
             return PaletteRow(entry: entry, role: item.eligibleRole, assignment: item)
         }
         return eligible + active
     }
 
-    /// « Entra », « Entra roles »: the names the search matches, as in the panel.
+    /// « Entra », « Entra roles »: the names the search matches, as in the panel; the raw role and scope names
+    /// (« Owner », « Directory ») are added beside the displayed ones.
     private static func types(_ source: RoleSource) -> [String] {
         [TypeTag.text(source), PanelRoleType.allCases.first { $0.source == source }?.title ?? ""]
     }
@@ -199,7 +202,7 @@ struct QuickPaletteView: View {
     }
 
     private func activate(_ role: EligibleRole) {
-        session.message = String(localized: "Activating \(role.roleName)…")
+        session.message = String(localized: "Activating \(role.displayRoleName)…")
         Task {
             switch await store.quickActivate(role) {
             case .needsSheet: sheetRole = role
@@ -215,7 +218,7 @@ struct QuickPaletteView: View {
             session.message = String(localized: "This activation has no eligibility to extend.")
             return
         }
-        session.message = String(localized: "Extending \(role.roleName)…")
+        session.message = String(localized: "Extending \(role.displayRoleName)…")
         Task { session.message = await store.extend(eligibleRoleId: role.id) }
     }
 
@@ -231,7 +234,7 @@ struct QuickPaletteView: View {
     }
 
     private func deactivate(_ assignment: ActiveAssignment) {
-        let name = assignment.roleName, id = assignment.id
+        let name = assignment.displayRoleName, id = assignment.id
         session.message = String(localized: "Deactivating \(name)…")
         Task {
             let done = await store.deactivate(assignment)
@@ -274,7 +277,7 @@ private struct PaletteRowView: View {
             ProgressView().controlSize(.small)
         } else if let end = row.assignment?.endAt {
             let remaining = end.timeIntervalSince(store.now)
-            Text(Countdown.hero(remaining))
+            Text(Countdown.compact(remaining))
                 .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
                 .foregroundStyle(Theme.remaining(remaining))
                 .padding(.horizontal, 7).padding(.vertical, 2)

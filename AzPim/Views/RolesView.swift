@@ -102,12 +102,12 @@ struct RolesView: View {
         let next = activated.compactMap(\.endAt).min()
         return HStack(spacing: 10) {
             StatTile(label: String(localized: "Active PIM"), value: "\(activated.count)",
-                     note: next.map { String(localized: "Next expiry in \(Countdown.hero($0.timeIntervalSince(store.now)))") }
+                     note: next.map { String(localized: "Next expiry in \(Countdown.full($0.timeIntervalSince(store.now)))") }
                         ?? String(localized: "No activation"),
                      tint: activated.isEmpty ? .secondary : Theme.active, icon: "bolt.fill")
-            StatTile(label: String(localized: "Permanent"), value: "\(permanent.count)",
+            StatTile(label: String(localized: "tile.permanent", defaultValue: "Permanent"), value: "\(permanent.count)",
                      note: String(localized: "Managed by your administrator"), icon: "lock.fill")
-            StatTile(label: String(localized: "Eligible"), value: "\(activeRoles.count)",
+            StatTile(label: String(localized: "tile.eligible", defaultValue: "Eligible"), value: "\(activeRoles.count)",
                      note: String(localized: "Activatable through PIM"), tint: Theme.accent, icon: "key.horizontal.fill")
             StatTile(label: String(localized: "Accounts"), value: "\(activeAccounts.count)",
                      note: activeAccounts.first.map { $0.tenantName ?? $0.upn } ?? String(localized: "None"),
@@ -118,14 +118,18 @@ struct RolesView: View {
     private var split: some View {
         HSplitView {
             Table(rows, selection: $selection) {
+                // The role name gets the room; a long scope is cut in the middle instead.
                 TableColumn("Role") { row in
-                    Label(row.roleName, systemImage: SourceIcon.name(row.source))
+                    Label(row.displayRoleName, systemImage: SourceIcon.name(row.source)).lineLimit(1)
                 }
-                TableColumn("Scope") { row in Text(row.scopeName).truncationMode(.middle) }
+                .width(min: 170, ideal: 230)
+                TableColumn("Scope") { row in Text(row.displayScopeName).lineLimit(1).truncationMode(.middle) }
+                    .width(min: 90, ideal: 140)
                 TableColumn("State") { row in StateBadge(row: row, now: store.now) }
-                    .width(min: 90, ideal: 170)
+                    .width(min: 90, ideal: 210)
                 // Always present: conditional table columns need macOS 14.4.
                 TableColumn("Account") { row in Text(row.account?.tenantName ?? row.account?.upn ?? "") }
+                    .width(min: 70, ideal: 90)
             }
             .contextMenu(forSelectionType: RoleRow.ID.self) { ids in
                 if let id = ids.first, let role = rows.first(where: { $0.id == id })?.role {
@@ -210,7 +214,10 @@ struct RoleRow: Identifiable {
     var scope: String { role?.scope ?? assignment?.scope ?? "" }
     var account: Account? { role?.account ?? assignment?.account }
     var isPermanent: Bool { role == nil }
-    var searchText: String { "\(roleName) \(scopeName) \(account?.upn ?? "")" }
+    var displayRoleName: String { DisplayName.role(roleName, source: source) }
+    var displayScopeName: String { DisplayName.scope(scopeName, source: source) }
+    /// Raw and displayed names, so « Owner » and « Propriétaire » both match.
+    var searchText: String { "\(roleName) \(scopeName) \(displayRoleName) \(displayScopeName) \(account?.upn ?? "")" }
 }
 
 extension RolesView.StateFilter {
@@ -258,9 +265,9 @@ private struct RoleDetail: View {
                         Image(systemName: SourceIcon.name(row.source))
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(row.assignment != nil ? Theme.active : Theme.accent)
-                        Text(row.roleName).font(.display(22, weight: .semibold))
+                        Text(row.displayRoleName).font(.display(22, weight: .semibold))
                     }
-                    Text(row.scopeName).foregroundStyle(.secondary)
+                    Text(row.displayScopeName).foregroundStyle(.secondary)
                     StateBadge(row: row, now: store.now)
                 }
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 6) {
@@ -271,7 +278,7 @@ private struct RoleDetail: View {
                     }
                     detail("Scope path", row.scope)
                     if let end = row.assignment?.endAt {
-                        detail("Ends", end.formatted(date: .abbreviated, time: .shortened))
+                        detail("Ends", end.appFormatted(date: .abbreviated, time: .shortened))
                     }
                 }
                 .font(.callout)
@@ -333,10 +340,10 @@ private struct RoleDetail: View {
                 Button("Deactivate", role: .destructive) { confirmingDeactivate = true }
                     .disabled(Date.now.timeIntervalSince(assignment.startAt) < 300 || store.isOffline)
                     .help("Azure refuses deactivation within 5 minutes of activation")
-                    .confirmationDialog("Deactivate \(assignment.roleName)?", isPresented: $confirmingDeactivate) {
+                    .confirmationDialog("Deactivate \(assignment.displayRoleName)?", isPresented: $confirmingDeactivate) {
                         Button("Deactivate", role: .destructive) { Task { await store.deactivate(assignment) } }
                     } message: {
-                        Text(assignment.scopeName)
+                        Text(assignment.displayScopeName)
                     }
             } else {
                 Button("Activate…") { activating = true }.buttonStyle(.borderedProminent).tint(Theme.accent)

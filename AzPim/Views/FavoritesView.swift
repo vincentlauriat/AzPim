@@ -128,7 +128,7 @@ private struct FavoriteEditor: View {
                         !favorite.items.contains { $0.eligibleRoleId == role.id }
                             && role.account.map { !supersession.hides($0.id, role.source) } == true
                     }) { role in
-                        Button("\(role.roleName) — \(role.scopeName)") {
+                        Button("\(role.displayRoleName) — \(role.displayScopeName)") {
                             favorite.items.append(FavoriteItem(eligibleRoleId: role.id, duration: store.defaultFavoriteDuration(for: role)))
                             try? context.save()
                         }
@@ -157,9 +157,9 @@ private struct FavoriteEditor: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(role?.roleName ?? String(localized: "No longer eligible"))
+                    Text(role?.displayRoleName ?? String(localized: "No longer eligible"))
                         .foregroundStyle(role == nil ? .secondary : .primary)
-                    Text(role?.scopeName ?? item.eligibleRoleId).font(.caption).foregroundStyle(.secondary)
+                    Text(role?.displayScopeName ?? item.eligibleRoleId).font(.caption).foregroundStyle(.secondary)
                         .lineLimit(1).truncationMode(.middle)
                 }
                 Spacer()

@@ -239,10 +239,12 @@ struct MenuBarPanel: View {
 
     private func heroCard(_ model: PanelModel) -> some View {
         let next = nextActivation(model.activations.map(\.assignment))
-        let summary = HeroSummary(activeCount: model.activations.count, nextExpiry: next.map { Countdown.hero($0.remaining) },
+        // No-break spaces: a wrapped hero line never splits « 3 h 24 min ».
+        let expiry = next.map { Countdown.full($0.remaining).replacingOccurrences(of: " ", with: "\u{00A0}") }
+        let summary = HeroSummary(activeCount: model.activations.count, nextExpiry: expiry,
                                   pendingCount: model.pendingApprovalCount(in: pendingRecords))
         return CompactHeroCard(summary: summary, activeCount: model.activations.count, remaining: next?.remaining,
-                               nextRole: next.map { "\($0.assignment.roleName) · \($0.assignment.scopeName)" },
+                               nextRole: next.map { "\($0.assignment.displayRoleName) · \($0.assignment.displayScopeName)" },
                                signedIn: !accountList.isEmpty)
     }
 
@@ -362,7 +364,7 @@ extension MenuBarPanel {
     }
 
     private func extend(_ role: EligibleRole) {
-        keyboardMessage = String(localized: "Extending \(role.roleName)…")
+        keyboardMessage = String(localized: "Extending \(role.displayRoleName)…")
         Task { keyboardMessage = await store.extend(eligibleRoleId: role.id) }
     }
 

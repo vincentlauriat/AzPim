@@ -15,7 +15,7 @@ extension RoleStore {
         defer { extending.remove(eligibleRoleId) }
         guard let role = eligibleRole(id: eligibleRoleId) else { return String(localized: "This role is no longer eligible.") }
         guard let current = activeActivations().first(where: { $0.eligibleRole?.id == eligibleRoleId }) else {
-            return String(localized: "\(role.roleName) is no longer active.")
+            return String(localized: "\(role.displayRoleName) is no longer active.")
         }
         // The active row stays busy too (`isBusy`), through the policy read, the deactivation and the waits between
         // attempts, even when a refresh replaces it meanwhile.
@@ -48,7 +48,7 @@ extension RoleStore {
     private func reactivate(_ role: EligibleRole, input: ActivationInput) async -> String {
         let roleId = role.id
         guard let current = activeActivations().first(where: { $0.eligibleRole?.id == roleId }) else {
-            return String(localized: "\(role.roleName) is no longer active.")
+            return String(localized: "\(role.displayRoleName) is no longer active.")
         }
         let currentId = current.id
         guard await deactivate(current, refreshAfter: false) else {
@@ -69,7 +69,7 @@ extension RoleStore {
         switch status {
         case .provisioned?:
             let end = Date.now.addingTimeInterval(ISODuration.seconds(input.duration) ?? 0)
-            return String(localized: "Extended until \(end.formatted(date: .omitted, time: .shortened)).")
+            return String(localized: "Extended until \(end.appFormatted(date: .omitted, time: .shortened)).")
         case .pendingApproval?:
             return String(localized: "Role deactivated; the new activation is waiting for approval.")
         case .sent?:
@@ -124,22 +124,22 @@ extension RoleStore {
                 continue
             }
             if active.contains(role.id) {
-                results.append(.init(roleName: role.roleName, status: .provisioned))
+                results.append(.init(roleName: role.displayRoleName, status: .provisioned))
                 continue
             }
             // A request still waiting (approval, or sent and not confirmed) is not submitted a second time.
             if let waiting = waitingRequest(for: role) {
-                results.append(.init(roleName: role.roleName, status: waiting.status))
+                results.append(.init(roleName: role.displayRoleName, status: waiting.status))
                 continue
             }
             await ensurePolicy(for: role)
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
             case .failure(let failure):
-                results.append(.init(roleName: role.roleName, status: nil, error: failure.userMessage))
+                results.append(.init(roleName: role.displayRoleName, status: nil, error: failure.userMessage))
             case .success(let input):
                 let status = await activate(role, input: input, viaFavorite: favoriteName, fromPanel: fromPanel,
                                             refreshAfter: false)
-                results.append(.init(roleName: role.roleName, status: status, error: rowErrors[role.id]))
+                results.append(.init(roleName: role.displayRoleName, status: status, error: rowErrors[role.id]))
             }
         }
         await refresh()
@@ -233,8 +233,8 @@ extension RoleStore {
             }
             try? context.save()   // the decision is recorded before it is announced
             guard wasPending, Date.now.timeIntervalSince(record.sentAt) < 86_400,
-                  let text = RequestDecision.notification(status: status, roleName: record.roleName,
-                                                          scopeName: record.scopeName) else { continue }
+                  let text = RequestDecision.notification(status: status, roleName: record.displayRoleName,
+                                                          scopeName: record.displayScopeName) else { continue }
             await notifications.notify(title: text.title, body: text.body)
         }
     }

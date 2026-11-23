@@ -37,8 +37,8 @@ struct ActivationSheet: View {
         let block = self.block
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Activate \(role.roleName)").font(.headline)
-                Text(role.scopeName).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                Text("Activate \(role.displayRoleName)").font(.headline)
+                Text(role.displayScopeName).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 Text(policyHint).font(.caption).foregroundStyle(.secondary)
             }
 
