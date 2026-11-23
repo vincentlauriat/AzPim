@@ -155,6 +155,8 @@ struct OnboardingView: View {
                 let account = try await action()
                 // Counted after the first refresh, then shown: the summary never reads zeros from an empty cache.
                 await store.refresh()
+                // A refresh already running (launch, panel open) queues a rerun and returns at once: wait for it.
+                while store.isRefreshing { try? await Task.sleep(for: .milliseconds(200)) }
                 added = store.summary(of: account)
                 page = 2
             } catch {

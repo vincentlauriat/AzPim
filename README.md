@@ -22,8 +22,9 @@
   <img src="docs/images/panel-fr-light.png" width="340" alt="The same panel in French, light appearance">
 </p>
 
-> **Status: 0.9, pre-1.0.** The signed DMG works with Azure CLI. It ships without a client ID, so Microsoft sign-in
-> (Entra roles and PIM groups) needs your own app registration and has not been tested live yet; it comes with 1.0.
+> **Status: 0.9, pre-1.0.** The signed DMG works with Azure CLI. The client ID is now built in, so
+> Microsoft sign-in (Entra roles and PIM groups) needs no app registration of your own; it has not been tested live
+> yet and ships with 1.0.
 
 ## Why
 
@@ -100,7 +101,7 @@ hidden: free some room or use a menu bar manager.
 | Mode | What you need | What you get |
 |---|---|---|
 | **Azure CLI** | `brew install azure-cli`, then `az login` | Azure resource roles. Nothing to register, no admin needed. |
-| **Microsoft sign-in** | An app registration client ID (Settings › Accounts) and, in most tenants, a one-time admin consent | Azure resource roles, Entra roles and PIM groups. |
+| **Microsoft sign-in** | In most tenants, a one-time admin consent (the client ID is built in; a custom one can be set in Settings › Accounts) | Azure resource roles, Entra roles and PIM groups. |
 
 The Azure CLI token cannot request the Graph PIM permissions, which is why Entra roles and PIM groups need the
 Microsoft sign-in. Delegated permissions, always on behalf of the signed-in user:
