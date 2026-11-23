@@ -4,7 +4,8 @@ import SwiftUI
 /// A favorite and the roles a run would send, read once before the grouped sheet opens.
 struct FavoriteRunRequest: Identifiable {
     let favorite: Favorite
-    /// Not active, not already waiting, policy read (`RoleStore.favoriteRolesToSend`).
+    /// Not active, not already waiting (`RoleStore.favoriteRolesToSend`); a role whose policy could not be read is
+    /// listed as not sent.
     let roles: [(item: FavoriteItem, role: EligibleRole)]
 
     var id: UUID { favorite.id }
@@ -27,7 +28,8 @@ struct FavoriteActivationSheet: View {
     @FocusState private var focused: Bool
 
     private var roles: [EligibleRole] { request.roles.map(\.role) }
-    private var needs: FavoriteNeeds { store.favoriteNeeds(request.roles) }
+    /// Asked only for the roles that will be sent: a role whose policy could not be read is not.
+    private var needs: FavoriteNeeds { store.favoriteNeeds(request.roles.filter { $0.role.policyFetchedAt != nil }) }
     private var answers: FavoriteAnswers { FavoriteAnswers(justification: justification, tickets: tickets) }
     /// The favorite spans several tenants: each role line names its tenant (same tenant key as the tickets).
     private var spansTenants: Bool {
@@ -54,7 +56,9 @@ struct FavoriteActivationSheet: View {
                         Text(roleLine(role, tenant: spansTenants))
                             .lineLimit(1).truncationMode(.middle)
                         Spacer(minLength: 4)
-                        if role.requiresTicket {
+                        if role.policyFetchedAt == nil {
+                            Text("Not sent: unreadable policy").font(.caption).foregroundStyle(Theme.warning)
+                        } else if role.requiresTicket {
                             Text("Ticket required").font(.caption).foregroundStyle(Theme.warning)
                         }
                     }
@@ -125,7 +129,8 @@ struct FavoriteActivationSheet: View {
         sending = true
         defer { sending = false }
         // The result is notified, and shows as the favorite's toast in the panel and in the Favorites editor.
-        let outcome = await store.runFavorite(request.favorite, fromPanel: fromPanel, answers: answers)
+        // Only the roles listed above as sent: never one that was active or waiting when the sheet opened.
+        let outcome = await store.runFavorite(request, answers: answers, fromPanel: fromPanel)
         await store.announce(favorite: request.favorite.name, outcome)
         close()
     }

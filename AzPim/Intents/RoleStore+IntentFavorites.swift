@@ -67,9 +67,22 @@ extension RoleStore {
         (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// `azpim://activate`: the same confirmation as « Run favorite », without answers (a role that needs a ticket, or a
+    /// justification it does not have, is listed as not sent). `confirm` false sends nothing; true sends exactly the
+    /// roles the confirmation listed as sent, on the policies it was built from. Nil when not confirmed.
+    func linkRunFavorite(_ favorite: Favorite, confirm: (String) async -> Bool) async -> FavoriteOutcome? {
+        // Same policy as the lines read (fetched if never read).
+        _ = await favoriteRolesToSend(favorite)
+        let (lines, confirmed) = favoriteConfirmation(favorite, answers: nil)
+        guard await confirm(String(localized: "A link asked AzPim to activate:") + "\n" + lines.joined(separator: "\n")) else {
+            return nil
+        }
+        return await runFavorite(favorite, fromPanel: false, requireKnownPolicy: true, only: confirmed)
+    }
+
     /// One line per role, with what `run` will do (the same skips and the same computed input), and the eligible role
-    /// ids listed as sent.
-    private func favoriteConfirmation(_ favorite: Favorite, answers: FavoriteAnswers) -> (lines: [String], sent: Set<String>) {
+    /// ids listed as sent. `answers` nil: what a link sends (no ticket).
+    private func favoriteConfirmation(_ favorite: Favorite, answers: FavoriteAnswers?) -> (lines: [String], sent: Set<String>) {
         let active = Set(activeActivations().compactMap { $0.eligibleRole?.id })
         var sent = Set<String>()
         let lines = favorite.items.map { item in

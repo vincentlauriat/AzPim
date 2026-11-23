@@ -125,6 +125,10 @@ struct ActivityTests {
             == .reactivate(ActivationInput(duration: "PT2H", justification: "deploy")))
         #expect(ExtendPlan.decide(policy: RolePolicy(maxDuration: "PT1H"), lastJustification: "d", lastDuration: "PT8H",
                                   activeSince: start, now: now) == .reactivate(ActivationInput(duration: "PT1H", justification: "d")))
+        // A policy that asks for no justification: none is sent, whatever the last one was.
+        #expect(ExtendPlan.decide(policy: RolePolicy(maxDuration: "PT8H", requiresJustification: false),
+                                  lastJustification: "old", lastDuration: "PT2H", activeSince: start, now: now)
+            == .reactivate(ActivationInput(duration: "PT2H", justification: "")))
         // No previous duration: 1 h, not the policy maximum; under a 30-minute policy, its maximum.
         #expect(ExtendPlan.decide(policy: open, lastJustification: "d", lastDuration: nil, activeSince: start, now: now)
             == .reactivate(ActivationInput(duration: "PT1H", justification: "d")))

@@ -512,9 +512,9 @@
         "zh": "資料留在你的 Mac 上"
        },
        "p": {
-        "en": "Roles, history and favorites live in a folder only you can read, with a one-click Delete All Local Data.",
-        "fr": "Rôles, historique et favoris sont dans un dossier lisible par vous seul, avec « Delete All Local Data » en un clic.",
-        "zh": "角色、歷史與我的最愛存放在只有你能讀取的資料夾中，並可一鍵「Delete All Local Data」。"
+        "en": "Roles, history and favorites live in a folder only you can read, with a one-click Delete All Local Data. Small preferences (remembered durations, ticket system, recent ticket numbers kept 8 h) are in the app's preferences file.",
+        "fr": "Rôles, historique et favoris sont dans un dossier lisible par vous seul, avec « Delete All Local Data » en un clic. Les petites préférences (durées mémorisées, système de tickets, numéros de ticket récents gardés 8 h) sont dans le fichier de préférences de l'app.",
+        "zh": "角色、歷史與我的最愛存放在只有你能讀取的資料夾中，並可一鍵「Delete All Local Data」。少量偏好設定（記住的時長、工單系統、保留 8 小時的近期工單號碼）存放在 App 的偏好設定檔中。"
        }
       },
       {

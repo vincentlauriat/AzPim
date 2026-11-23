@@ -220,13 +220,8 @@ private struct FavoriteEditor: View {
     private func runNow() async {
         guard !checking else { return }
         checking = true
-        let roles = await store.favoriteRolesToSend(favorite)
-        checking = false
-        if store.favoriteNeeds(roles).any {
-            asking = FavoriteRunRequest(favorite: favorite, roles: roles)
-        } else {
-            await store.run(favorite, fromPanel: false)
-        }
+        defer { checking = false }
+        asking = await store.startFavorite(favorite, fromPanel: false)
     }
 
     private func rename() {

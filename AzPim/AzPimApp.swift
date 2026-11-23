@@ -44,7 +44,7 @@ struct AzPimApp: App {
         _accounts = State(initialValue: accountService)
         let notifications = NotificationScheduler()
         let roleStore = RoleStore(context: container.mainContext, accounts: accountService, notifications: notifications)
-        notifications.onExtend = { roleId in await roleStore.extend(eligibleRoleId: roleId) }
+        notifications.onExtend = { roleId in await roleStore.extendFromNotification(eligibleRoleId: roleId) }
         notifications.onOpen = { roleId in
             NSApp.activate(ignoringOtherApps: true)
             // Routed like a deep link: opens the main window on that role in the Roles Window.

@@ -32,7 +32,8 @@ struct DurationDefaultsTests {
 
     @Test func anAcceptedActivationIsRemembered() async throws {
         let role = try #require(role)
-        let status = await harness.store.activate(role, input: ActivationInput(duration: "PT2H15M", justification: "Deploy"))
+        let status = await harness.store.activate(role, input: ActivationInput(duration: "PT2H15M", justification: "Deploy"),
+                                                  remembersDuration: true)
         #expect(status == .provisioned)
         #expect(harness.store.defaultDurationMinutes(for: try #require(self.role)) == 135)
         #expect(harness.store.defaultFavoriteDuration(for: try #require(self.role)) == "PT2H15M")
@@ -41,14 +42,15 @@ struct DurationDefaultsTests {
     @Test func aFailedActivationIsNotRemembered() async throws {
         let role = try #require(role)
         await arm.set(activate: [.failure(PIMError.http(status: 403, code: nil, message: "No"))], for: "e1")
-        let status = await harness.store.activate(role, input: ActivationInput(duration: "PT4H", justification: "Deploy"))
+        let status = await harness.store.activate(role, input: ActivationInput(duration: "PT4H", justification: "Deploy"),
+                                                  remembersDuration: true)
         #expect(status == nil)
         #expect(harness.store.defaultDurationMinutes(for: role) == 60)
     }
 
     @Test func theMemoryIsCappedByAShorterPolicy() async throws {
         let role = try #require(role)
-        await harness.store.activate(role, input: ActivationInput(duration: "PT6H", justification: "Deploy"))
+        await harness.store.activate(role, input: ActivationInput(duration: "PT6H", justification: "Deploy"), remembersDuration: true)
         let refreshed = try #require(self.role)
         refreshed.policy = RolePolicy(maxDuration: "PT2H")
         #expect(harness.store.defaultDurationMinutes(for: refreshed) == 120)
@@ -59,7 +61,7 @@ struct DurationDefaultsTests {
     @Test func theMemorySurvivesTheSupersede() async throws {
         let role = try #require(role)
         await harness.store.activate(role, input: ActivationInput(duration: "PT45M", justification: "Audit"),
-                                     refreshAfter: false)
+                                     refreshAfter: false, remembersDuration: true)
         let (msal, msalSources) = harness.addAccount(.msal, sortOrder: 1)
         await msalSources[0].set(eligible: [eligibility])
         await harness.refresh()
@@ -72,7 +74,7 @@ struct DurationDefaultsTests {
     /// Only the sheet's choice is remembered: a favorite keeps its own duration and does not change the memory.
     @Test func aFavoriteRunIsNotRemembered() async throws {
         let role = try #require(role)
-        await harness.store.activate(role, input: ActivationInput(duration: "PT45M", justification: "Audit"))
+        await harness.store.activate(role, input: ActivationInput(duration: "PT45M", justification: "Audit"), remembersDuration: true)
         let favorite = Favorite(name: "Deploy", items: [FavoriteItem(eligibleRoleId: role.id, duration: "PT4H",
                                                                      justification: "Deploy")])
         harness.context.insert(favorite)
@@ -89,7 +91,7 @@ struct DurationDefaultsTests {
     @Test func extendAfterTheSupersedeUsesTheRememberedDuration() async throws {
         let role = try #require(role)
         await harness.store.activate(role, input: ActivationInput(duration: "PT45M", justification: "Audit"),
-                                     refreshAfter: false)
+                                     refreshAfter: false, remembersDuration: true)
         let (msal, msalSources) = harness.addAccount(.msal, sortOrder: 1)
         await msalSources[0].set(eligible: [eligibility], assignments: [Fixture.activation(eligibility, instance: "i1")])
         await harness.refresh()
@@ -101,10 +103,11 @@ struct DurationDefaultsTests {
     }
 
     /// No duration anywhere: Extend asks for 1 h, never the policy maximum.
+    /// (Activated elsewhere: no request of AzPim, so no justification, under a policy that asks for none.)
     @Test func extendWithoutAnyDurationUsesOneHour() async throws {
+        await arm.set(policy: .success(RolePolicy(maxDuration: "PT8H", requiresJustification: false)))
         await arm.set(assignments: [Fixture.activation(eligibility, instance: "i1")])
         await harness.refresh()
-        harness.role(account, "e1")?.lastJustification = "Audit"
         let text = await harness.store.extend(eligibleRoleId: try #require(role).id)
         #expect(text.hasPrefix("Extended until"))
         #expect(harness.records().filter { $0.action == .extend }.map(\.requestedDuration) == ["PT1H"])
@@ -116,9 +119,10 @@ struct DurationDefaultsTests {
         await arm.set(eligible: [eligibility, other])
         await harness.refresh()
         await harness.store.activate(try #require(role), input: ActivationInput(duration: "PT2H", justification: "D"),
-                                     refreshAfter: false)
+                                     refreshAfter: false, remembersDuration: true)
         await harness.store.activate(try #require(harness.role(account, "e2")),
-                                     input: ActivationInput(duration: "PT3H", justification: "D"), refreshAfter: false)
+                                     input: ActivationInput(duration: "PT3H", justification: "D"), refreshAfter: false,
+                                     remembersDuration: true)
         await arm.set(eligible: [other], assignments: [])
         await harness.refresh()   // e1 is gone; the purge after the refresh prunes it
         #expect(harness.store.durationMemory.load().count == 1)
@@ -129,7 +133,8 @@ struct DurationDefaultsTests {
         let other = Fixture.eligibility("e2")
         await arm.set(eligible: [eligibility, other])
         await harness.refresh()
-        await harness.store.activate(try #require(role), input: ActivationInput(duration: "PT3H", justification: "Deploy"))
+        await harness.store.activate(try #require(role), input: ActivationInput(duration: "PT3H", justification: "Deploy"),
+                                     remembersDuration: true)
         #expect(harness.store.defaultDurationMinutes(for: try #require(harness.role(account, "e2"))) == 60)
     }
 

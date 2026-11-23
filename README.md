@@ -125,6 +125,8 @@ ticket and maximum duration.
   Microsoft's MSAL library.
 - **Local data** (roles, policies, history, favorites) sits in `~/Library/Application Support/AzPim/`, a folder
   only your user can read. *Settings › Accounts › Privacy › Delete All Local Data* signs out and wipes it.
+- **Small preferences** (remembered durations, ticket system per tenant, recent ticket numbers kept 8 h) are in the
+  app's preferences file, `~/Library/Preferences/fr.vincentlauriat.azpim.plist`.
 - **`az` is run safely:** explicit arguments, no shell, a minimal environment; a custom path must be owned by you or
   root and not writable by others.
 - Two independent security reviews ran during development; findings and accepted risks are in the
@@ -214,7 +216,7 @@ fixed by the next build.
 - [x] Step 3 — activate, deactivate and track from the menu bar
 - [x] Step 4 — extend, favorites, history, several accounts, Roles window
 - [ ] Step 5 — quality: error states, accessibility, performance, security reviews (in progress)
-- [x] Step 6 — signed and notarized DMG, automatic updates (Sparkle): 0.9.4 shipped (first AzPim build), updates verified from 0.9.1
+- [x] Step 6 — signed and notarized DMG, automatic updates (Sparkle): 0.9.4 shipped (first AzPim build), updates verified from 0.9.1; 1.0 is the next release
 - [ ] Later — Mac App Store version
 
 ## License
