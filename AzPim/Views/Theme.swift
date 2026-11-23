@@ -9,25 +9,66 @@ enum Theme {
     static let cardRadius: CGFloat = 14
 
     // MARK: Colours
+
     /// Azure blue — primary emphasis.
-    static let accent = adaptive(light: 0x0F6CBD, dark: 0x4CA3F0)
+    static let accent = Tone.accent.color
     /// Active role (the hero figure, countdowns with time left).
-    static let active = adaptive(light: 0x12A150, dark: 0x34C66B)
-    static let warning = adaptive(light: 0xD9730D, dark: 0xF5A524)
-    static let danger = adaptive(light: 0xD13438, dark: 0xF1545A)
+    static let active = Tone.active.color
+    static let warning = Tone.warning.color
+    static let danger = Tone.danger.color
     /// Favorites, PIM groups.
-    static let violet = adaptive(light: 0x7A5AF8, dark: 0x9B84FF)
+    static let violet = Tone.violet.color
 
     static let cardFill = Color.primary.opacity(0.06)
     static let cardStroke = Color.primary.opacity(0.08)
     static let track = Color.primary.opacity(0.12)
-    static let slate = adaptive(light: 0x5B6470, dark: 0x9AA3AE)
+    static let slate = Tone.slate.color
 
-    static func adaptive(light: UInt32, dark: UInt32) -> Color {
-        Color(nsColor: NSColor(name: nil) { appearance in
-            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            return NSColor(hex: isDark ? dark : light)
-        })
+    /// A colour token: light and dark, and their Increase Contrast versions (darker in light mode, lighter in dark
+    /// mode), which keep coloured text at 4.5:1 or more on a card and on its own 14 % tinted capsule
+    /// (AzPimTests › ThemeContrastTests).
+    struct Tone {
+        let light: UInt32, dark: UInt32, lightContrast: UInt32, darkContrast: UInt32
+
+        static let accent = Tone(light: 0x0F6CBD, dark: 0x4CA3F0, lightContrast: 0x0A4F8F, darkContrast: 0x8CC8FF)
+        static let active = Tone(light: 0x12A150, dark: 0x34C66B, lightContrast: 0x075C2C, darkContrast: 0x5EE08C)
+        static let warning = Tone(light: 0xD9730D, dark: 0xF5A524, lightContrast: 0x7A3D00, darkContrast: 0xFFC266)
+        static let danger = Tone(light: 0xD13438, dark: 0xF1545A, lightContrast: 0xA1191D, darkContrast: 0xFF9EA1)
+        static let violet = Tone(light: 0x7A5AF8, dark: 0x9B84FF, lightContrast: 0x5435D6, darkContrast: 0xC2B5FF)
+        static let slate = Tone(light: 0x5B6470, dark: 0x9AA3AE, lightContrast: 0x3A414A, darkContrast: 0xC4CBD3)
+        static let all: [(name: String, tone: Tone)] = [("accent", accent), ("active", active), ("warning", warning),
+                                                        ("danger", danger), ("violet", violet), ("slate", slate)]
+
+        func hex(dark isDark: Bool, increasedContrast: Bool) -> UInt32 {
+            switch (isDark, increasedContrast) {
+            case (false, false): light
+            case (true, false): dark
+            case (false, true): lightContrast
+            case (true, true): darkContrast
+            }
+        }
+
+        /// Resolved when drawn: follows the appearance and the Increase Contrast setting.
+        var color: Color {
+            let tone = self
+            return Color(nsColor: NSColor(name: nil) { appearance in
+                let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                return NSColor(hex: tone.hex(dark: isDark, increasedContrast: Theme.increasedContrast))
+            })
+        }
+    }
+
+    #if DEBUG
+    /// Snapshots of the Increase Contrast look (the system setting cannot be faked per window).
+    nonisolated(unsafe) static var contrastOverride: Bool?
+    #endif
+
+    /// System Settings › Accessibility › Display › Increase contrast.
+    static var increasedContrast: Bool {
+        #if DEBUG
+        if let contrastOverride { return contrastOverride }
+        #endif
+        return NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
     }
 
     /// Countdown tint: green with time left, orange ≤ 15 min, red ≤ 5 min.
@@ -117,11 +158,12 @@ struct DisclosureCard<Content: View>: View {
     var count: Int?
     @Binding var expanded: Bool
     @ViewBuilder var content: Content
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
             Button {
-                withAnimation(.easeInOut(duration: 0.18)) { expanded.toggle() }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: icon)
@@ -149,6 +191,7 @@ struct DisclosureCard<Content: View>: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(accessibilityText)
+            .accessibilityAddTraits(.isHeader)
             if expanded {
                 VStack(spacing: 0) { content }
                     .padding(.horizontal, 14)

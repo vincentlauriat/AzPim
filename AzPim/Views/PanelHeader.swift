@@ -49,6 +49,8 @@ struct PanelSearchField: View {
 struct CompactHeroCard: View {
     @Environment(RoleStore.self) private var store
     let summary: HeroSummary
+    /// `summary.line` with the time left in words, for VoiceOver.
+    let spokenLine: String
     let activeCount: Int
     /// Seconds left on the activation ending first (colors the expiry segment).
     let remaining: TimeInterval?
@@ -88,13 +90,14 @@ struct CompactHeroCard: View {
         .card()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
+        .announcesChanges(store.isOffline ? offlineText : nil)
     }
 
     private var accessibilityText: String {
         guard signedIn else { return String(localized: "Not signed in") }
         let next = nextRole.map { String(localized: ", ending first: \($0)") } ?? ""
         let offline = store.isOffline ? ", \(offlineText)" : ""
-        return summary.line + next + offline
+        return spokenLine + next + offline
     }
 
     private var line: Text {

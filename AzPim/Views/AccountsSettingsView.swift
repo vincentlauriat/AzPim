@@ -125,6 +125,7 @@ private struct AccountRow: View {
             }
             Button(role: .destructive, action: remove) { Image(systemName: "minus.circle") }
                 .buttonStyle(.borderless).help("Remove account")
+                .accessibilityLabel("Remove account")
         }
     }
 

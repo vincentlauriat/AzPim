@@ -146,10 +146,11 @@ struct GroupHeader: View {
     let title: String
     let count: Int
     @Binding var expanded: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.18)) { expanded.toggle() }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { expanded.toggle() }
         } label: {
             HStack(spacing: 6) {
                 SectionLabel(text: "\(title) · \(count)")
@@ -164,6 +165,7 @@ struct GroupHeader: View {
         .accessibilityLabel(expanded ? String(localized: "\(title), \(count), expanded")
                                      : String(localized: "\(title), \(count), collapsed"))
         .accessibilityHint(expanded ? String(localized: "Hide \(title)") : String(localized: "Show \(title)"))
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -177,6 +179,8 @@ struct ActiveRolesCard: View {
     /// Row selected with the keyboard, and the one whose Deactivate question ⌫ asked.
     var selectedId: String?
     var confirmId: Binding<String?>?
+    /// VoiceOver « Activate… » of a row: the Activation Sheet of its role.
+    var openSheet: ((EligibleRole) -> Void)?
     @AppStorage(PreferenceKeys.panelShowActive) private var showActive = true
     @AppStorage(PreferenceKeys.panelShowPermanentGroup) private var showPermanent = false
 
@@ -190,7 +194,8 @@ struct ActiveRolesCard: View {
             ForEach(Array(model.activations.enumerated()), id: \.element.id) { index, row in
                 if index > 0 { RowDivider() }
                 ActiveRow(assignment: row.assignment, alsoPermanent: row.alsoPermanent, showTypeTag: true,
-                          selected: row.id == selectedId, keyboardConfirm: confirmBinding(row.id))
+                          selected: row.id == selectedId, keyboardConfirm: confirmBinding(row.id),
+                          openSheet: row.assignment.eligibleRole.flatMap { role in openSheet.map { open in { open(role) } } })
                     .id(row.id)
             }
             if !model.permanents.isEmpty {
@@ -232,6 +237,8 @@ struct EligibleRolesCard: View {
     var searching = false
     /// Row selected with the keyboard.
     var selectedId: String?
+    /// VoiceOver « Activate now »: the quick activation.
+    var activateNow: ((EligibleRole) -> Void)?
     let activate: (EligibleRole) -> Void
     @AppStorage(PreferenceKeys.panelShowEligible) private var showEligible = true
     @AppStorage(PreferenceKeys.panelShowEligibleEntra) private var showEntra = true
@@ -267,6 +274,7 @@ struct EligibleRolesCard: View {
         if showHeader && !(searching && roles.isEmpty) {
             HStack {
                 SectionLabel(text: tenantAccounts.first.map { $0.tenantName ?? $0.tenantId } ?? tenant)
+                    .accessibilityAddTraits(.isHeader)
                 Spacer()
             }
             .padding(.top, 6)
@@ -309,7 +317,7 @@ struct EligibleRolesCard: View {
             ForEach(Array(roles.enumerated()), id: \.element.id) { index, role in
                 if index > 0 { RowDivider() }
                 EligibleRow(role: role, isActive: false, pending: model.waiting(role, in: pendingRecords, now: store.now)?.status,
-                            selected: role.id == selectedId) {
+                            selected: role.id == selectedId, activateNow: activateNow.map { quick in { quick(role) } }) {
                     activate(role)
                 }
                 .id(role.id)

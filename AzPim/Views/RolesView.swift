@@ -242,6 +242,7 @@ private struct StateBadge: View {
             let left = Countdown.long(end.timeIntervalSince(now))
             Text(row.heldPermanently ? String(localized: "\(left) · also permanent") : left)
                 .foregroundStyle(.green).monospacedDigit()
+                .accessibilityLabel(String(localized: "\(Countdown.spoken(end.timeIntervalSince(now))) left"))
         } else if row.heldPermanently {
             Text("Active · permanent").foregroundStyle(.green)
                 .help("Also assigned permanently: already held without an activation")

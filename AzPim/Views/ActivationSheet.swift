@@ -86,6 +86,7 @@ struct ActivationSheet: View {
             }
         }
         .padding(14)
+        .announcesChanges(store.rowErrors[role.id])
         .task {
             justification = role.lastJustification ?? ""
             ticketSystem = store.ticketSystem(for: role)
@@ -114,6 +115,7 @@ struct ActivationSheet: View {
                                     ticketNumber: role.requiresTicket ? ticket.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
                                     ticketSystem: role.requiresTicket ? ticketSystem.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
         result = await store.activate(role, input: input, fromPanel: fromPanel)
+        Announcer.post(activation: result, role: role.displayRoleName)
         if result == .provisioned { close() }
     }
 }

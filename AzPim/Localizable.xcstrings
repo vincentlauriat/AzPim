@@ -36,6 +36,16 @@
         }
       }
     },
+    "%@ activated." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ activé."
+          }
+        }
+      }
+    },
     "%@ deactivated." : {
       "localizations" : {
         "fr" : {
@@ -157,22 +167,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ — « %2$@ » conservé."
-          }
-        }
-      }
-    },
-    "%@, %@, permanent" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@, %2$@, permanent"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@, %2$@, permanent"
           }
         }
       }
@@ -602,6 +596,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activer un rôle…"
+          }
+        }
+      }
+    },
+    "Activate now" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer maintenant"
           }
         }
       }
@@ -1633,6 +1637,16 @@
         }
       }
     },
+    "Deactivate…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactiver…"
+          }
+        }
+      }
+    },
     "Deactivating %@…" : {
       "localizations" : {
         "fr" : {
@@ -1984,6 +1998,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prolongation de %1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "Extend or deactivate from the actions" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolonger ou désactiver depuis les actions"
           }
         }
       }
@@ -2892,6 +2916,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvre une recherche depuis n’importe quelle app : ↩ active avec la durée par défaut, ⌘↩ ouvre la fiche. Dans le panneau, ⌥-cliquez sur Activer pour passer la fiche."
+          }
+        }
+      }
+    },
+    "Opens the Activation Sheet" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvre la fiche d’activation"
           }
         }
       }

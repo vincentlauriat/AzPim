@@ -2,56 +2,6 @@ import AppKit
 import AzPimCore
 import SwiftUI
 
-/// Time left on an activation, by the system formatters in the app's language (rounded down to the minute, to the
-/// second in the last 5). Two styles: `compact` in the countdown capsules, `full` in sentences.
-enum Countdown {
-    /// Menu bar: « 5:16 » (hours:minutes), « 3:12 » (minutes:seconds) in the last 5 minutes.
-    static func short(_ seconds: TimeInterval) -> String {
-        let total = max(0, Int(seconds))
-        if total < 300 { return clock(total) }
-        return Duration.seconds(total)
-            .formatted(.time(pattern: .hourMinute(padHourToLength: 1, roundSeconds: .down)).locale(AppLanguage.locale))
-    }
-
-    /// Capsules (panel rows, palette): « 5h 16m » / « 5h 16min », « 42m », « 3:12 » in the last 5 minutes.
-    static func compact(_ seconds: TimeInterval) -> String {
-        let total = max(0, Int(seconds))
-        return total < 300 ? clock(total) : units(total, width: .narrow)
-    }
-
-    /// Sentences (hero line, tiles, tooltips): « 5 hr 16 min » / « 5 h 16 min », « 3:12 » in the last 5 minutes.
-    static func full(_ seconds: TimeInterval) -> String {
-        let total = max(0, Int(seconds))
-        return total < 300 ? clock(total) : units(total, width: .condensedAbbreviated)
-    }
-
-    /// « 5 hr 16 min left » / « Reste 5 h 16 min ».
-    static func long(_ seconds: TimeInterval) -> String {
-        String(localized: "\(full(seconds)) left")
-    }
-
-    /// VoiceOver: « 5 hours, 16 minutes ».
-    static func spoken(_ seconds: TimeInterval?) -> String {
-        guard let seconds else { return String(localized: "unknown") }
-        return units(max(0, Int(seconds)), width: .wide)
-    }
-
-    private static func clock(_ total: Int) -> String {
-        Duration.seconds(total).formatted(.time(pattern: .minuteSecond).locale(AppLanguage.locale))
-    }
-
-    private static func units(_ total: Int, width: Duration.UnitsFormatStyle.UnitWidth) -> String {
-        Duration.seconds(total / 60 * 60).formatted(.units(allowed: [.hours, .minutes], width: width).locale(AppLanguage.locale))
-    }
-
-    static func color(_ seconds: TimeInterval?) -> Color {
-        guard let seconds else { return .primary }
-        if seconds <= 300 { return .red }
-        if seconds <= 900 { return .orange }
-        return .primary
-    }
-}
-
 struct PanelSection<Content: View>: View {
     let title: String
     @ViewBuilder var content: Content
@@ -59,6 +9,7 @@ struct PanelSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title.uppercased()).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                .accessibilityAddTraits(.isHeader)
             content
         }
     }
@@ -82,7 +33,22 @@ struct EligibleRow: View {
     let pending: RequestStatus?
     /// Selected with the keyboard (↑/↓).
     var selected = false
+    /// VoiceOver « Activate now »: the quick activation (⌥-click, Return), nil to leave the action out.
+    var activateNow: (() -> Void)?
+    /// Opens the Activation Sheet (the Activate button).
     let activate: () -> Void
+
+    /// The Activate button is shown: no request running or waiting, not already active.
+    private var canActivate: Bool { !store.busy.contains(role.id) && !isActive && pending == nil }
+
+    private var spokenState: SpokenRoleState {
+        if isActive { return .active(remaining: nil) }
+        switch pending {
+        case .sent?: return .sent
+        case .some: return .pendingApproval
+        case nil: return .eligible
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -119,8 +85,24 @@ struct EligibleRow: View {
             }
         }
         .keyboardSelected(selected)
-        .accessibilityElement(children: .combine)
+        // One element: its buttons are reached through the actions below.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(SpokenRole.label(role: role.displayRoleName, source: role.source, scope: role.displayScopeName,
+                                             state: spokenState, viaGroup: role.memberType == .group,
+                                             error: store.rowErrors[role.id]))
+        .accessibilityHint(canActivate && !store.isOffline ? String(localized: "Opens the Activation Sheet") : "")
         .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAddTraits(canActivate && !store.isOffline ? .isButton : [])
+        .accessibilityAction {
+            if canActivate && !store.isOffline { activate() }
+        }
+        .accessibilityActions {
+            if canActivate && !store.isOffline {
+                Button("Activate…", action: activate)
+                if let activateNow { Button("Activate now", action: activateNow) }
+            }
+        }
+        .announcesChanges(store.rowErrors[role.id])
     }
 }
 
@@ -135,6 +117,8 @@ struct ActiveRow: View {
     var selected = false
     /// ⌫ on the selected row asks the same question as the button.
     var keyboardConfirm: Binding<Bool>?
+    /// VoiceOver « Activate… » (the keyboard's ⌘Return); nil leaves the action out.
+    var openSheet: (() -> Void)?
     @State private var confirming = false
 
     private var confirmShown: Binding<Bool> {
@@ -222,7 +206,35 @@ struct ActiveRow: View {
             }
         }
         .keyboardSelected(selected)
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        // One element; the label speaks the time left to the minute, so the countdown is not read every second.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(SpokenRole.label(role: assignment.displayRoleName, source: assignment.source,
+                                             scope: assignment.displayScopeName,
+                                             state: .active(remaining: assignment.endAt?.timeIntervalSince(store.now)),
+                                             alsoPermanent: alsoPermanent, error: store.rowErrors[assignment.id]))
+        .accessibilityAddTraits(selected ? [.isSelected, .updatesFrequently] : .updatesFrequently)
+        .accessibilityHint(store.isBusy(assignment) ? "" : String(localized: "Extend or deactivate from the actions"))
+        .accessibilityActions {
+            if !store.isBusy(assignment) {
+                if let role = assignment.eligibleRole {
+                    Button("Extend") { Task { Announcer.post(await store.extend(eligibleRoleId: role.id)) } }
+                }
+                Button("Deactivate…", action: askToDeactivate)
+                if let openSheet { Button("Activate…", action: openSheet) }
+            }
+        }
+        .announcesChanges(store.rowErrors[assignment.id])
+    }
+
+    /// The button's question, or why it is disabled.
+    private func askToDeactivate() {
+        if tooRecent {
+            Announcer.post(String(localized: "Can't deactivate within 5 minutes of activation."))
+        } else if store.isOffline {
+            Announcer.post(ActivationBlock.offline.message)
+        } else {
+            confirming = true
+        }
     }
 }
 
@@ -248,8 +260,10 @@ struct PermanentRow: View {
                 .help("Permanent assignment, managed by your administrator")
         }
         .frame(minHeight: 36)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(assignment.displayRoleName), \(assignment.displayScopeName), permanent")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(SpokenRole.label(role: assignment.displayRoleName, source: assignment.source,
+                                             scope: assignment.displayScopeName, state: .permanent,
+                                             account: showAccount ? assignment.account?.upn : nil))
     }
 }
 
@@ -284,6 +298,7 @@ struct ErrorBanner: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(Theme.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .onAppear { Announcer.post(account.map { String(localized: "\($0): \(kind.message)") } ?? kind.message) }
     }
 
     private var icon: String {
@@ -318,7 +333,7 @@ struct FavoriteChips: View {
                                     if store.runningFavorites.contains(favorite.id) || checking.contains(favorite.id) {
                                         ProgressView().controlSize(.mini)
                                     } else {
-                                        Image(systemName: "star.fill").imageScale(.small)
+                                        Image(systemName: "star.fill").imageScale(.small).accessibilityHidden(true)
                                     }
                                     Text(favorite.name).lineLimit(1)
                                 }
@@ -359,7 +374,7 @@ extension FavoriteChips {
         if store.favoriteNeeds(roles).any {
             ask(FavoriteRunRequest(favorite: favorite, roles: roles))
         } else {
-            await store.run(favorite)
+            Announcer.post(await store.run(favorite))
         }
     }
 }

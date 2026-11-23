@@ -131,6 +131,7 @@ struct QuickPaletteView: View {
                 .frame(height: 34)
         }
         .onChange(of: query) { session.queryChanged(firstId: makeRows(makeModel()).first?.id) }
+        .announcesChanges(session.message)
         .onAppear {
             searchFocused = true
             if let initialSelection, rows.indices.contains(initialSelection) { session.select(rows[initialSelection].id) }
@@ -206,7 +207,9 @@ struct QuickPaletteView: View {
         Task {
             switch await store.quickActivate(role) {
             case .needsSheet: sheetRole = role
-            case .sent(_?): close()
+            case .sent(let status?):
+                Announcer.post(activation: status, role: role.displayRoleName)
+                close()
             case .sent(nil): session.message = store.rowErrors[role.id] ?? String(localized: "Activation failed.")
             case .blocked(let reason): session.message = reason
             }
@@ -267,8 +270,21 @@ private struct PaletteRowView: View {
         .padding(.vertical, 5)
         .frame(minHeight: 40)
         .keyboardSelected(selected)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(SpokenRole.label(role: row.entry.name, source: source, scope: row.entry.scope,
+                                             state: spokenState, account: row.entry.tenant))
+        .accessibilityAddTraits(selected ? [.isSelected, .updatesFrequently] : .updatesFrequently)
+    }
+
+    private var source: RoleSource { row.assignment?.source ?? row.role?.source ?? .azureResource }
+
+    private var spokenState: SpokenRoleState {
+        if let assignment = row.assignment { return .active(remaining: assignment.endAt?.timeIntervalSince(store.now)) }
+        switch pending {
+        case .sent?: return .sent
+        case .some: return .pendingApproval
+        case nil: return .eligible
+        }
     }
 
     @ViewBuilder private var trailing: some View {

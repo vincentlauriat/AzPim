@@ -112,7 +112,7 @@ struct FavoriteActivationSheet: View {
         sending = true
         defer { sending = false }
         // The result shows as the favorite's toast, in the panel and in the Favorites editor.
-        await store.run(request.favorite, fromPanel: fromPanel, answers: answers)
+        Announcer.post(await store.run(request.favorite, fromPanel: fromPanel, answers: answers))
         close()
     }
 }

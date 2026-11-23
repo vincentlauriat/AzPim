@@ -15,7 +15,7 @@ enum SnapshotRunner {
     }
 
     /// Defaults suite of the renders (`@AppStorage` reads it through `.defaultAppStorage`), removed at the end.
-    private static let suiteName = "fr.vincentlauriat.azpim.snapshot"
+    static let suiteName = "fr.vincentlauriat.azpim.snapshot"
 
     struct Env {
         let container: ModelContainer
@@ -111,6 +111,7 @@ enum SnapshotRunner {
             try? env.container.mainContext.save()
             renderSheets(env: env, directory: directory, defaults: defaults)
             renderKeyboard(env: env, directory: directory, defaults: defaults)
+            renderContrast(env: env, directory: directory, defaults: defaults)
         }
     }
 
@@ -259,7 +260,7 @@ enum SnapshotRunner {
 
     // MARK: Rendering
 
-    private static func render(_ view: some View, size: NSSize, scheme: ColorScheme, to url: URL, env: Env) {
+    static func render(_ view: some View, size: NSSize, scheme: ColorScheme, to url: URL, env: Env) {
         let container = env.container, accounts = env.accounts, store = env.store
         guard let defaults = UserDefaults(suiteName: suiteName) else { return }
         let root = view
