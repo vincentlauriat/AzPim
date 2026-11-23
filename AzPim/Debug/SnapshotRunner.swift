@@ -36,6 +36,7 @@ enum SnapshotRunner {
         store.snapshotFrozen = true   // a window becoming key must not refresh the fixtures
         store.durationMemory = .inMemory()   // never the user's preferences
         store.ticketMemory = .inMemory()
+        store.snapshotRefreshed(at: frozenRefresh)   // "Updated 09:41" in every render
         return Env(container: demo, accounts: accounts, store: store)
     }
 
@@ -112,6 +113,7 @@ enum SnapshotRunner {
             renderSheets(env: env, directory: directory, defaults: defaults)
             renderKeyboard(env: env, directory: directory, defaults: defaults)
             renderContrast(env: env, directory: directory, defaults: defaults)
+            renderOnboarding(env: env, directory: directory)
         }
     }
 
@@ -375,8 +377,7 @@ extension SnapshotRunner {
         try? context.save()
     }
 
-    /// Quick-activate palette (a search and the second row selected; the global shortcut itself cannot be rendered)
-    /// and the shortcut row of Settings › General, at its default ⌃⌥P.
+    /// Palette (a search, second row selected) and the Settings › General shortcut row at its default ⌃⌥P.
     private static func renderKeyboard(env: Env, directory: URL, defaults: UserDefaults) {
         for scheme in [ColorScheme.dark, .light] {
             let suffix = scheme == .dark ? "dark" : "light"

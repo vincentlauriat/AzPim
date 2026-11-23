@@ -14,6 +14,18 @@ extension RoleStore {
         }
     }
 
+    /// Onboarding summary of an account just added (after its refresh): its eligible roles and live activations.
+    func summary(of account: Account) -> (eligible: Int, active: Int) {
+        let active = account.activeAssignments.filter { $0.assignmentType == .activated && $0.isLive() }
+        return (account.eligibleRoles.count, active.count)
+    }
+
+    /// « Account added: 12 eligible roles, 3 active » (each count pluralized on its own).
+    static func summaryText(eligible: Int, active: Int) -> String {
+        let roles = String(localized: "\(eligible) eligible roles"), held = String(localized: "\(active) active")
+        return String(localized: "Account added: \(roles), \(held)")
+    }
+
     /// Azure CLI accounts replaced by a Microsoft sign-in of the same identity, source by source.
     func supersession(_ accounts: [Account]) -> Supersession {
         AccountSupersede.supersession(accounts.map { $0.facts(loaded: loadedSources[$0.id] ?? []) })

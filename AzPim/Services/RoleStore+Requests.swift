@@ -113,9 +113,17 @@ extension RoleStore {
     @discardableResult
     func run(_ favorite: Favorite, fromPanel: Bool = true, answers: FavoriteAnswers? = nil,
              requireKnownPolicy: Bool = false, only: Set<String>? = nil) async -> String {
+        await runFavorite(favorite, fromPanel: fromPanel, answers: answers, requireKnownPolicy: requireKnownPolicy, only: only).text
+    }
+
+    /// `run`, with each role's result: links tell a full success (notified) from anything else (a dialog).
+    func runFavorite(_ favorite: Favorite, fromPanel: Bool = true, answers: FavoriteAnswers? = nil,
+                     requireKnownPolicy: Bool = false, only: Set<String>? = nil) async -> FavoriteOutcome {
         // Value copies: the model may be deleted while requests are in flight.
         let favoriteId = favorite.id, favoriteName = favorite.name, items = favorite.items
-        guard !runningFavorites.contains(favoriteId) else { return String(localized: "\(favoriteName) is already running.") }
+        guard !runningFavorites.contains(favoriteId) else {
+            return FavoriteOutcome(text: String(localized: "\(favoriteName) is already running."), results: [], alreadyRunning: true)
+        }
         runningFavorites.insert(favoriteId)
         defer { runningFavorites.remove(favoriteId) }
         let active = Set(activeActivations().compactMap { $0.eligibleRole?.id })
@@ -158,7 +166,7 @@ extension RoleStore {
         await refresh()
         let text = FavoriteRun.summary(results)
         favoriteToast = (favoriteId, text)
-        return text
+        return FavoriteOutcome(text: text, results: results)
     }
 
     /// The request of this role still waiting for its outcome, if any (`ActivationRecord.isWaiting`), including one

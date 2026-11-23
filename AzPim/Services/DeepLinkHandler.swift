@@ -47,7 +47,8 @@ enum DeepLinkHandler {
         defer { confirming = false }
         guard let favorite = store.favorite(named: name) else {
             NSApp.activate(ignoringOtherApps: true)
-            // The name comes from the link: shown short and quoted, never as instructions.
+            // The name comes from the link: shown short and quoted, never as instructions. A dialog, not a
+            // notification: any local process can open links, and must not post notifications through AzPim.
             let shown = name.count > 40 ? String(name.prefix(40)) + "…" : name
             alert(String(localized: "No favorite named “\(shown)”."), info: String(localized: "Create it in AzPim › Favorites."))
             return
@@ -91,8 +92,15 @@ enum DeepLinkHandler {
         confirm.alertStyle = .warning
         guard confirm.runModal() == .alertFirstButtonReturn else { return }
         // The policies the lines above were built from: never read again (nor sent on defaults) by the run.
-        let text = await store.run(favorite, fromPanel: false, requireKnownPolicy: true)
-        alert(favorite.name, info: text)
+        // A full success is notified (or shown as the favorite's toast when notifications are off). Anything else
+        // (a role failed, sign-in or consent needed, already running) is never silent: a dialog with the details.
+        let outcome = await store.runFavorite(favorite, fromPanel: false, requireKnownPolicy: true)
+        if outcome.isFullSuccess {
+            await store.announce(favorite: favorite.name, outcome)
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+            alert(favorite.name, info: outcome.text)
+        }
     }
 
     private static func alert(_ message: String, info: String) {

@@ -64,7 +64,12 @@ struct PanelActionList: View {
         return String(localized: "Updated \(last.appFormatted(date: .omitted, time: .shortened))")
     }
 
-    private static let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+    private static var version: String {
+        #if DEBUG
+        if SnapshotRunner.directory != nil { return "1.0" }   // screenshots show the release they document
+        #endif
+        return Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+    }
 }
 
 private struct Chevron: View {

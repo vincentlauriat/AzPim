@@ -296,6 +296,10 @@ private struct RoleDetail: View {
                 if let error = store.rowErrors[row.id] ?? row.assignment.flatMap({ store.rowErrors[$0.id] }) {
                     Text(error).font(.caption).foregroundStyle(Theme.danger).textSelection(.enabled)
                 }
+                if let result = store.lastResult, result.roleId != nil, result.roleId == row.role?.id,
+                   result.isRecent(at: store.now) {
+                    ResultStatusLine(result: result)
+                }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)

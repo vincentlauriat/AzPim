@@ -22,6 +22,8 @@ protocol NotificationCenterClient: Sendable {
     func removePending(withIdentifiers ids: [String])
     func removeDelivered(withIdentifiers ids: [String])
     func add(_ notification: LocalNotification) async
+    /// The user lets AzPim post alerts (authorized or provisional, alerts enabled).
+    func isAuthorized() async -> Bool
 }
 
 /// `UNUserNotificationCenter.current()`, read on each call: the center itself never crosses actors.
@@ -59,6 +61,12 @@ struct SystemNotificationCenter: NotificationCenterClient {
         let request = UNNotificationRequest(identifier: notification.id, content: content, trigger: trigger)
         try? await UNUserNotificationCenter.current().add(request)
     }
+
+    func isAuthorized() async -> Bool {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        // Allowed but with banners and Notification Center off: nothing would be seen.
+        return [.authorized, .provisional].contains(settings.authorizationStatus) && settings.alertSetting == .enabled
+    }
 }
 
 /// Expiry Notification (T3.9, T4.1): one local notification per activation, `lead` minutes before its end,
@@ -71,6 +79,8 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     nonisolated static let dismissAction = "DISMISS"
     nonisolated static let prefix = "expiry-"
     nonisolated static let roleKey = "eligibleRoleId"
+    /// Results of an action (activation, favorite run): never removed by `reschedule`, which only owns `prefix`.
+    nonisolated static let resultPrefix = "result-"
     private let center: any NotificationCenterClient
     /// Opens the app on the notification's role (eligible role id, nil for follow-ups).
     var onOpen: ((String?) -> Void)?
@@ -119,6 +129,16 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     /// Immediate notification (follow-ups, approval decisions).
     func notify(title: String, body: String) async {
         await center.add(LocalNotification(id: UUID().uuidString, title: title, body: body))
+    }
+
+    /// Result of an action, posted only when notifications are allowed: false when not posted (the caller's inline
+    /// status is then the only feedback, never a modal). `roleId`: a tap opens the role. No category: Extend belongs to
+    /// the expiry reminder.
+    @discardableResult
+    func notifyResult(title: String, body: String, roleId: String? = nil) async -> Bool {
+        guard await center.isAuthorized() else { return false }
+        await center.add(LocalNotification(id: Self.resultPrefix + UUID().uuidString, title: title, body: body, roleId: roleId))
+        return true
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification)
