@@ -115,7 +115,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let addedProblem {
                 // Never a green check over zeros: the account did not load, say why.
-                Label(addedProblem, systemImage: "exclamationmark.triangle.fill").font(.headline).foregroundStyle(.orange)
+                Label(addedProblem, systemImage: "exclamationmark.triangle.fill").font(.headline).foregroundStyle(Theme.warning)
             }
             if let added, addedProblem == nil || added.eligible + added.active > 0 {
                 Label(RoleStore.summaryText(eligible: added.eligible, active: added.active), systemImage: "checkmark.circle.fill")

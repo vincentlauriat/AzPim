@@ -36,6 +36,7 @@ enum SnapshotRunner {
         store.snapshotFrozen = true   // a window becoming key must not refresh the fixtures
         store.durationMemory = .inMemory()   // never the user's preferences
         store.ticketMemory = .inMemory()
+        store.snapshotRefreshed(at: frozenRefresh)   // "Updated 09:41" in every render
         return Env(container: demo, accounts: accounts, store: store)
     }
 
@@ -112,6 +113,7 @@ enum SnapshotRunner {
             renderSheets(env: env, directory: directory, defaults: defaults)
             renderKeyboard(env: env, directory: directory, defaults: defaults)
             renderContrast(env: env, directory: directory, defaults: defaults)
+            renderOnboarding(env: env, directory: directory)
         }
     }
 
@@ -375,7 +377,7 @@ extension SnapshotRunner {
         try? context.save()
     }
 
-    /// Palette (a search, second row selected), the Settings › General shortcut row at ⌃⌥P, and two onboarding pages.
+    /// Palette (a search, second row selected) and the Settings › General shortcut row at its default ⌃⌥P.
     private static func renderKeyboard(env: Env, directory: URL, defaults: UserDefaults) {
         for scheme in [ColorScheme.dark, .light] {
             let suffix = scheme == .dark ? "dark" : "light"
@@ -392,10 +394,6 @@ extension SnapshotRunner {
                    to: directory.appending(path: "settings-shortcut-\(suffix).png"), env: env)
             render(GeneralSettingsView(), size: NSSize(width: 620, height: 300), scheme: scheme,
                    to: directory.appending(path: "settings-general-\(suffix).png"), env: env)
-            for (name, page) in [("signin", OnboardingView(page: 1)), ("summary", OnboardingView(page: 2, added: (9, 3)))] {
-                render(page, size: NSSize(width: 520, height: 420), scheme: scheme,
-                       to: directory.appending(path: "onboarding-\(name)-\(suffix).png"), env: env)
-            }
         }
     }
 }

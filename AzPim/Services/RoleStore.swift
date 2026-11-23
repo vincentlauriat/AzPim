@@ -392,5 +392,8 @@ extension RoleStore {
         refreshErrors[account.id] = date == nil ? nil : [.azureResource: .offline]
         lastOnline = date
     }
+
+    /// Snapshots only: a fixed last refresh time.
+    func snapshotRefreshed(at date: Date) { lastRefresh = date }
 }
 #endif

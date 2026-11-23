@@ -42,14 +42,19 @@ extension RoleStore {
     @discardableResult
     func announce(title: String, body: String, roleId: String? = nil) async -> Bool {
         lastResult = ActionResult(title: title, body: body, roleId: roleId, date: .now)
-        return await notifications.notifyResult(title: title, body: body, roleId: roleId)
+        let posted = await notifications.notifyResult(title: title, body: body, roleId: roleId)
+        // No banner to read: VoiceOver says it (the inline status does not move the focus).
+        if !posted { VoiceOverAnnouncer.post("\(title). \(body)") }
+        return posted
     }
 
     /// A favorite's result: the favorite's toast is its inline status (no second line in the panel); the notification
     /// carries the counts only.
     @discardableResult
     func announce(favorite name: String, _ outcome: FavoriteOutcome) async -> Bool {
-        await notifications.notifyResult(title: name, body: outcome.notificationBody)
+        let posted = await notifications.notifyResult(title: name, body: outcome.notificationBody)
+        if !posted { VoiceOverAnnouncer.post("\(name). \(outcome.text)") }
+        return posted
     }
 
     /// Announces an activation Azure accepted (`status` from `activate`). A refusal is not announced: it stays on
