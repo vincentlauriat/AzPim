@@ -184,7 +184,7 @@ struct IntentTests {
         await arm.set(assignments: [Fixture.activation(Fixture.eligibility("e1", role: "Owner"), instance: "i1")])
         #expect(harness.store.lastRefresh == nil)
         var shown = ""
-        _ = try await harness.store.intentDeactivateAll(confirm: { shown = $0; return true })
+        _ = try await harness.store.intentDeactivateAll(confirm: { text, _ in shown = text; return true })
         #expect(shown.contains("Owner") && shown.contains("user@test"))
         #expect(await arm.deactivateCount == 1)
     }
@@ -199,17 +199,64 @@ struct IntentTests {
         #expect(harness.store.intentActiveSummary(active).split(separator: "\n").count == 2)
 
         await #expect(throws: RoleStore.intentCancelled) {
-            try await harness.store.intentDeactivateAll(confirm: { _ in false })
+            try await harness.store.intentDeactivateAll(confirm: { _, _ in false })
         }
         #expect(await arm.deactivateCount == 0)
 
         var shown = ""
-        let text = try await harness.store.intentDeactivateAll(confirm: { shown = $0; return true })
+        let text = try await harness.store.intentDeactivateAll(confirm: { text, _ in shown = text; return true })
         #expect(shown.contains("Owner") && shown.contains("Reader"))
         #expect(text == IntentSummary.deactivated([.init(name: "Owner"), .init(name: "Reader")]))
         #expect(await arm.deactivateCount == 2)
         #expect(harness.store.intentRoles().filter(\.active).isEmpty)
-        #expect(try await harness.store.intentDeactivateAll(confirm: { _ in true }) == "No active role to deactivate.")
+        #expect(try await harness.store.intentDeactivateAll(confirm: { _, _ in true }) == "No active role to deactivate.")
+    }
+
+    /// Roles given: only those; an empty list deactivates nothing, and says so.
+    @Test func deactivateOnlyTheGivenRoles() async throws {
+        let first = Fixture.eligibility("e1", role: "Owner"), second = Fixture.eligibility("e2", role: "Reader")
+        await arm.set(assignments: [Fixture.activation(first, instance: "i1"), Fixture.activation(second, instance: "i2")])
+        await harness.refresh()
+        var ids: [String] = []
+        let text = try await harness.store.intentDeactivateAll(only: [roleId], confirm: { _, given in ids = given; return true })
+        #expect(ids == [roleId])
+        #expect(text == IntentSummary.deactivated([.init(name: "Owner")]))
+        #expect(await arm.deactivateCount == 1)
+        var asked = false
+        let none = try await harness.store.intentDeactivateAll(only: [], confirm: { _, _ in asked = true; return true })
+        #expect(none == "None of the given roles is active.")
+        #expect(!asked)
+        #expect(await arm.deactivateCount == 1)
+    }
+
+    /// A policy unreadable when the confirmation was built is not read again by the run: that role is not sent,
+    /// even if Azure answers the policy meanwhile.
+    @Test func aFavoriteSendsOnlyWhatWasConfirmed() async throws {
+        await arm.set(policy: .failure(URLError(.timedOut)))
+        await harness.refresh()
+        let favorite = Favorite(name: "Morning", items: [FavoriteItem(eligibleRoleId: roleId, duration: "PT1H")])
+        harness.context.insert(favorite)
+        var shown = ""
+        let text = try await harness.store.intentRunFavorite(
+            .init(id: favorite.id), allowed: true, ask: { _ in nil },
+            confirm: { text in
+                shown = text
+                await arm.set(policy: .success(RolePolicy(maxDuration: "PT8H", requiresJustification: false)))
+                return true
+            })
+        #expect(shown.contains("not sent (unreadable policy)"))
+        #expect(text.contains("unreadable policy"))
+        #expect(await arm.activateCount == 0)
+        #expect(harness.records().isEmpty)
+    }
+
+    /// No refresh ever completes: the action refuses instead of acting on unfiltered data.
+    @Test func anActionRefusesWhileAzPimIsStillLoading() async throws {
+        harness.store.snapshotFrozen = true   // `refresh` returns without refreshing
+        await #expect(throws: RoleStore.IntentFailure(message: "AzPim is still loading. Try again in a moment.")) {
+            try await harness.store.intentDeactivateAll(confirm: { _, _ in true })
+        }
+        #expect(await arm.deactivateCount == 0)
     }
 
     /// The search matches the displayed and the raw names.

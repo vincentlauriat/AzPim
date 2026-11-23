@@ -63,9 +63,18 @@ extension RoleStore {
 
     /// After a cold launch by a shortcut: waits for the launch refresh (or runs one), so the lists and confirmations
     /// leave out the Azure CLI accounts a Microsoft sign-in supersedes (`loadedSources` is empty before it).
-    func intentReady() async {
+    /// The refresh it runs is a background one (a banner, never a sign-in window). Still nothing after about a minute:
+    /// throws, rather than act on unfiltered data.
+    func intentReady() async throws {
         for _ in 0..<600 where lastRefresh == nil {
-            if isRefreshing { try? await sleep(.milliseconds(100)) } else { await refresh() }
+            if isRefreshing {
+                try? await sleep(.milliseconds(100))
+            } else {
+                await TokenInteraction.$isBackground.withValue(true) { await refresh() }
+            }
+        }
+        guard lastRefresh != nil else {
+            throw IntentFailure(message: String(localized: "AzPim is still loading. Try again in a moment."))
         }
     }
 
@@ -118,7 +127,7 @@ extension RoleStore {
     func intentActivate(_ request: IntentRequest, allowed: Bool, ask: (IntentField) async throws -> String?,
                         confirm: (String) async throws -> Bool) async throws -> String {
         guard allowed else { throw Self.intentActivationDisabled }
-        await intentReady()
+        try await intentReady()
         guard let role = resolvedRole(id: request.roleId) else {
             throw IntentFailure(message: String(localized: "This role is no longer eligible."))
         }
@@ -218,15 +227,23 @@ extension RoleStore {
     /// « Deactivate all »: every timed activation of the accounts in use (only those of `ids`, eligible role ids, when
     /// given), after a confirmation listing them (with their account and tenant). Not gated by the link setting: it
     /// only removes access. Returns « 2 of 2 deactivated », with the failures.
-    func intentDeactivateAll(only ids: Set<String>? = nil, confirm: (String) async throws -> Bool) async throws -> String {
-        await intentReady()
+    /// `ids` nil: every active role; an empty set: none. `confirm` also gets the eligible role ids about to be
+    /// deactivated.
+    func intentDeactivateAll(only ids: Set<String>? = nil,
+                             confirm: (String, [String]) async throws -> Bool) async throws -> String {
+        try await intentReady()
+        // A role picked under an Azure CLI account a Microsoft sign-in supersedes counts as the same role.
+        let wanted = ids.map { Set($0.map { resolvedRole(id: $0)?.id ?? $0 }) }
         let targets = activeActivations().filter { row in
-            row.eligibleRole.map { ids?.contains($0.id) != false } == true
+            row.eligibleRole.map { wanted?.contains($0.id) != false } == true
         }
-        guard !targets.isEmpty else { return String(localized: "No active role to deactivate.") }
+        guard !targets.isEmpty else {
+            return wanted == nil ? String(localized: "No active role to deactivate.")
+                : String(localized: "None of the given roles is active.")
+        }
         let lines = targets.map { "• \($0.displayRoleName) — \($0.displayScopeName)\n   \(Self.accountLine($0.account))" }
         let text = String(localized: "Deactivate these roles?") + "\n" + lines.joined(separator: "\n")
-        guard try await confirm(text) else { throw Self.intentCancelled }
+        guard try await confirm(text, targets.compactMap { $0.eligibleRole?.id }) else { throw Self.intentCancelled }
         var results: [IntentSummary.Deactivation] = []
         for assignment in targets {
             // Copies: a refresh may delete the row while its request runs.

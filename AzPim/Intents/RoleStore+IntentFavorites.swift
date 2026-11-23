@@ -19,7 +19,7 @@ extension RoleStore {
     func intentRunFavorite(_ request: IntentFavoriteRequest, allowed: Bool, ask: (IntentField) async throws -> String?,
                            confirm: (String) async throws -> Bool) async throws -> String {
         guard allowed else { throw Self.intentActivationDisabled }
-        await intentReady()
+        try await intentReady()
         let favorites = (try? context.fetch(FetchDescriptor<Favorite>())) ?? []
         guard let favorite = favorites.first(where: { $0.id == request.id }) else {
             throw IntentFailure(message: String(localized: "This favorite no longer exists."))
@@ -27,10 +27,11 @@ extension RoleStore {
         if isOffline { throw IntentFailure(message: ActivationBlock.offline.message) }
         let toSend = await favoriteRolesToSend(favorite).filter { $0.role.policyFetchedAt != nil }
         let answers = try await favoriteAnswers(for: toSend, request: request, ask: ask)
-        let text = String(localized: "Activate “\(favorite.name)”?") + "\n"
-            + favoriteConfirmationLines(favorite, answers: answers).joined(separator: "\n")
+        let (lines, confirmed) = favoriteConfirmation(favorite, answers: answers)
+        let text = String(localized: "Activate “\(favorite.name)”?") + "\n" + lines.joined(separator: "\n")
         guard try await confirm(text) else { throw Self.intentCancelled }
-        return await run(favorite, fromPanel: false, answers: answers, requireKnownPolicy: true)
+        // Exactly the roles the confirmation listed as sent, on the policies it was built from.
+        return await run(favorite, fromPanel: false, answers: answers, requireKnownPolicy: true, only: confirmed)
     }
 
     private func favoriteAnswers(for roles: [(item: FavoriteItem, role: EligibleRole)], request: IntentFavoriteRequest,
@@ -66,10 +67,12 @@ extension RoleStore {
         (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// One line per role, with what `run` will do: the same skips and the same computed input.
-    private func favoriteConfirmationLines(_ favorite: Favorite, answers: FavoriteAnswers) -> [String] {
+    /// One line per role, with what `run` will do (the same skips and the same computed input), and the eligible role
+    /// ids listed as sent.
+    private func favoriteConfirmation(_ favorite: Favorite, answers: FavoriteAnswers) -> (lines: [String], sent: Set<String>) {
         let active = Set(activeActivations().compactMap { $0.eligibleRole?.id })
-        return favorite.items.map { item in
+        var sent = Set<String>()
+        let lines = favorite.items.map { item in
             guard let role = favoriteRole(for: item) else {
                 return "• " + String(localized: "Unknown role") + "\n   " + String(localized: "no longer eligible")
             }
@@ -85,6 +88,7 @@ extension RoleStore {
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification,
                                      answers: answers, tenantId: role.account?.tenantId ?? "") {
             case .success(let input):
+                sent.insert(role.id)
                 let duration = ISODuration.label(ISODuration.seconds(input.duration) ?? 0)
                 let ticket = Self.ticketText(input).map { ", \($0)" } ?? ""
                 return heading + "\(account), \(duration), “\(input.justification)”\(ticket)"
@@ -92,5 +96,6 @@ extension RoleStore {
                 return heading + String(localized: "\(account): not sent (\(failure.userMessage))")
             }
         }
+        return (lines, sent)
     }
 }

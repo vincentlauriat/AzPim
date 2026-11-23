@@ -109,7 +109,7 @@ struct ListActiveRolesIntent: AppIntent {
     @MainActor
     private func run() async throws -> ([RoleEntity], String) {
         let store = try IntentSupport.store()
-        await store.intentReady()
+        try await store.intentReady()
         let active = store.intentRoles().filter(\.active)
         return (active.map(RoleEntity.init), store.intentActiveSummary(active))
     }
@@ -121,7 +121,7 @@ struct DeactivateAllIntent: AppIntent {
         Deactivates every active Azure role, or only the roles given, after you confirm the list.
         """)
 
-    @Parameter(title: "Roles", description: "Leave empty to deactivate every active role.")
+    @Parameter(title: "Roles", description: "Not set: every active role. An empty list deactivates nothing.")
     var roles: [RoleEntity]?
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
@@ -133,11 +133,14 @@ struct DeactivateAllIntent: AppIntent {
     private func run() async throws -> String {
         let store = try IntentSupport.store()
         let only = roles.map { Set($0.map(\.id)) }
-        return try await store.intentDeactivateAll(only: only, confirm: { text in
-            // macOS 14 confirms on the Roles parameter (one role shown; the dialog lists them all).
-            let shown = store.intentRoles().first { $0.active && only?.contains($0.id) != false }
-            guard let shown else { return false }
-            return try await IntentSupport.confirm(self, text, on: $roles, showing: RoleEntity(shown))
+        return try await store.intentDeactivateAll(only: only, confirm: { text, ids in
+            // macOS 14 only: the confirmation is asked on the Roles parameter, showing the first role deactivated
+            // (the dialog lists them all).
+            var shown: RoleEntity?
+            if #unavailable(macOS 15.0) {
+                shown = store.intentRoles().first { $0.id == ids.first }.map(RoleEntity.init)
+            }
+            return try await IntentSupport.confirm(self, text, on: $roles, showing: shown)
         })
     }
 }

@@ -1069,6 +1069,16 @@
         }
       }
     },
+    "AzPim is still loading. Try again in a moment." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim est encore en cours de chargement. Réessayez dans un instant."
+          }
+        }
+      }
+    },
     "AzPim isn't ready yet. Open AzPim, then try again." : {
       "localizations" : {
         "fr" : {
@@ -2277,16 +2287,6 @@
         }
       }
     },
-    "Leave empty to deactivate every active role." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Laissez vide pour désactiver tous les rôles actifs."
-          }
-        }
-      }
-    },
     "Leave empty to keep each role’s own" : {
       "localizations" : {
         "fr" : {
@@ -2766,6 +2766,16 @@
         }
       }
     },
+    "None of the given roles is active." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun des rôles indiqués n’est actif."
+          }
+        }
+      }
+    },
     "Not available in this build yet (no app registration client ID)." : {
       "localizations" : {
         "fr" : {
@@ -2792,6 +2802,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Non confirmé : rien n’a été envoyé."
+          }
+        }
+      }
+    },
+    "Not set: every active role. An empty list deactivates nothing." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non renseigné : tous les rôles actifs. Une liste vide ne désactive rien."
           }
         }
       }
@@ -4030,6 +4050,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "n’est plus éligible"
+          }
+        }
+      }
+    },
+    "not confirmed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non confirmé"
           }
         }
       }

@@ -44,13 +44,14 @@ enum IntentSupport {
 
     /// Asks Shortcuts to confirm `text`; Cancel throws, so nothing is sent. True once confirmed. macOS 14 has no
     /// non-deprecated intent-level confirmation with a dialog: there, the confirmation is asked on one of the action's
-    /// parameters (`parameter`, showing `value`), with the same text.
+    /// parameters (`parameter`, showing `value`), with the same text; without a value nothing is confirmed.
     static func confirm<Value>(_ intent: some AppIntent, _ text: String, on parameter: IntentParameter<Value>,
-                               showing value: Value.ValueType) async throws -> Bool {
+                               showing value: Value.ValueType?) async throws -> Bool {
         if #available(macOS 15.0, *) {
             try await intent.requestConfirmation(actionName: .go, dialog: dialog(text))
             return true
         }
+        guard let value else { return false }
         return try await parameter.requestConfirmation(for: value, dialog: dialog(text))
     }
 }

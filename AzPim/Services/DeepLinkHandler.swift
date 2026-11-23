@@ -69,6 +69,10 @@ enum DeepLinkHandler {
             if store.waitingRequest(for: role) != nil {
                 return heading + String(localized: "\(account): skipped (already requested, waiting)")
             }
+            // Same skip as the run (`requireKnownPolicy`): never sent on a policy's defaults.
+            if role.policyFetchedAt == nil {
+                return heading + String(localized: "\(account): not sent (\(String(localized: "unreadable policy")))")
+            }
             // Same computation as the run itself: what is shown is what will be sent (capped duration, fallback reason).
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
             case .success(let input):
@@ -86,7 +90,8 @@ enum DeepLinkHandler {
         cancel.keyEquivalent = "\r"
         confirm.alertStyle = .warning
         guard confirm.runModal() == .alertFirstButtonReturn else { return }
-        let text = await store.run(favorite, fromPanel: false)
+        // The policies the lines above were built from: never read again (nor sent on defaults) by the run.
+        let text = await store.run(favorite, fromPanel: false, requireKnownPolicy: true)
         alert(favorite.name, info: text)
     }
 
