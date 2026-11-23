@@ -30,8 +30,9 @@ struct TicketMemory {
     }
 }
 
-/// Ticket fields (1.0 item 7): prefilled in the Activation Sheet and the grouped favorite sheet only, never sent by a
-/// quick activation, a link or Shortcuts on their own.
+/// Ticket fields (1.0 item 7): prefilled in the Activation Sheet and the grouped favorite sheet only. A remembered
+/// ticket is never sent on its own: the quick path opens the sheet, and a favorite run without answers does not send
+/// a role that requires a ticket.
 extension RoleStore {
     /// Ticket system last used in the role's tenant, else empty.
     func ticketSystem(for role: EligibleRole) -> String {
@@ -92,10 +93,20 @@ extension RoleStore {
         return roles
     }
 
-    /// What the grouped favorite sheet must ask before `run` can send every role (nothing: run it at once).
-    func favoriteNeeds(_ favorite: Favorite) async -> FavoriteNeeds {
-        FavoriteRun.needs(await favoriteRolesToSend(favorite).map {
-            FavoriteRun.Pending(item: $0.item, policy: $0.role.policy, lastJustification: $0.role.lastJustification)
+    /// What the grouped favorite sheet must ask before `run` can send these roles (nothing: run it at once).
+    func favoriteNeeds(_ roles: [(item: FavoriteItem, role: EligibleRole)]) -> FavoriteNeeds {
+        FavoriteRun.needs(roles.map {
+            FavoriteRun.Pending(item: $0.item, policy: $0.role.policy, lastJustification: $0.role.lastJustification,
+                                tenantId: $0.role.account?.tenantId ?? "")
         })
+    }
+
+    /// Tickets the grouped sheet starts with: when every ticket role is in one tenant, that tenant's system and the
+    /// last number of one of these roles (8 h); with several tenants, an empty pair per tenant.
+    func favoriteTicketPrefill(_ roles: [EligibleRole], needs: FavoriteNeeds) -> [String: FavoriteAnswers.Ticket] {
+        guard needs.ticketTenants.count == 1, let tenant = needs.ticketTenants.first else { return [:] }
+        let ticketRoles = roles.filter(\.requiresTicket)
+        return [tenant: FavoriteAnswers.Ticket(system: ticketRoles.first.map(ticketSystem(for:)) ?? "",
+                                               number: recentTicket(for: ticketRoles))]
     }
 }

@@ -323,10 +323,6 @@ extension SnapshotRunner {
             env.store.rememberTicket(ActivationInput(duration: "PT30M", justification: "", ticketNumber: "INC0042137",
                                                      ticketSystem: "ServiceNow"), for: ticket, at: .now - 3600)
         }
-        let incident = Favorite(name: "Incident response", items: [ticket, fresh].compactMap { $0 }.map {
-            FavoriteItem(eligibleRoleId: $0.id, duration: "PT30M")
-        }, sortOrder: 9)
-        context.insert(incident)
         try? context.save()
         let sheets = [("remembered", remembered), ("justification", fresh), ("ticket", ticket), ("pending", waiting)]
         for scheme in [ColorScheme.dark, .light] {
@@ -342,10 +338,38 @@ extension SnapshotRunner {
             let favorite = ((try? context.fetch(FetchDescriptor<Favorite>())) ?? []).first { $0.name == "Morning deploy" }
             render(FavoritesView(initialSelection: favorite?.id), size: NSSize(width: 900, height: 520), scheme: scheme,
                    to: directory.appending(path: "favorite-editor-\(suffix).png"), env: env)
-            render(FavoriteActivationSheet(favorite: incident) {}, size: NSSize(width: Theme.panelWidth, height: 1400),
-                   scheme: scheme, to: directory.appending(path: "sheet-favorite-ticket-\(suffix).png"), env: env)
         }
-        context.delete(incident)
+        renderFavoriteSheets(env: env, directory: directory, defaults: defaults, roles: [ticket, fresh].compactMap { $0 })
+    }
+
+    /// Grouped favorite sheet: a ticket role and a role without a justification in one tenant (prefilled), then the
+    /// same with a ticket role of a second tenant (one empty ticket per tenant). The favorites are never saved.
+    private static func renderFavoriteSheets(env: Env, directory: URL, defaults: UserDefaults, roles: [EligibleRole]) {
+        let context = env.container.mainContext
+        let other = Account(mode: .azureCLI, upn: "v.admin@fabrikam.com", objectId: "oid-2", tenantId: "tenant-fabrikam",
+                            tenantName: "Fabrikam", sortOrder: 9)
+        let foreign = EligibleRole(id: "f-secreader", account: other, source: .entraRole, roleDefinitionId: "rd-secreader",
+                                   roleName: "Security Reader", scope: "/", scopeName: "Directory", scopeType: "directory")
+        foreign.policy = RolePolicy(maxDuration: "PT1H", requiresTicket: true)
+        context.insert(other)
+        context.insert(foreign)
+        func request(_ name: String, _ list: [EligibleRole]) -> FavoriteRunRequest {
+            let items = list.map { FavoriteItem(eligibleRoleId: $0.id, duration: "PT30M") }
+            return FavoriteRunRequest(favorite: Favorite(name: name, items: items),
+                                      roles: zip(items, list).map { (item: $0, role: $1) })
+        }
+        let requests = [("ticket", request("Incident response", roles)),
+                        ("tenants", request("Incident response", roles + [foreign]))]
+        for scheme in [ColorScheme.dark, .light] {
+            defaults.removePersistentDomain(forName: suiteName)
+            for (name, request) in requests {
+                render(FavoriteActivationSheet(request: request) {}, size: NSSize(width: Theme.panelWidth, height: 1400),
+                       scheme: scheme, to: directory.appending(path: "sheet-favorite-\(name)-\(scheme == .dark ? "dark" : "light").png"),
+                       env: env)
+            }
+        }
+        context.delete(foreign)
+        context.delete(other)
         try? context.save()
     }
 

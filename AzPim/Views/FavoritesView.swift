@@ -103,8 +103,10 @@ private struct FavoriteEditor: View {
     let others: [String]
     @State private var name = ""
     @State private var nameError: String?
-    /// The grouped sheet asks for the justification and the ticket first.
-    @State private var asking = false
+    /// The grouped sheet asks for the justification and the tickets first.
+    @State private var asking: FavoriteRunRequest?
+    /// The roles and policies are being read before the run or the grouped sheet.
+    @State private var checking = false
 
     var body: some View {
         Form {
@@ -140,17 +142,10 @@ private struct FavoriteEditor: View {
             }
             Section {
                 HStack {
-                    Button("Run now") {
-                        Task {
-                            if await store.favoriteNeeds(favorite).any {
-                                asking = true
-                            } else {
-                                await store.run(favorite, fromPanel: false)
-                            }
-                        }
-                    }
-                        .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id) || store.isOffline)
-                    if store.runningFavorites.contains(favorite.id) { ProgressView().controlSize(.small) }
+                    Button("Run now") { Task { await runNow() } }
+                        .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id) || checking
+                                  || store.isOffline)
+                    if store.runningFavorites.contains(favorite.id) || checking { ProgressView().controlSize(.small) }
                     if let toast = store.favoriteToast, toast.favoriteId == favorite.id {
                         Text(toast.text).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                     }
@@ -158,8 +153,8 @@ private struct FavoriteEditor: View {
             }
         }
         .formStyle(.grouped)
-        .sheet(isPresented: $asking) {
-            FavoriteActivationSheet(favorite: favorite, fromPanel: false) { asking = false }.frame(width: 380)
+        .sheet(item: $asking) { request in
+            FavoriteActivationSheet(request: request, fromPanel: false) { asking = nil }.frame(width: 380)
         }
         .onAppear { name = favorite.name }
         .onDisappear(perform: rename)
@@ -191,7 +186,7 @@ private struct FavoriteEditor: View {
                       prompt: Text(role?.lastJustification ?? String(localized: "Uses the last justification of this role")))
                 .font(.callout)
             if role?.requiresTicket == true {
-                Text("Asks for the ticket number when the favorite runs.").font(.caption).foregroundStyle(.orange)
+                Text("Asks for the ticket when the favorite runs.").font(.caption).foregroundStyle(.orange)
             }
         }
         .padding(.vertical, 2)
@@ -219,6 +214,19 @@ private struct FavoriteEditor: View {
                     favorite.items[index].justification = value.isEmpty ? nil : String(value.prefix(500))
                     try? context.save()
                 })
+    }
+
+    /// Reads the roles once: runs at once, or hands them to the grouped sheet.
+    private func runNow() async {
+        guard !checking else { return }
+        checking = true
+        let roles = await store.favoriteRolesToSend(favorite)
+        checking = false
+        if store.favoriteNeeds(roles).any {
+            asking = FavoriteRunRequest(favorite: favorite, roles: roles)
+        } else {
+            await store.run(favorite, fromPanel: false)
+        }
     }
 
     private func rename() {

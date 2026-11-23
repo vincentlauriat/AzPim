@@ -831,12 +831,12 @@
         }
       }
     },
-    "Asks for the ticket number when the favorite runs." : {
+    "Asks for the ticket when the favorite runs." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le numéro de ticket est demandé au lancement du favori."
+            "value" : "Le ticket est demandé au lancement du favori."
           }
         }
       }
@@ -1828,6 +1828,9 @@
           }
         }
       }
+    },
+    "INC0012345" : {
+      "shouldTranslate" : false
     },
     "Icon" : {
       "localizations" : {
@@ -2874,6 +2877,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remplacé par la connexion Microsoft"
+          }
+        }
+      }
+    },
+    "Replaces each role’s justification." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplace la justification de chaque rôle."
           }
         }
       }

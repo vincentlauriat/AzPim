@@ -79,7 +79,7 @@ struct MenuBarPanel: View {
     @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" || $0.statusRaw == "sent" })
     private var pendingRecords: [ActivationRecord]
     @State private var activating: EligibleRole?
-    @State private var askingFavorite: Favorite?   // grouped favorite sheet: justification and ticket asked once
+    @State private var askingFavorite: FavoriteRunRequest?   // grouped favorite sheet: justification, tickets
     @State private var contentHeight: CGFloat = 0
     @State private var query: String
     @FocusState private var searchFocused: Bool
@@ -128,8 +128,8 @@ struct MenuBarPanel: View {
         Group {
             if let role = activating {
                 ActivationSheet(role: role) { activating = nil }.frame(width: Theme.panelWidth)
-            } else if let favorite = askingFavorite {
-                FavoriteActivationSheet(favorite: favorite) { askingFavorite = nil }.frame(width: Theme.panelWidth)
+            } else if let request = askingFavorite {
+                FavoriteActivationSheet(request: request) { askingFavorite = nil }.frame(width: Theme.panelWidth)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView(.vertical) {

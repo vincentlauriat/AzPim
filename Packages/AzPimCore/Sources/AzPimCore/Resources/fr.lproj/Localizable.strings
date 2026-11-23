@@ -55,7 +55,7 @@
 "The ticket number is limited to 100 characters." = "Le numéro de ticket est limité à 100 caractères.";
 "This name is already used" = "Ce nom est déjà utilisé";
 "This role needs MFA: open the panel to activate it again." = "Ce rôle exige la MFA : ouvrez le panneau pour l’activer à nouveau.";
-"This role needs a ticket number: open the panel to activate it again." = "Ce rôle exige un numéro de ticket : ouvrez le panneau pour l’activer à nouveau.";
+"This role needs a ticket: open the panel to activate it again." = "Ce rôle exige un ticket : ouvrez le panneau pour l’activer à nouveau.";
 "This role needs approval: extending would end the current activation before the approval." = "Ce rôle exige une approbation : le prolonger mettrait fin à l’activation en cours avant l’approbation.";
 "Ticket number" = "Numéro de ticket";
 "Ticket number required by policy" = "Numéro de ticket exigé par la stratégie";

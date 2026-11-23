@@ -61,48 +61,74 @@ struct FavoriteAnswersTests {
     let open = RolePolicy(maxDuration: "PT8H", requiresJustification: false)
     let item = FavoriteItem(eligibleRoleId: "r", duration: "PT2H")
 
-    @Test func needsATicketOrAMissingJustification() {
-        #expect(FavoriteRun.needs([.init(item: item, policy: open, lastJustification: nil)]) == FavoriteNeeds())
-        #expect(!FavoriteRun.needs([.init(item: item, policy: open, lastJustification: nil)]).any)
-        #expect(FavoriteRun.needs([.init(item: item, policy: ticket, lastJustification: "x")]) == FavoriteNeeds(ticket: true))
-        let required = RolePolicy(requiresJustification: true)
-        #expect(FavoriteRun.needs([.init(item: item, policy: required, lastJustification: nil)])
-                == FavoriteNeeds(justification: true))
-        // A justification of the item or a last one is enough.
-        #expect(!FavoriteRun.needs([.init(item: item, policy: required, lastJustification: "deploy")]).any)
-        let own = FavoriteItem(eligibleRoleId: "r", justification: "mine")
-        #expect(!FavoriteRun.needs([.init(item: own, policy: required, lastJustification: nil)]).any)
+    private func pending(_ item: FavoriteItem, _ policy: RolePolicy, last: String? = nil,
+                         tenant: String = "T1") -> FavoriteRun.Pending {
+        FavoriteRun.Pending(item: item, policy: policy, lastJustification: last, tenantId: tenant)
     }
 
-    /// The ticket goes to the roles that require one; a typed justification to every role.
+    @Test func needsATicketOrAMissingJustification() {
+        #expect(FavoriteRun.needs([pending(item, open)]) == FavoriteNeeds())
+        #expect(!FavoriteRun.needs([pending(item, open)]).any)
+        #expect(FavoriteRun.needs([pending(item, ticket, last: "x")])
+                == FavoriteNeeds(ticketTenants: ["t1"], replacesJustification: true))
+        let required = RolePolicy(requiresJustification: true)
+        #expect(FavoriteRun.needs([pending(item, required)]) == FavoriteNeeds(justification: true))
+        // A justification of the item or a last one is enough, and a typed one would replace it.
+        #expect(FavoriteRun.needs([pending(item, required, last: "deploy")]) == FavoriteNeeds(replacesJustification: true))
+        let own = FavoriteItem(eligibleRoleId: "r", justification: "mine")
+        #expect(!FavoriteRun.needs([pending(own, required)]).any)
+    }
+
+    /// One ticket per tenant, in the favorite's order, never twice.
+    @Test func ticketTenantsAreDistinct() {
+        let needs = FavoriteRun.needs([pending(item, ticket, tenant: "B"), pending(item, ticket, tenant: "A"),
+                                       pending(item, ticket, tenant: "b"), pending(item, open, tenant: "C")])
+        #expect(needs.ticketTenants == ["b", "a"])
+    }
+
+    /// The ticket of the role's tenant goes to the roles that require one; a typed justification to every role.
     @Test func answersReachEveryRole() throws {
-        let answers = FavoriteAnswers(justification: " Incident 42 ", ticketSystem: " ServiceNow ", ticketNumber: " INC42 ")
-        let withTicket = try FavoriteRun.input(for: item, policy: ticket, lastJustification: "old", answers: answers).get()
+        let answers = FavoriteAnswers(justification: " Incident 42 ",
+                                      tickets: ["t1": .init(system: " ServiceNow ", number: " INC42 ")])
+        let withTicket = try FavoriteRun.input(for: item, policy: ticket, lastJustification: "old", answers: answers,
+                                               tenantId: "T1").get()
         #expect(withTicket == ActivationInput(duration: "PT2H", justification: "Incident 42", ticketNumber: "INC42",
                                               ticketSystem: "ServiceNow"))
-        let without = try FavoriteRun.input(for: item, policy: open, lastJustification: "old", answers: answers).get()
+        let without = try FavoriteRun.input(for: item, policy: open, lastJustification: "old", answers: answers,
+                                            tenantId: "T1").get()
         #expect(without == ActivationInput(duration: "PT2H", justification: "Incident 42"))
         // No typed justification: each role keeps its own.
-        let blank = FavoriteAnswers(ticketSystem: "Jira", ticketNumber: "J-1")
-        #expect(try FavoriteRun.input(for: item, policy: ticket, lastJustification: "old", answers: blank).get().justification
-                == "old")
+        let blank = FavoriteAnswers(tickets: ["t1": .init(system: "Jira", number: "J-1")])
+        #expect(try FavoriteRun.input(for: item, policy: ticket, lastJustification: "old", answers: blank,
+                                      tenantId: "T1").get().justification == "old")
+    }
+
+    /// A ticket of one tenant never goes to a role of another.
+    @Test func ticketsStayInTheirTenant() {
+        let answers = FavoriteAnswers(tickets: ["t1": .init(system: "Jira", number: "J-1")])
+        #expect(FavoriteRun.input(for: item, policy: ticket, lastJustification: "x", answers: answers, tenantId: "T2")
+                == .failure(.empty("ticket")))
     }
 
     /// Without answers (a link, Shortcuts) or with an incomplete ticket, a ticket role is not sent.
     @Test func noTicketNoRequest() {
         #expect(FavoriteRun.input(for: item, policy: ticket, lastJustification: "x") == .failure(.empty("ticket")))
-        let noSystem = FavoriteAnswers(justification: "j", ticketNumber: "INC1")
-        #expect(FavoriteRun.input(for: item, policy: ticket, lastJustification: "x", answers: noSystem) == .failure(.empty("ticket")))
+        let noSystem = FavoriteAnswers(justification: "j", tickets: ["t1": .init(number: "INC1")])
+        #expect(FavoriteRun.input(for: item, policy: ticket, lastJustification: "x", answers: noSystem, tenantId: "T1")
+                == .failure(.empty("ticket")))
     }
 
     @Test func blockFollowsTheNeeds() {
-        let needs = FavoriteNeeds(justification: true, ticket: true)
+        let needs = FavoriteNeeds(justification: true, ticketTenants: ["a", "b"])
+        let both: [String: FavoriteAnswers.Ticket] = ["a": .init(system: "Jira", number: "1"), "b": .init(system: "SN", number: "2")]
         #expect(FavoriteRun.block(needs, answers: FavoriteAnswers()) == .justificationRequired)
         #expect(FavoriteRun.block(needs, answers: FavoriteAnswers(justification: "j")) == .ticketSystemRequired)
-        #expect(FavoriteRun.block(needs, answers: FavoriteAnswers(justification: "j", ticketSystem: "Jira")) == .ticketRequired)
-        #expect(FavoriteRun.block(needs, answers: FavoriteAnswers(justification: "j", ticketSystem: "Jira", ticketNumber: "1"))
-                == nil)
-        #expect(FavoriteRun.block(FavoriteNeeds(ticket: true), answers: FavoriteAnswers(ticketSystem: "Jira", ticketNumber: "1"))
-                == nil)
+        #expect(FavoriteRun.block(needs, answers: FavoriteAnswers(justification: "j", tickets: ["a": .init(system: "Jira")]))
+                == .ticketRequired)
+        // The second tenant is checked too.
+        #expect(FavoriteRun.block(needs, answers: FavoriteAnswers(justification: "j", tickets: ["a": both["a"]!]))
+                == .ticketSystemRequired)
+        #expect(FavoriteRun.block(needs, answers: FavoriteAnswers(justification: "j", tickets: both)) == nil)
+        #expect(FavoriteRun.block(FavoriteNeeds(ticketTenants: ["a"]), answers: FavoriteAnswers(tickets: both)) == nil)
     }
 }

@@ -135,7 +135,7 @@ extension RoleStore {
             }
             await ensurePolicy(for: role)
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification,
-                                     answers: answers) {
+                                     answers: answers, tenantId: role.account?.tenantId ?? "") {
             case .failure(let failure):
                 results.append(.init(roleName: role.displayRoleName, status: nil, error: failure.userMessage))
             case .success(let input):

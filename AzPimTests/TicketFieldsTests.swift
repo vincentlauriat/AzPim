@@ -102,6 +102,11 @@ struct TicketPrefillTests {
         await harness.refresh()
     }
 
+    /// The roles a run would send, built without the async read (policies are already cached here).
+    private func toSend(_ roles: [EligibleRole]) -> [(item: FavoriteItem, role: EligibleRole)] {
+        roles.map { (item: FavoriteItem(eligibleRoleId: $0.id, duration: "PT1H"), role: $0) }
+    }
+
     private func ticketRole() throws -> EligibleRole { try #require(harness.role(account, "e1")) }
     private func openRole() throws -> EligibleRole { try #require(harness.role(account, "g1")) }
 
@@ -147,8 +152,10 @@ struct TicketPrefillTests {
         let favorite = Favorite(name: "Incident", items: [FavoriteItem(eligibleRoleId: try ticketRole().id, duration: "PT1H"),
                                                           FavoriteItem(eligibleRoleId: try openRole().id, duration: "PT1H")])
         harness.context.insert(favorite)
-        #expect(await harness.store.favoriteNeeds(favorite) == FavoriteNeeds(justification: true, ticket: true))
-        let answers = FavoriteAnswers(justification: "Incident 42", ticketSystem: "ServiceNow", ticketNumber: "INC42")
+        let roles = await harness.store.favoriteRolesToSend(favorite)
+        #expect(harness.store.favoriteNeeds(roles) == FavoriteNeeds(justification: true, ticketTenants: ["tenant-1"]))
+        let answers = FavoriteAnswers(justification: "Incident 42",
+                                      tickets: ["tenant-1": .init(system: "ServiceNow", number: "INC42")])
         await harness.store.run(favorite, answers: answers)
         #expect(harness.records().map(\.status) == [.provisioned, .provisioned])
         #expect(await arm.inputs == [ActivationInput(duration: "PT1H", justification: "Incident 42", ticketNumber: "INC42",
@@ -171,11 +178,49 @@ struct TicketPrefillTests {
         #expect(harness.records().map(\.roleName) == ["Global Reader"])
     }
 
+    /// One tenant: the grouped sheet starts from its system and the recent number. Two tenants: one empty ticket each.
+    @Test func groupedPrefillOnlyWithinOneTenant() async throws {
+        remember("INC1", for: try ticketRole(), hoursAgo: 1)
+        let single = toSend([try ticketRole(), try openRole()])
+        #expect(harness.store.favoriteTicketPrefill(single.map(\.role), needs: harness.store.favoriteNeeds(single))
+                == ["tenant-1": .init(system: "ServiceNow", number: "INC1")])
+        let (other, sources) = harness.addAccount(objectId: "oid-2", tenantId: "tenant-2", sortOrder: 1)
+        await sources[0].set(eligible: [Fixture.eligibility("x1")])
+        await sources[0].set(policy: .success(ticketPolicy))
+        await harness.refresh()
+        let both = toSend([try ticketRole(), try #require(harness.role(other, "x1"))])
+        let needs = harness.store.favoriteNeeds(both)
+        #expect(needs.ticketTenants == ["tenant-1", "tenant-2"])
+        #expect(harness.store.favoriteTicketPrefill(both.map(\.role), needs: needs).isEmpty)
+    }
+
+    /// Each tenant's ticket goes to its own roles, and its system is remembered for that tenant only.
+    @Test func groupedFavoriteSendsEachTenantItsTicket() async throws {
+        let (other, sources) = harness.addAccount(objectId: "oid-2", tenantId: "tenant-2", sortOrder: 1)
+        let foreignSource = sources[0]
+        await foreignSource.set(eligible: [Fixture.eligibility("x1")])
+        await foreignSource.set(policy: .success(ticketPolicy))
+        await harness.refresh()
+        let foreign = try #require(harness.role(other, "x1"))
+        let favorite = Favorite(name: "Two tenants", items: [FavoriteItem(eligibleRoleId: try ticketRole().id, duration: "PT1H"),
+                                                             FavoriteItem(eligibleRoleId: foreign.id, duration: "PT1H")])
+        harness.context.insert(favorite)
+        let answers = FavoriteAnswers(justification: "Incident 42",
+                                      tickets: ["tenant-1": .init(system: "ServiceNow", number: "INC1"),
+                                                "tenant-2": .init(system: "Jira", number: "OPS-2")])
+        await harness.store.run(favorite, answers: answers)
+        #expect(await arm.inputs.map(\.ticketNumber) == ["INC1"])
+        #expect(await foreignSource.inputs.map(\.ticketSystem) == ["Jira"])
+        #expect(await foreignSource.inputs.map(\.ticketNumber) == ["OPS-2"])
+        #expect(harness.store.ticketSystem(for: try ticketRole()) == "ServiceNow")
+        #expect(harness.store.ticketSystem(for: foreign) == "Jira")
+    }
+
     /// Nothing to ask: no sheet.
     @Test func favoriteWithoutTicketNeedsNothing() async throws {
         let favorite = Favorite(name: "Open", items: [FavoriteItem(eligibleRoleId: try openRole().id, duration: "PT1H")])
         harness.context.insert(favorite)
-        #expect(await harness.store.favoriteNeeds(favorite) == FavoriteNeeds())
+        #expect(harness.store.favoriteNeeds(await harness.store.favoriteRolesToSend(favorite)) == FavoriteNeeds())
     }
 
     /// Pruned with the durations: roles no longer cached, numbers older than 8 h, tenants signed out.

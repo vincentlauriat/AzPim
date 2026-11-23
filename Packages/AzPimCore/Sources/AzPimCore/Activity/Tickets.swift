@@ -53,14 +53,25 @@ public enum TicketRecall {
 
 /// What the grouped favorite sheet asked once for all the roles of a favorite.
 public struct FavoriteAnswers: Equatable, Sendable {
-    public var justification: String
-    public var ticketSystem: String
-    public var ticketNumber: String
+    /// One ticket system and number, for the ticket roles of one tenant.
+    public struct Ticket: Equatable, Sendable {
+        public var system: String
+        public var number: String
 
-    public init(justification: String = "", ticketSystem: String = "", ticketNumber: String = "") {
+        public init(system: String = "", number: String = "") {
+            self.system = system
+            self.number = number
+        }
+    }
+
+    /// Typed once, it replaces the justification of every role; empty, each role keeps its own.
+    public var justification: String
+    /// Per tenant (`TicketRecall.tenantKey`): a ticket of one tenant never goes to another.
+    public var tickets: [String: Ticket]
+
+    public init(justification: String = "", tickets: [String: Ticket] = [:]) {
         self.justification = justification
-        self.ticketSystem = ticketSystem
-        self.ticketNumber = ticketNumber
+        self.tickets = tickets
     }
 }
 
@@ -68,14 +79,19 @@ public struct FavoriteAnswers: Equatable, Sendable {
 public struct FavoriteNeeds: Equatable, Sendable {
     /// A role requires a justification and has neither its own nor a last one.
     public var justification = false
-    /// A role requires a ticket.
-    public var ticket = false
+    /// Tenants (`TicketRecall.tenantKey`) with a role that requires a ticket, in the favorite's order.
+    public var ticketTenants: [String] = []
+    /// A role has its own justification (item or last one): a typed justification replaces it.
+    public var replacesJustification = false
 
-    public init(justification: Bool = false, ticket: Bool = false) {
+    public init(justification: Bool = false, ticketTenants: [String] = [], replacesJustification: Bool = false) {
         self.justification = justification
-        self.ticket = ticket
+        self.ticketTenants = ticketTenants
+        self.replacesJustification = replacesJustification
     }
 
+    /// A role requires a ticket.
+    public var ticket: Bool { !ticketTenants.isEmpty }
     /// The grouped sheet must open first.
     public var any: Bool { justification || ticket }
 }
@@ -86,11 +102,13 @@ extension FavoriteRun {
         public var item: FavoriteItem
         public var policy: RolePolicy
         public var lastJustification: String?
+        public var tenantId: String
 
-        public init(item: FavoriteItem, policy: RolePolicy, lastJustification: String?) {
+        public init(item: FavoriteItem, policy: RolePolicy, lastJustification: String?, tenantId: String) {
             self.item = item
             self.policy = policy
             self.lastJustification = lastJustification
+            self.tenantId = tenantId
         }
     }
 
@@ -98,20 +116,33 @@ extension FavoriteRun {
     public static func needs(_ roles: [Pending]) -> FavoriteNeeds {
         var needs = FavoriteNeeds()
         for role in roles {
-            if role.policy.requiresTicket { needs.ticket = true }
-            if role.policy.requiresJustification,
-               Validation.justification(ownJustification(role.item, last: role.lastJustification), required: true) != nil {
+            let tenant = TicketRecall.tenantKey(role.tenantId)
+            if role.policy.requiresTicket, !needs.ticketTenants.contains(tenant) { needs.ticketTenants.append(tenant) }
+            let own = ownJustification(role.item, last: role.lastJustification)
+            if !own.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { needs.replacesJustification = true }
+            if role.policy.requiresJustification, Validation.justification(own, required: true) != nil {
                 needs.justification = true
             }
         }
         return needs
     }
 
-    /// Why the grouped sheet cannot send yet, nil when it can (same sentences as the Activation Sheet).
+    /// Why the grouped sheet cannot send yet, nil when it can (same sentences as the Activation Sheet): the
+    /// justification, then the ticket of each tenant in order.
     public static func block(_ needs: FavoriteNeeds, answers: FavoriteAnswers) -> ActivationBlock? {
-        ActivationBlock.fieldsReason(requiresJustification: needs.justification, justification: answers.justification,
-                                     requiresTicket: needs.ticket, ticketSystem: answers.ticketSystem,
-                                     ticket: answers.ticketNumber)
+        if let block = ActivationBlock.fieldsReason(requiresJustification: needs.justification,
+                                                    justification: answers.justification, requiresTicket: false,
+                                                    ticketSystem: "", ticket: "") {
+            return block
+        }
+        for tenant in needs.ticketTenants {
+            let ticket = answers.tickets[tenant] ?? FavoriteAnswers.Ticket()
+            if let block = ActivationBlock.fieldsReason(requiresJustification: false, justification: "", requiresTicket: true,
+                                                        ticketSystem: ticket.system, ticket: ticket.number) {
+                return block
+            }
+        }
+        return nil
     }
 
     static func ownJustification(_ item: FavoriteItem, last: String?) -> String {

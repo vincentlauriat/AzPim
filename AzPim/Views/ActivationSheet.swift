@@ -118,16 +118,27 @@ struct ActivationSheet: View {
     }
 }
 
-/// Ticket system and number, side by side (Activation Sheet, grouped favorite sheet).
+/// Ticket system and number, side by side under their labels (Activation Sheet, grouped favorite sheet). `tenant`:
+/// shown above when the grouped sheet asks one ticket per tenant.
 struct TicketFields: View {
     @Binding var system: String
     @Binding var number: String
+    var tenant: String?
 
     var body: some View {
-        HStack(spacing: 8) {
-            TextField("Ticket system", text: $system, prompt: Text("ServiceNow, Jira…"))
+        VStack(alignment: .leading, spacing: 4) {
+            if let tenant { Text(tenant).font(.caption.weight(.semibold)) }
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ticket system").font(.caption).foregroundStyle(.secondary)
+                    TextField("Ticket system", text: $system, prompt: Text("ServiceNow, Jira…")).labelsHidden()
+                }
                 .frame(maxWidth: 130)
-            TextField("Ticket number", text: $number, prompt: Text("Ticket number"))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ticket number").font(.caption).foregroundStyle(.secondary)
+                    TextField("Ticket number", text: $number, prompt: Text("INC0012345")).labelsHidden()
+                }
+            }
         }
     }
 }
