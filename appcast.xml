@@ -6,6 +6,20 @@
     <description>AzPim release feed</description>
     <language>en</language>
     <item>
+      <title>v1.0</title>
+      <link>https://github.com/vincentlauriat/AzPim/releases/tag/v1.0</link>
+      <pubDate>Mon, 23 Nov 2026 07:11:24 +0100</pubDate>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:informationalUpdate><sparkle:belowVersion>6</sparkle:belowVersion></sparkle:informationalUpdate>
+      <sparkle:releaseNotesLink>https://github.com/vincentlauriat/AzPim/releases/tag/v1.0</sparkle:releaseNotesLink>
+      <enclosure
+        url="https://github.com/vincentlauriat/AzPim/releases/download/v1.0/AzPim-1.0.dmg"
+        type="application/octet-stream"
+        sparkle:edSignature="T8LALec7a7XFO7HKrkVi0RGoTKu5N08FcJu4UQ9oFpTISqUBfYDCokYE8tBoiKD+tMKj+zyuYbTPGYD/ZhTZCw==" length="7764836" />
+    </item>
+    <item>
       <title>v0.9.4</title>
       <link>https://github.com/vincentlauriat/AzPim/releases/tag/v0.9.4</link>
       <pubDate>Sun, 22 Nov 2026 16:15:43 +0100</pubDate>
