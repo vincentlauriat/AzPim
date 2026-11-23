@@ -736,6 +736,16 @@
         }
       }
     },
+    "Activate, track and end your Microsoft PIM roles from your iPhone." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez, suivez et terminez vos rôles PIM Microsoft depuis votre iPhone."
+          }
+        }
+      }
+    },
     "Activated: %lld of %lld" : {
       "localizations" : {
         "en" : {
@@ -912,6 +922,16 @@
         }
       }
     },
+    "Add a Microsoft account" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un compte Microsoft"
+          }
+        }
+      }
+    },
     "Add an account to get started." : {
       "localizations" : {
         "fr" : {
@@ -998,6 +1018,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Consentement administrateur requis dans ce locataire."
+          }
+        }
+      }
+    },
+    "Admin consent required…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentement administrateur requis…"
           }
         }
       }
@@ -1191,6 +1221,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Favori AzPim"
+          }
+        }
+      }
+    },
+    "AzPim forgets this account on this iPhone. Your roles in Azure do not change." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim oublie ce compte sur cet iPhone. Vos rôles dans Azure ne changent pas."
+          }
+        }
+      }
+    },
+    "AzPim has no window to show the Microsoft sign-in." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim n’a pas de fenêtre où afficher la connexion Microsoft."
           }
         }
       }
@@ -1506,6 +1556,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Effacer la recherche"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fermer"
           }
         }
       }
@@ -2058,6 +2118,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rôles Microsoft Entra"
+          }
+        }
+      }
+    },
+    "Entra roles and PIM groups need an administrator to consent once for your organization. Azure roles work without it." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les rôles Entra et les groupes PIM exigent qu’un administrateur donne son consentement une fois pour votre organisation. Les rôles Azure fonctionnent sans."
+          }
+        }
+      }
+    },
+    "Entra roles enabled" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôles Entra activés"
           }
         }
       }
@@ -2932,6 +3012,16 @@
         }
       }
     },
+    "No server, no telemetry: your tokens never leave this iPhone except to Microsoft." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun serveur, aucune télémétrie : vos jetons ne quittent cet iPhone que vers Microsoft."
+          }
+        }
+      }
+    },
     "None" : {
       "localizations" : {
         "fr" : {
@@ -3705,6 +3795,16 @@
     "ServiceNow, Jira…" : {
       "shouldTranslate" : false
     },
+    "Settings" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages"
+          }
+        }
+      }
+    },
     "Settings…" : {
       "localizations" : {
         "fr" : {
@@ -3765,12 +3865,42 @@
         }
       }
     },
+    "Sign out" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déconnecter"
+          }
+        }
+      }
+    },
+    "Sign out %@?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déconnecter %@ ?"
+          }
+        }
+      }
+    },
     "Sign-in cancelled." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connexion annulée."
+          }
+        }
+      }
+    },
+    "Sign-in goes through Microsoft Authenticator when it is installed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion passe par Microsoft Authenticator s’il est installé."
           }
         }
       }
@@ -4166,6 +4296,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Votre organisation exige une nouvelle connexion (MFA) — exécutez `%@` dans Terminal."
+          }
+        }
+      }
+    },
+    "Your organization requires app protection for this app. Ask IT." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre organisation exige une protection d’application pour cette app. Contactez votre service informatique."
           }
         }
       }

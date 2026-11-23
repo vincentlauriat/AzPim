@@ -6,7 +6,7 @@ import SwiftUI
 enum VoiceOverAnnouncer {
     static func post(_ text: String?) {
         guard let text, !text.isEmpty else { return }
-        #if DEBUG
+        #if DEBUG && os(macOS)
         if SnapshotRunner.directory != nil { return }   // renders never speak
         #endif
         AccessibilityNotification.Announcement(text).post()

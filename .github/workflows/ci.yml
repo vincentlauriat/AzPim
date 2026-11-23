@@ -88,12 +88,21 @@ jobs:
             -destination 'platform=macOS' -derivedDataPath build/DD -clonedSourcePackagesDirPath SourcePackages \
             CODE_SIGNING_ALLOWED=NO build
 
+      # AzPim for iPhone (2.0): Debug build for the simulator (demo mode compiled in), signing off.
+      - name: Build iOS app
+        run: |
+          xcodebuild -project AzPim.xcodeproj -scheme AzPimMobile -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DD-iOS-app \
+            -clonedSourcePackagesDirPath SourcePackages CODE_SIGNING_ALLOWED=NO build
+
       # The strings the compiler extracted (SWIFT_EMIT_LOC_STRINGS) must match the String Catalog, all in French.
+      # Both apps share the catalog: a key counts as in the code when either target extracted it.
       - name: Localizations match the code
         run: |
           plutil -lint Packages/AzPimCore/Sources/AzPimCore/Resources/*.lproj/*
           python3 Scripts/check-localizations.py \
-            --stringsdata build/DD/Build/Intermediates.noindex/AzPim.build/Debug/AzPim.build
+            --stringsdata build/DD/Build/Intermediates.noindex/AzPim.build/Debug/AzPim.build \
+            --stringsdata build/DD-iOS-app/Build/Intermediates.noindex/AzPim.build/Debug-iphonesimulator/AzPimMobile.build
 
       # RoleStore tests hosted in the Debug app. The step fails unless tests actually ran: a bundle that does not
       # load into the host reports success with zero tests.

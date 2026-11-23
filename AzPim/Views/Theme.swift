@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import SwiftUI
 
 /// Design tokens shared by the menu bar panel and the windows (DesignBrief, Juicy / Claude Cockpit look):
@@ -57,6 +61,16 @@ enum Theme {
         /// high-contrast appearances.
         var color: Color {
             let tone = self
+            #if os(iOS)
+            return Color(uiColor: UIColor { traits in
+                let isDark = traits.userInterfaceStyle == .dark
+                var increased = traits.accessibilityContrast == .high
+                #if DEBUG
+                increased = Theme.contrastOverride ?? increased
+                #endif
+                return UIColor(hex: tone.hex(dark: isDark, increasedContrast: increased))
+            })
+            #else
             return Color(nsColor: NSColor(name: nil) { appearance in
                 let match = appearance.bestMatch(from: [.aqua, .darkAqua, .accessibilityHighContrastAqua,
                                                         .accessibilityHighContrastDarkAqua])
@@ -67,6 +81,7 @@ enum Theme {
                 #endif
                 return NSColor(hex: tone.hex(dark: isDark, increasedContrast: increased))
             })
+            #endif
         }
     }
 
@@ -85,12 +100,21 @@ enum Theme {
     }
 }
 
+#if os(macOS)
 extension NSColor {
     convenience init(hex: UInt32) {
         self.init(srgbRed: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
                   blue: Double(hex & 0xFF) / 255, alpha: 1)
     }
 }
+#else
+extension UIColor {
+    convenience init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
+                  blue: Double(hex & 0xFF) / 255, alpha: 1)
+    }
+}
+#endif
 
 extension Font {
     static func display(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {

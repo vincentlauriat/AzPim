@@ -3,6 +3,7 @@ included:
   - Packages/AzPimCore/Sources
   - Packages/AzPimCore/Tests
   - AzPimTests
+  - AzPimMobile
 excluded:
   - Packages/AzPimCore/.build
 line_length:
