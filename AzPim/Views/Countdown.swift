@@ -45,8 +45,8 @@ enum Countdown {
 
     static func color(_ seconds: TimeInterval?) -> Color {
         guard let seconds else { return .primary }
-        if seconds <= 300 { return .red }
-        if seconds <= 900 { return .orange }
+        if seconds <= 300 { return Theme.danger }
+        if seconds <= 900 { return Theme.warning }
         return .primary
     }
 }

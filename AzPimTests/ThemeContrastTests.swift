@@ -3,8 +3,8 @@ import AppKit
 import SwiftUI
 import Testing
 
-/// Increase Contrast: every coloured token keeps 4.5:1 (WCAG text) on a panel card and on its own 14 % tinted capsule
-/// (Active tag, countdowns), in light and dark mode. Card: the snapshot background with the 6 % `cardFill`.
+/// Every coloured text token keeps 4.5:1 (WCAG text) on a panel card and on its own 14 % tinted capsule (Active tag,
+/// countdowns), in light and dark mode, normal and Increase Contrast. Card: the snapshot background with the 6 % `cardFill`.
 @MainActor
 struct ThemeContrastTests {
     private struct RGB {
@@ -18,14 +18,24 @@ struct ThemeContrastTests {
     private static let lightCard = mix(RGB(0, 0, 0), over: RGB(0.96, 0.96, 0.96), alpha: 0.06)
     private static let darkCard = mix(RGB(1, 1, 1), over: RGB(0.12, 0.12, 0.12), alpha: 0.06)
 
-    @Test(arguments: Theme.Tone.all.map(\.name))
-    func increasedContrastTokensReachTextContrast(_ name: String) throws {
-        let tone = try #require(Theme.Tone.all.first { $0.name == name }?.tone)
+    @Test(arguments: Theme.Tone.text.map(\.name), [false, true])
+    func textTokensReachTextContrast(_ name: String, increasedContrast: Bool) throws {
+        let tone = try #require(Theme.Tone.text.first { $0.name == name }?.tone)
         for (dark, card) in [(false, Self.lightCard), (true, Self.darkCard)] {
-            let color = Self.rgb(tone.hex(dark: dark, increasedContrast: true))
+            let color = Self.rgb(tone.hex(dark: dark, increasedContrast: increasedContrast))
             let tinted = Self.mix(color, over: card, alpha: 0.14)
-            #expect(Self.ratio(color, card) >= 4.5, "\(name) on a \(dark ? "dark" : "light") card")
-            #expect(Self.ratio(color, tinted) >= 4.5, "\(name) on its \(dark ? "dark" : "light") capsule")
+            let context = "\(name), \(dark ? "dark" : "light"), contrast \(increasedContrast)"
+            #expect(Self.ratio(color, card) >= 4.5, "\(context): on a card")
+            #expect(Self.ratio(color, tinted) >= 4.5, "\(context): on its capsule")
+        }
+    }
+
+    /// The Activate button's white label on its fill.
+    @Test(arguments: [false, true])
+    func accentFillKeepsAWhiteLabelReadable(increasedContrast: Bool) {
+        for dark in [false, true] {
+            let fill = Self.rgb(Theme.Tone.accentFill.hex(dark: dark, increasedContrast: increasedContrast))
+            #expect(Self.ratio(RGB(1, 1, 1), fill) >= 4.5, "dark \(dark), contrast \(increasedContrast)")
         }
     }
 

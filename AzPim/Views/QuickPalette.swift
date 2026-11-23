@@ -207,9 +207,7 @@ struct QuickPaletteView: View {
         Task {
             switch await store.quickActivate(role) {
             case .needsSheet: sheetRole = role
-            case .sent(let status?):
-                Announcer.post(activation: status, role: role.displayRoleName)
-                close()
+            case .sent(_?): close()
             case .sent(nil): session.message = store.rowErrors[role.id] ?? String(localized: "Activation failed.")
             case .blocked(let reason): session.message = reason
             }
@@ -273,12 +271,14 @@ private struct PaletteRowView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(SpokenRole.label(role: row.entry.name, source: source, scope: row.entry.scope,
                                              state: spokenState, account: row.entry.tenant))
-        .accessibilityAddTraits(selected ? [.isSelected, .updatesFrequently] : .updatesFrequently)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAddTraits(row.assignment?.endAt != nil ? .updatesFrequently : [])
     }
 
     private var source: RoleSource { row.assignment?.source ?? row.role?.source ?? .azureResource }
 
     private var spokenState: SpokenRoleState {
+        if row.assignment.map({ store.isBusy($0) }) ?? row.role.map({ store.busy.contains($0.id) }) ?? false { return .busy }
         if let assignment = row.assignment { return .active(remaining: assignment.endAt?.timeIntervalSince(store.now)) }
         switch pending {
         case .sent?: return .sent

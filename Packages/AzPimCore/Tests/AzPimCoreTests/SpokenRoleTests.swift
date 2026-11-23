@@ -38,6 +38,8 @@ struct SpokenRoleTests {
                 == "Reader, rôle Azure, demande envoyée, pas encore confirmée")
         #expect(SpokenRole.label(role: "Owner", source: .azureResource, scope: "kv", state: .permanent, locale: french)
                 == "Owner, rôle Azure, kv, permanent")
+        #expect(SpokenRole.label(role: "Reader", source: .azureResource, scope: "rg", state: .busy, locale: french)
+                == "Reader, rôle Azure, rg, demande en cours")
         #expect(SpokenRole.label(role: "Reader", source: .azureResource, scope: "rg", state: .active(remaining: nil),
                                  error: "Network error", locale: english) == "Reader, Azure role, rg, active, Network error")
     }

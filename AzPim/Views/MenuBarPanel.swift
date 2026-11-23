@@ -127,6 +127,7 @@ struct MenuBarPanel: View {
         }
         .padding(10)
         .announcesChanges(keyboardMessage)
+        .onChange(of: bannerTexts) { old, new in new.filter { !old.contains($0) }.forEach(VoiceOverAnnouncer.post) }
     }
 
     /// Matching rows only, every group open; card counts are those of the matches.
@@ -198,6 +199,13 @@ struct MenuBarPanel: View {
     private func bannerKinds(_ account: Account) -> [ErrorKind] {
         let kinds: Set<ErrorKind> = Set((store.refreshErrors[account.id] ?? [:]).values)
         return kinds.filter { $0 != .offline }.sorted { $0.message < $1.message }
+    }
+
+    /// What the banners say, for VoiceOver: a new problem is announced once, when its banner appears.
+    private var bannerTexts: [String] {
+        shownAccounts.flatMap { account in bannerKinds(account).map { kind in
+            activeAccounts.count > 1 ? String(localized: "\(account.upn): \(kind.message)") : kind.message
+        } }
     }
 
     /// One banner per distinct problem (Offline is shown in the hero card instead).
@@ -334,8 +342,10 @@ extension MenuBarPanel {
         Task {
             switch await store.quickActivate(role) {
             case .needsSheet: activating = role
-            case .sent(let status): Announcer.post(activation: status, role: role.displayRoleName)
-            case .blocked: break
+            // A refusal is spoken each time, even when the row already shows the same message.
+            case .sent(nil): VoiceOverAnnouncer.post(store.rowErrors[role.id])
+            case .blocked(let reason): VoiceOverAnnouncer.post(reason)
+            case .sent: break
             }
         }
     }

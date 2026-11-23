@@ -21,6 +21,8 @@ public enum SpokenRoleState: Equatable, Sendable {
     /// Sent, not confirmed by Azure yet.
     case sent
     case permanent
+    /// A request (activation, Extend, deactivation) is running for the row.
+    case busy
 }
 
 /// The single VoiceOver label of a role row (panel, palette): role, type, scope, state and time left in words.
@@ -60,6 +62,7 @@ public enum SpokenRole {
         case .pendingApproval: return [L10n.string("pending approval", locale: locale)]
         case .sent: return [L10n.string("request sent, not confirmed yet", locale: locale)]
         case .permanent: return [L10n.string("permanent", locale: locale)]
+        case .busy: return [L10n.string("request in progress", locale: locale)]
         }
     }
 }

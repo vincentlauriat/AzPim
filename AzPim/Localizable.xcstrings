@@ -36,16 +36,6 @@
         }
       }
     },
-    "%@ activated." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ activé."
-          }
-        }
-      }
-    },
     "%@ deactivated." : {
       "localizations" : {
         "fr" : {

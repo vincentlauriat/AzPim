@@ -269,6 +269,7 @@ enum SnapshotRunner {
             .modelContainer(container)
             .defaultAppStorage(defaults)
             .environment(\.colorScheme, scheme)
+            .environment(\.controlActiveState, .key)   // an offscreen window is never key: draw controls active
             .background(scheme == .dark ? Color(white: 0.12) : Color(white: 0.96))
         let hosting = NSHostingView(rootView: root)
         let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -20_000, y: -20_000), size: size),
