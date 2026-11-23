@@ -157,9 +157,9 @@
     "zh": "一鍵啟用"
    },
    "p": {
-    "en": "Duration capped by the role policy, last justification pre-filled. From 1.0, the Activation Sheet's result arrives as a notification, not a dialog.",
-    "fr": "Durée plafonnée par la politique du rôle, dernière justification préremplie. Depuis la 1.0, le résultat de la fiche d'activation arrive en notification, pas dans une boîte de dialogue.",
-    "zh": "時長受角色原則上限約束，自動帶入上次的理由。自 1.0 起，啟用表單的結果以通知送達，而非對話框。"
+    "en": "Duration capped by the role policy, last justification pre-filled. The Activation Sheet's result arrives as a notification, not a dialog.",
+    "fr": "Durée plafonnée par la politique du rôle, dernière justification préremplie. Le résultat de la fiche d'activation arrive en notification, pas dans une boîte de dialogue.",
+    "zh": "時長受角色原則上限約束，自動帶入上次的理由。啟用表單的結果以通知送達，而非對話框。"
    }
   },
   {
@@ -217,9 +217,9 @@
     "zh": "Entra 角色與 PIM 群組"
    },
    "p": {
-    "en": "Sign in with Microsoft for Azure resource roles, Entra roles and PIM groups; the Azure CLI covers Azure roles. From 1.0.",
-    "fr": "Connectez-vous avec Microsoft pour les rôles Azure, les rôles Entra et les groupes PIM ; l'Azure CLI couvre les rôles Azure. Depuis la 1.0.",
-    "zh": "使用 Microsoft 登入即可管理 Azure 資源角色、Entra 角色與 PIM 群組；Azure CLI 則涵蓋 Azure 角色。（1.0 起）"
+    "en": "Sign in with Microsoft for Azure resource roles, Entra roles and PIM groups; the Azure CLI covers Azure roles.",
+    "fr": "Connectez-vous avec Microsoft pour les rôles Azure, les rôles Entra et les groupes PIM ; l'Azure CLI couvre les rôles Azure.",
+    "zh": "使用 Microsoft 登入即可管理 Azure 資源角色、Entra 角色與 PIM 群組；Azure CLI 則涵蓋 Azure 角色。"
    }
   },
   {
@@ -229,9 +229,9 @@
     "zh": "最小權限時長"
    },
    "p": {
-    "en": "The sheet starts on the duration you last used for the role, in 15-minute steps up to the policy maximum. From 1.0.",
-    "fr": "La fiche reprend la dernière durée utilisée pour le rôle, par pas de 15 minutes jusqu'au maximum de la politique. Depuis la 1.0.",
-    "zh": "啟用表單從你上次為該角色使用的時長開始，以 15 分鐘為單位，最多到原則上限。（1.0 起）"
+    "en": "The sheet starts on the duration you last used for the role, in 15-minute steps up to the policy maximum.",
+    "fr": "La fiche reprend la dernière durée utilisée pour le rôle, par pas de 15 minutes jusqu'au maximum de la politique.",
+    "zh": "啟用表單從你上次為該角色使用的時長開始，以 15 分鐘為單位，最多到原則上限。"
    }
   },
   {
@@ -241,9 +241,9 @@
     "zh": "工單欄位"
    },
    "p": {
-    "en": "Ticket system and number when the policy asks for them, remembered per tenant; a favorite asks once per tenant. From 1.0.",
-    "fr": "Système et numéro de ticket quand la politique les exige, mémorisés par tenant ; un favori ne les demande qu'une fois par tenant. Depuis la 1.0.",
-    "zh": "原則要求時才出現工單系統與編號，並依租用戶記住；我的最愛每個租用戶只問一次。（1.0 起）"
+    "en": "Ticket system and number when the policy asks for them, remembered per tenant; a favorite asks once per tenant.",
+    "fr": "Système et numéro de ticket quand la politique les exige, mémorisés par tenant ; un favori ne les demande qu'une fois par tenant.",
+    "zh": "原則要求時才出現工單系統與編號，並依租用戶記住；我的最愛每個租用戶只問一次。"
    }
   },
   {
@@ -253,9 +253,9 @@
     "zh": "快速啟用面板"
    },
    "p": {
-    "en": "<code>⌃⌥P</code> from any app: type a few letters, Return activates, ⌘Return opens the sheet. From 1.0.",
-    "fr": "<code>⌃⌥P</code> depuis n'importe quelle app : tapez quelques lettres, Retour active, ⌘Retour ouvre la fiche. Depuis la 1.0.",
-    "zh": "在任何 App 中按 <code>⌃⌥P</code>：輸入幾個字，Return 啟用，⌘Return 開啟表單。（1.0 起）"
+    "en": "<code>⌃⌥P</code> from any app: type a few letters, Return activates, ⌘Return opens the sheet.",
+    "fr": "<code>⌃⌥P</code> depuis n'importe quelle app : tapez quelques lettres, Retour active, ⌘Retour ouvre la fiche.",
+    "zh": "在任何 App 中按 <code>⌃⌥P</code>：輸入幾個字，Return 啟用，⌘Return 開啟表單。"
    }
   },
   {
@@ -265,9 +265,9 @@
     "zh": "捷徑動作"
    },
    "p": {
-    "en": "Activate Role, Run Favorite, List Active Roles and Deactivate All Roles in Shortcuts, Siri and Spotlight, always confirmed. From 1.0.",
-    "fr": "Activer un rôle, Lancer un favori, Lister les rôles actifs et Tout désactiver dans Raccourcis, Siri et Spotlight, toujours confirmés. Depuis la 1.0.",
-    "zh": "在捷徑、Siri 與 Spotlight 中使用「啟用角色」、「執行我的最愛」、「列出已啟用角色」與「停用所有角色」，每次都需確認。（1.0 起）"
+    "en": "Activate Role, Run Favorite, List Active Roles and Deactivate All Roles in Shortcuts, Siri and Spotlight, always confirmed.",
+    "fr": "Activer un rôle, Lancer un favori, Lister les rôles actifs et Tout désactiver dans Raccourcis, Siri et Spotlight, toujours confirmés.",
+    "zh": "在捷徑、Siri 與 Spotlight 中使用「啟用角色」、「執行我的最愛」、「列出已啟用角色」與「停用所有角色」，每次都需確認。"
    }
   },
   {
@@ -277,9 +277,9 @@
     "zh": "法文與英文"
    },
    "p": {
-    "en": "The app follows the macOS language. From 1.0.",
-    "fr": "L'app suit la langue de macOS. Depuis la 1.0.",
-    "zh": "App 介面跟隨 macOS 語言。（1.0 起）"
+    "en": "The app follows the macOS language.",
+    "fr": "L'app suit la langue de macOS.",
+    "zh": "App 介面跟隨 macOS 語言。"
    }
   }
  ],
@@ -321,9 +321,9 @@
         "zh": "快速啟用面板：搜尋 reader，顯示一個已啟用角色與兩個可啟用的 Entra 角色。"
        },
        "caption": {
-        "en": "From 1.0: <code>⌃⌥P</code> from any app: search, Return to activate.",
-        "fr": "Depuis la 1.0 : <code>⌃⌥P</code> depuis n'importe quelle app : cherchez, Retour pour activer.",
-        "zh": "1.0 起：在任何 App 中按 <code>⌃⌥P</code>：搜尋後按 Return 啟用。"
+        "en": "<code>⌃⌥P</code> from any app: search, Return to activate.",
+        "fr": "<code>⌃⌥P</code> depuis n'importe quelle app : cherchez, Retour pour activer.",
+        "zh": "在任何 App 中按 <code>⌃⌥P</code>：搜尋後按 Return 啟用。"
        }
       },
       {
@@ -351,9 +351,9 @@
         "zh": "跨兩個租用戶的我的最愛：每個角色列出其租用戶，每個租用戶一張工單。"
        },
        "caption": {
-        "en": "From 1.0: A favorite across tenants asks once per tenant.",
-        "fr": "Depuis la 1.0 : Un favori sur plusieurs tenants demande une fois par tenant.",
-        "zh": "1.0 起：跨租用戶的我的最愛，每個租用戶只問一次。"
+        "en": "A favorite across tenants asks once per tenant.",
+        "fr": "Un favori sur plusieurs tenants demande une fois par tenant.",
+        "zh": "跨租用戶的我的最愛，每個租用戶只問一次。"
        }
       },
       {
@@ -366,9 +366,9 @@
         "zh": "法文介面的面板，深色外觀。"
        },
        "caption": {
-        "en": "From 1.0: In French or English, light or dark.",
-        "fr": "Depuis la 1.0 : En français ou en anglais, clair ou sombre.",
-        "zh": "1.0 起：法文或英文，淺色或深色。"
+        "en": "In French or English, light or dark.",
+        "fr": "En français ou en anglais, clair ou sombre.",
+        "zh": "法文或英文，淺色或深色。"
        }
       },
       {
@@ -399,9 +399,9 @@
     "zh": "兩種登入方式"
    },
    "p": {
-    "en": "From 1.0: Sign in with Microsoft for Entra roles and PIM groups as well as Azure roles, or start in a minute with the Azure CLI you already use.",
-    "fr": "Depuis la 1.0 : Connectez-vous avec Microsoft pour les rôles Entra et les groupes PIM en plus des rôles Azure, ou démarrez en une minute avec l'Azure CLI que vous utilisez déjà.",
-    "zh": "1.0 起：使用 Microsoft 登入，除了 Azure 角色外也能管理 Entra 角色與 PIM 群組；或用你已在使用的 Azure CLI 一分鐘即可開始。"
+    "en": "Sign in with Microsoft for Entra roles and PIM groups as well as Azure roles, or start in a minute with the Azure CLI you already use.",
+    "fr": "Connectez-vous avec Microsoft pour les rôles Entra et les groupes PIM en plus des rôles Azure, ou démarrez en une minute avec l'Azure CLI que vous utilisez déjà.",
+    "zh": "使用 Microsoft 登入，除了 Azure 角色外也能管理 Entra 角色與 PIM 群組；或用你已在使用的 Azure CLI 一分鐘即可開始。"
    },
    "blocks": [
     {
@@ -466,6 +466,512 @@
       "en": "AzPim never grants anything by itself: every activation goes through PIM, which still enforces approval, MFA, tickets and maximum duration.",
       "fr": "AzPim n'accorde rien par lui-même : chaque activation passe par PIM, qui applique toujours approbation, MFA, ticket et durée maximale.",
       "zh": "AzPim 本身不授予任何權限：每次啟用都經過 PIM，核准、MFA、工單與最長時限依然照常執行。"
+     }
+    }
+   ]
+  },
+  {
+   "id": "guide",
+   "h": {
+    "en": "User guide",
+    "fr": "Guide d'utilisation",
+    "zh": "使用指南"
+   },
+   "blocks": [
+    {
+     "type": "specs",
+     "items": [
+      {
+       "h": {
+        "en": "Install and sign in",
+        "fr": "Installer et se connecter",
+        "zh": "安裝與登入"
+       },
+       "p": {
+        "en": "From the DMG to your first roles.",
+        "fr": "Du DMG à vos premiers rôles.",
+        "zh": "從 DMG 到看見你的第一批角色。"
+       }
+      }
+     ]
+    },
+    {
+     "type": "steps",
+     "items": [
+      {
+       "en": "Download the signed and notarized DMG from GitHub Releases and drag AzPim to Applications.",
+       "fr": "Téléchargez le DMG signé et notarisé depuis GitHub Releases et glissez AzPim dans Applications.",
+       "zh": "從 GitHub Releases 下載已簽章並經公證的 DMG，將 AzPim 拖進「應用程式」。"
+      },
+      {
+       "en": "Open AzPim. The key icon appears in the menu bar; on a notched MacBook with a full menu bar it may be hidden, so free some room or use a menu bar manager.",
+       "fr": "Ouvrez AzPim. L'icône en forme de clé apparaît dans la barre de menus ; sur un MacBook à encoche dont la barre est pleine, elle peut être masquée : libérez de la place ou utilisez un gestionnaire de barre de menus.",
+       "zh": "開啟 AzPim。鑰匙圖示會出現在選單列；在有瀏海且選單列已滿的 MacBook 上可能被隱藏，請騰出空間或使用選單列管理工具。"
+      },
+      {
+       "en": "Choose how to sign in. With the Azure CLI, run <code>az login</code> first: Azure resource roles only, no admin needed. With Microsoft sign-in you also get Entra roles and PIM groups.",
+       "fr": "Choisissez le mode de connexion. Avec l'Azure CLI, lancez d'abord <code>az login</code> : rôles Azure uniquement, sans administrateur. Avec la connexion Microsoft, vous obtenez aussi les rôles Entra et les groupes PIM.",
+       "zh": "選擇登入方式。使用 Azure CLI 時請先執行 <code>az login</code>：僅限 Azure 資源角色，不需管理員。使用 Microsoft 登入則還能管理 Entra 角色與 PIM 群組。"
+      },
+      {
+       "en": "For Entra roles and PIM groups, most tenants need a one-time consent from a tenant administrator. A ready-to-send email is in <a href=\"https://github.com/vincentlauriat/AzPim/blob/main/docs/admin-consent/email-template-tenant-admin.md\">docs/admin-consent</a>.",
+       "fr": "Pour les rôles Entra et les groupes PIM, la plupart des tenants exigent le consentement unique d'un administrateur. Un e-mail prêt à envoyer se trouve dans <a href=\"https://github.com/vincentlauriat/AzPim/blob/main/docs/admin-consent/email-template-tenant-admin.md\">docs/admin-consent</a>.",
+       "zh": "Entra 角色與 PIM 群組在大多數租用戶中需要租用戶管理員一次性同意。<a href=\"https://github.com/vincentlauriat/AzPim/blob/main/docs/admin-consent/email-template-tenant-admin.md\">docs/admin-consent</a> 中有可直接寄出的電子郵件範本。"
+      }
+     ]
+    },
+    {
+     "type": "specs",
+     "items": [
+      {
+       "h": {
+        "en": "Activate a role",
+        "fr": "Activer un rôle",
+        "zh": "啟用角色"
+       },
+       "p": {
+        "en": "From the panel or the Roles window.",
+        "fr": "Depuis le panneau ou la fenêtre Rôles.",
+        "zh": "在面板或角色視窗中操作。"
+       }
+      }
+     ]
+    },
+    {
+     "type": "steps",
+     "items": [
+      {
+       "en": "Click the key icon and find the role under the eligible roles, grouped by source.",
+       "fr": "Cliquez sur la clé et trouvez le rôle parmi les rôles activables, groupés par source.",
+       "zh": "點擊鑰匙圖示，在依來源分組的可啟用角色中找到該角色。"
+      },
+      {
+       "en": "Activate it. The Activation Sheet opens with the duration you last used for the role, in 15-minute steps up to the policy maximum, and your last justification.",
+       "fr": "Activez-le. La fiche d'activation s'ouvre avec la dernière durée utilisée pour ce rôle, par pas de 15 minutes jusqu'au maximum de la politique, et votre dernière justification.",
+       "zh": "啟用它。啟用表單會帶入你上次為該角色使用的時長（以 15 分鐘為單位，最多到原則上限）與上次的理由。"
+      },
+      {
+       "en": "Fill in the ticket system and number if the policy asks for them, then confirm. The result arrives as a notification.",
+       "fr": "Renseignez le système et le numéro de ticket si la politique les exige, puis confirmez. Le résultat arrive en notification.",
+       "zh": "若原則要求，請填入工單系統與編號，然後確認。結果會以通知送達。"
+      }
+     ]
+    },
+    {
+     "type": "specs",
+     "items": [
+      {
+       "h": {
+        "en": "Extend and deactivate",
+        "fr": "Prolonger et désactiver",
+        "zh": "延長與停用"
+       },
+       "p": {
+        "en": "Keep a role as long as you need it, and end it as soon as you do not.",
+        "fr": "Gardez un rôle le temps qu'il faut, et arrêtez-le dès que ce n'est plus nécessaire.",
+        "zh": "需要多久就保留多久，用完立刻結束。"
+       }
+      }
+     ]
+    },
+    {
+     "type": "steps",
+     "items": [
+      {
+       "en": "About 15 minutes before a role ends, a notification offers Extend. You can also extend an active role from the panel.",
+       "fr": "Environ 15 minutes avant la fin d'un rôle, une notification propose Prolonger. Vous pouvez aussi prolonger un rôle actif depuis le panneau.",
+       "zh": "角色到期前約 15 分鐘，通知會提供「延長」。你也可以在面板中延長已啟用的角色。"
+      },
+      {
+       "en": "When you are done, deactivate the role from the panel. Azure refuses a deactivation in the first 5 minutes after activation, and the button says so.",
+       "fr": "Quand vous avez fini, désactivez le rôle depuis le panneau. Azure refuse une désactivation dans les 5 premières minutes suivant l'activation, et le bouton l'indique.",
+       "zh": "用完後在面板中停用角色。Azure 不允許在啟用後 5 分鐘內停用，按鈕會說明這一點。"
+      }
+     ]
+    },
+    {
+     "type": "specs",
+     "items": [
+      {
+       "h": {
+        "en": "Favorites and links",
+        "fr": "Favoris et liens",
+        "zh": "我的最愛與連結"
+       },
+       "p": {
+        "en": "Group the roles you activate together.",
+        "fr": "Regroupez les rôles que vous activez ensemble.",
+        "zh": "把一起啟用的角色放在一組。"
+       }
+      }
+     ]
+    },
+    {
+     "type": "steps",
+     "items": [
+      {
+       "en": "Add roles to a favorite from a role's menu, then activate the whole favorite in one click from the panel. A favorite spanning tenants asks once per tenant for the ticket.",
+       "fr": "Ajoutez des rôles à un favori depuis le menu d'un rôle, puis activez tout le favori en un clic depuis le panneau. Un favori sur plusieurs tenants demande le ticket une fois par tenant.",
+       "zh": "從角色選單把角色加入我的最愛，然後在面板中一鍵啟用整組。跨租用戶的我的最愛，每個租用戶只問一次工單。"
+      },
+      {
+       "en": "Start a favorite from a link or a script: <code>azpim://activate?favorite=&lt;name&gt;</code>. It is always confirmed before anything is sent.",
+       "fr": "Lancez un favori depuis un lien ou un script : <code>azpim://activate?favorite=&lt;nom&gt;</code>. Il est toujours confirmé avant tout envoi.",
+       "zh": "從連結或指令碼啟動我的最愛：<code>azpim://activate?favorite=&lt;名稱&gt;</code>。送出前一律會要求確認。"
+      }
+     ]
+    },
+    {
+     "type": "specs",
+     "items": [
+      {
+       "h": {
+        "en": "Quick-activate palette",
+        "fr": "Palette d'activation rapide",
+        "zh": "快速啟用面板"
+       },
+       "p": {
+        "en": "Press <code>⌃⌥P</code> from any app, type a few letters of a role, then use these keys.",
+        "fr": "Appuyez sur <code>⌃⌥P</code> depuis n'importe quelle app, tapez quelques lettres d'un rôle, puis utilisez ces touches.",
+        "zh": "在任何 App 中按 <code>⌃⌥P</code>，輸入角色名稱的幾個字，然後使用這些按鍵。"
+       }
+      }
+     ]
+    },
+    {
+     "type": "table",
+     "head": [
+      {
+       "en": "Key",
+       "fr": "Touche",
+       "zh": "按鍵"
+      },
+      {
+       "en": "Action",
+       "fr": "Action",
+       "zh": "動作"
+      }
+     ],
+     "rows": [
+      [
+       "↑ ↓",
+       {
+        "en": "Move the selection",
+        "fr": "Déplacer la sélection",
+        "zh": "移動選取"
+       }
+      ],
+      [
+       "Return",
+       {
+        "en": "Activate the selected eligible role with the default duration",
+        "fr": "Activer le rôle activable sélectionné avec la durée par défaut",
+        "zh": "以預設時長啟用選取的可啟用角色"
+       }
+      ],
+      [
+       "⌘Return, Tab",
+       {
+        "en": "Open the Activation Sheet for the selected eligible role",
+        "fr": "Ouvrir la fiche d'activation du rôle activable sélectionné",
+        "zh": "為選取的可啟用角色開啟啟用表單"
+       }
+      ],
+      [
+       "⇧Return",
+       {
+        "en": "Extend the selected active role",
+        "fr": "Prolonger le rôle actif sélectionné",
+        "zh": "延長選取的已啟用角色"
+       }
+      ],
+      [
+       "⌫",
+       {
+        "en": "Deactivate the selected active role, after a confirmation (while the search is empty)",
+        "fr": "Désactiver le rôle actif sélectionné, après confirmation (tant que la recherche est vide)",
+        "zh": "在確認後停用選取的已啟用角色（搜尋欄為空時）"
+       }
+      ],
+      [
+       "Escape",
+       {
+        "en": "Close the palette",
+        "fr": "Fermer la palette",
+        "zh": "關閉面板"
+       }
+      ]
+     ]
+    },
+    {
+     "type": "specs",
+     "items": [
+      {
+       "h": {
+        "en": "Shortcuts",
+        "fr": "Raccourcis",
+        "zh": "捷徑"
+       },
+       "p": {
+        "en": "Four actions are available in Shortcuts, Siri and Spotlight: Activate Role, Run Favorite, List Active Roles and Deactivate All Roles. Activation requests are always confirmed, and a missing justification or ticket is asked for.",
+        "fr": "Quatre actions sont disponibles dans Raccourcis, Siri et Spotlight : Activer un rôle, Lancer un favori, Lister les rôles actifs et Tout désactiver. Les demandes d'activation sont toujours confirmées, et une justification ou un ticket manquant est demandé.",
+        "zh": "捷徑、Siri 與 Spotlight 提供四個動作：啟用角色、執行我的最愛、列出已啟用角色與停用所有角色。啟用請求一律需要確認，缺少的理由或工單會被詢問。"
+       }
+      },
+      {
+       "h": {
+        "en": "History and CSV",
+        "fr": "Historique et CSV",
+        "zh": "歷史與 CSV"
+       },
+       "p": {
+        "en": "The History window lists every request with its status and the median time to activation. Pending approvals, even those sent from the portal, can be cancelled. Export the list as CSV.",
+        "fr": "La fenêtre Historique liste chaque demande avec son statut et le temps médian d'activation. Les approbations en attente, même envoyées depuis le portail, peuvent être annulées. Exportez la liste en CSV.",
+        "zh": "歷史視窗列出每筆申請與其狀態，以及啟用時間中位數。待核准項目（包括從入口網站送出的）可以取消。清單可匯出為 CSV。"
+       }
+      },
+      {
+       "h": {
+        "en": "Notifications",
+        "fr": "Notifications",
+        "zh": "通知"
+       },
+       "p": {
+        "en": "AzPim notifies you before a role ends, with an Extend button, and reports the result of an activation. If notifications are off, the result appears inline.",
+        "fr": "AzPim vous prévient avant la fin d'un rôle, avec un bouton Prolonger, et rapporte le résultat d'une activation. Si les notifications sont désactivées, le résultat s'affiche dans la fiche.",
+        "zh": "AzPim 會在角色到期前通知你並附「延長」按鈕，也會回報啟用結果。若通知已關閉，結果會直接顯示在表單中。"
+       }
+      }
+     ]
+    },
+    {
+     "type": "specs",
+     "items": [
+      {
+       "h": {
+        "en": "Troubleshooting",
+        "fr": "Dépannage",
+        "zh": "疑難排解"
+       },
+       "p": {
+        "en": "The usual causes, in the order to check them.",
+        "fr": "Les causes habituelles, dans l'ordre où les vérifier.",
+        "zh": "常見原因，依檢查順序列出。"
+       }
+      }
+     ]
+    },
+    {
+     "type": "specs",
+     "items": [
+      {
+       "h": {
+        "en": "MFA step-up",
+        "fr": "MFA renforcée",
+        "zh": "MFA 加強驗證"
+       },
+       "p": {
+        "en": "When the policy requires MFA at activation, AzPim signs you in again interactively and retries once. With the Azure CLI, run <code>az login</code> again and retry.",
+        "fr": "Quand la politique exige la MFA à l'activation, AzPim vous reconnecte de façon interactive et réessaie une fois. Avec l'Azure CLI, relancez <code>az login</code> puis réessayez.",
+        "zh": "原則要求啟用時進行 MFA 時，AzPim 會以互動方式重新登入並重試一次。使用 Azure CLI 時，請再次執行 <code>az login</code> 後重試。"
+       }
+      },
+      {
+       "h": {
+        "en": "Approval pending",
+        "fr": "Approbation en attente",
+        "zh": "等待核准"
+       },
+       "p": {
+        "en": "If the policy requires approval, the request stays pending in History until an approver accepts it. Cancel it there if you no longer need it.",
+        "fr": "Si la politique exige une approbation, la demande reste en attente dans l'Historique jusqu'à ce qu'un approbateur l'accepte. Annulez-la à cet endroit si vous n'en avez plus besoin.",
+        "zh": "若原則要求核准，申請會在歷史中維持待處理，直到核准者同意。不再需要時可在那裡取消。"
+       }
+      },
+      {
+       "h": {
+        "en": "No roles shown",
+        "fr": "Aucun rôle affiché",
+        "zh": "沒有顯示角色"
+       },
+       "p": {
+        "en": "Check that you are signed in and, with the Azure CLI, that <code>az login</code> succeeded. Entra roles and PIM groups need the Microsoft sign-in and the tenant administrator's consent; without them only Azure resource roles appear.",
+        "fr": "Vérifiez que vous êtes connecté et, avec l'Azure CLI, que <code>az login</code> a réussi. Les rôles Entra et les groupes PIM exigent la connexion Microsoft et le consentement de l'administrateur du tenant ; sans eux, seuls les rôles Azure apparaissent.",
+        "zh": "請確認已登入；使用 Azure CLI 時，確認 <code>az login</code> 已成功。Entra 角色與 PIM 群組需要 Microsoft 登入與租用戶管理員同意；否則只會出現 Azure 資源角色。"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "stack",
+   "h": {
+    "en": "Technical stack",
+    "fr": "Pile technique",
+    "zh": "技術架構"
+   },
+   "p": {
+    "en": "A native Swift app with no backend: it talks straight to Microsoft's APIs with the signed-in user's own token.",
+    "fr": "Une app Swift native sans serveur : elle parle directement aux API de Microsoft avec le jeton de l'utilisateur connecté.",
+    "zh": "原生 Swift App，沒有後端：以已登入使用者自己的權杖直接呼叫 Microsoft API。"
+   },
+   "blocks": [
+    {
+     "type": "table",
+     "head": [
+      {
+       "en": "Layer",
+       "fr": "Couche",
+       "zh": "層級"
+      },
+      {
+       "en": "What AzPim uses",
+       "fr": "Ce qu'utilise AzPim",
+       "zh": "AzPim 使用的技術"
+      }
+     ],
+     "rows": [
+      [
+       {
+        "en": "App",
+        "fr": "App",
+        "zh": "App"
+       },
+       {
+        "en": "Swift 6 (strict concurrency), SwiftUI, <code>MenuBarExtra</code> with the window style, macOS 14 or later",
+        "fr": "Swift 6 (concurrence stricte), SwiftUI, <code>MenuBarExtra</code> en style fenêtre, macOS 14 ou plus récent",
+        "zh": "Swift 6（嚴格並行）、SwiftUI、視窗樣式的 <code>MenuBarExtra</code>，需要 macOS 14 或更新版本"
+       }
+      ],
+      [
+       {
+        "en": "Local data",
+        "fr": "Données locales",
+        "zh": "本機資料"
+       },
+       {
+        "en": "SwiftData store in <code>~/Library/Application Support/AzPim/</code> for accounts, favorites, history and cached roles; <code>UserDefaults</code> for small preferences",
+        "fr": "Base SwiftData dans <code>~/Library/Application Support/AzPim/</code> pour les comptes, favoris, historique et rôles en cache ; <code>UserDefaults</code> pour les petites préférences",
+        "zh": "SwiftData 儲存庫位於 <code>~/Library/Application Support/AzPim/</code>，存放帳戶、我的最愛、歷史與快取角色；少量偏好設定存於 <code>UserDefaults</code>"
+       }
+      ],
+      [
+       {
+        "en": "Core logic",
+        "fr": "Logique métier",
+        "zh": "核心邏輯"
+       },
+       {
+        "en": "<code>AzPimCore</code>, a local Swift package: models, PIM clients, activity and palette logic, localization",
+        "fr": "<code>AzPimCore</code>, un paquet Swift local : modèles, clients PIM, logique d'activité et de palette, localisation",
+        "zh": "<code>AzPimCore</code>：本機 Swift 套件，包含模型、PIM 用戶端、活動與面板邏輯、在地化"
+       }
+      ],
+      [
+       {
+        "en": "Sign-in, Microsoft",
+        "fr": "Connexion Microsoft",
+        "zh": "Microsoft 登入"
+       },
+       {
+        "en": "MSAL for macOS: multi-tenant public client, system browser or Enterprise SSO plug-in, token cache in the Keychain through a keychain access group",
+        "fr": "MSAL pour macOS : client public multi-tenant, navigateur système ou plug-in Enterprise SSO, cache de jetons dans le Trousseau via un groupe d'accès au trousseau",
+        "zh": "MSAL for macOS：多租用戶公用用戶端，使用系統瀏覽器或 Enterprise SSO 外掛程式，權杖快取透過鑰匙圈存取群組存於鑰匙圈"
+       }
+      ],
+      [
+       {
+        "en": "Sign-in, Azure CLI",
+        "fr": "Connexion Azure CLI",
+        "zh": "Azure CLI 登入"
+       },
+       {
+        "en": "<code>az account get-access-token</code> run without a shell, for Azure resource roles",
+        "fr": "<code>az account get-access-token</code> exécuté sans shell, pour les rôles Azure",
+        "zh": "不經 shell 執行 <code>az account get-access-token</code>，用於 Azure 資源角色"
+       }
+      ],
+      [
+       {
+        "en": "Azure roles",
+        "fr": "Rôles Azure",
+        "zh": "Azure 角色"
+       },
+       {
+        "en": "Azure Resource Manager, <code>Microsoft.Authorization</code>: <code>roleEligibilityScheduleInstances</code>, <code>roleAssignmentScheduleInstances</code>, <code>roleAssignmentScheduleRequests</code> (<code>SelfActivate</code>, <code>SelfDeactivate</code>, <code>SelfExtend</code>), <code>roleManagementPolicyAssignments</code>",
+        "fr": "Azure Resource Manager, <code>Microsoft.Authorization</code> : <code>roleEligibilityScheduleInstances</code>, <code>roleAssignmentScheduleInstances</code>, <code>roleAssignmentScheduleRequests</code> (<code>SelfActivate</code>, <code>SelfDeactivate</code>, <code>SelfExtend</code>), <code>roleManagementPolicyAssignments</code>",
+        "zh": "Azure Resource Manager 的 <code>Microsoft.Authorization</code>：<code>roleEligibilityScheduleInstances</code>、<code>roleAssignmentScheduleInstances</code>、<code>roleAssignmentScheduleRequests</code>（<code>SelfActivate</code>、<code>SelfDeactivate</code>、<code>SelfExtend</code>）、<code>roleManagementPolicyAssignments</code>"
+       }
+      ],
+      [
+       {
+        "en": "Entra roles and PIM groups",
+        "fr": "Rôles Entra et groupes PIM",
+        "zh": "Entra 角色與 PIM 群組"
+       },
+       {
+        "en": "Microsoft Graph v1.0: <code>roleManagement/directory</code> for Entra roles, <code>identityGovernance/privilegedAccess/group</code> for PIM for Groups, with delegated permissions",
+        "fr": "Microsoft Graph v1.0 : <code>roleManagement/directory</code> pour les rôles Entra, <code>identityGovernance/privilegedAccess/group</code> pour PIM pour les groupes, avec des permissions déléguées",
+        "zh": "Microsoft Graph v1.0：Entra 角色使用 <code>roleManagement/directory</code>，PIM 群組使用 <code>identityGovernance/privilegedAccess/group</code>，皆為委派權限"
+       }
+      ],
+      [
+       {
+        "en": "Updates",
+        "fr": "Mises à jour",
+        "zh": "更新"
+       },
+       {
+        "en": "Sparkle 2, appcast signed with EdDSA, DMG on GitHub Releases",
+        "fr": "Sparkle 2, appcast signé en EdDSA, DMG sur GitHub Releases",
+        "zh": "Sparkle 2，以 EdDSA 簽署的 appcast，DMG 放在 GitHub Releases"
+       }
+      ],
+      [
+       {
+        "en": "System integration",
+        "fr": "Intégration système",
+        "zh": "系統整合"
+       },
+       {
+        "en": "App Intents for Shortcuts, Siri and Spotlight; a Carbon global hotkey (<code>⌃⌥P</code>); the <code>azpim://</code> URL scheme; local notifications",
+        "fr": "App Intents pour Raccourcis, Siri et Spotlight ; un raccourci clavier global Carbon (<code>⌃⌥P</code>) ; le schéma d'URL <code>azpim://</code> ; des notifications locales",
+        "zh": "供捷徑、Siri 與 Spotlight 使用的 App Intents；Carbon 全域快速鍵（<code>⌃⌥P</code>）；<code>azpim://</code> URL scheme；本機通知"
+       }
+      ],
+      [
+       {
+        "en": "Build and release",
+        "fr": "Build et livraison",
+        "zh": "建置與發行"
+       },
+       {
+        "en": "XcodeGen (<code>project.yml</code>), MSAL and Sparkle pinned to exact versions, Developer ID signing and Apple notarization",
+        "fr": "XcodeGen (<code>project.yml</code>), MSAL et Sparkle épinglés à des versions exactes, signature Developer ID et notarisation Apple",
+        "zh": "XcodeGen（<code>project.yml</code>）、MSAL 與 Sparkle 固定於確切版本、Developer ID 簽章與 Apple 公證"
+       }
+      ],
+      [
+       {
+        "en": "Languages",
+        "fr": "Langues",
+        "zh": "語言"
+       },
+       {
+        "en": "English and French, following the macOS language",
+        "fr": "Anglais et français, selon la langue de macOS",
+        "zh": "英文與法文，跟隨 macOS 語言"
+       }
+      ]
+     ]
+    },
+    {
+     "type": "p",
+     "t": {
+      "en": "The Azure CLI token cannot request the Graph PIM permissions, which is why Entra roles and PIM groups need the Microsoft sign-in.",
+      "fr": "Le jeton de l'Azure CLI ne peut pas demander les permissions Graph de PIM, c'est pourquoi les rôles Entra et les groupes PIM exigent la connexion Microsoft.",
+      "zh": "Azure CLI 的權杖無法要求 Graph 的 PIM 權限，因此 Entra 角色與 PIM 群組需要 Microsoft 登入。"
      }
     }
    ]
@@ -541,9 +1047,9 @@
     "zh": "安裝"
    },
    "p": {
-    "en": "Download the signed and notarized DMG from GitHub Releases; it updates itself. From 1.0 it signs in with Microsoft as well as with the Azure CLI. Or build it from source (Xcode and XcodeGen required):",
-    "fr": "Téléchargez le DMG signé et notarisé depuis GitHub Releases ; il se met à jour tout seul. Depuis la 1.0, il se connecte avec Microsoft comme via Azure CLI. Ou compilez-le depuis les sources (Xcode et XcodeGen requis) :",
-    "zh": "從 GitHub Releases 下載已簽章並經公證的 DMG，它會自動更新。自 1.0 起可使用 Microsoft 或 Azure CLI 登入。或從原始碼建置（需要 Xcode 與 XcodeGen）："
+    "en": "Download the signed and notarized DMG from GitHub Releases; it updates itself. It signs in with Microsoft as well as with the Azure CLI. Or build it from source (Xcode and XcodeGen required):",
+    "fr": "Téléchargez le DMG signé et notarisé depuis GitHub Releases ; il se met à jour tout seul. Il se connecte avec Microsoft comme via Azure CLI. Ou compilez-le depuis les sources (Xcode et XcodeGen requis) :",
+    "zh": "從 GitHub Releases 下載已簽章並經公證的 DMG，它會自動更新。可使用 Microsoft 或 Azure CLI 登入。或從原始碼建置（需要 Xcode 與 XcodeGen）："
    },
    "blocks": [
     {
