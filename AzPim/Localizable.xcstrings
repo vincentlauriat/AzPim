@@ -831,6 +831,16 @@
         }
       }
     },
+    "Asks for the ticket number when the favorite runs." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le numéro de ticket est demandé au lancement du favori."
+          }
+        }
+      }
+    },
     "Assignment" : {
       "localizations" : {
         "fr" : {
@@ -1989,6 +1999,16 @@
         }
       }
     },
+    "Leave empty to keep each role’s own" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laisser vide pour garder celle de chaque rôle"
+          }
+        }
+      }
+    },
     "Link copied." : {
       "localizations" : {
         "fr" : {
@@ -2204,16 +2224,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nom"
-          }
-        }
-      }
-    },
-    "Needs a ticket number: activate it from the panel instead." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exige un numéro de ticket : activez-le plutôt depuis le panneau."
           }
         }
       }
@@ -3088,6 +3098,9 @@
         }
       }
     },
+    "ServiceNow, Jira…" : {
+      "shouldTranslate" : false
+    },
     "Settings…" : {
       "localizations" : {
         "fr" : {
@@ -3297,6 +3310,16 @@
         }
       }
     },
+    "Ticket system" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Système de ticket"
+          }
+        }
+      }
+    },
     "Unknown MSAL error" : {
       "localizations" : {
         "fr" : {
@@ -3419,6 +3442,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bienvenue dans AzPim"
+          }
+        }
+      }
+    },
+    "Why do you need these roles?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pourquoi avez-vous besoin de ces rôles ?"
           }
         }
       }

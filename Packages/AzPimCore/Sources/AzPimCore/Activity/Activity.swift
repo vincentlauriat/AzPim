@@ -129,10 +129,20 @@ public enum FavoriteRun {
     }
 
     /// Input for one favorite item: duration capped by policy, justification from the item or the last one used.
-    public static func input(for item: FavoriteItem, policy: RolePolicy, lastJustification: String?)
-        -> Result<ActivationInput, Validation.Failure> {
-        if policy.requiresTicket { return .failure(.empty("ticket")) }
-        let justification = (item.justification?.isEmpty == false ? item.justification : lastJustification) ?? ""
+    /// `answers`: what the grouped favorite sheet asked once. Its justification, when typed, goes to every role; its
+    /// ticket only to the roles whose policy requires one. Without answers a ticket is never taken from memory: the
+    /// role is not sent.
+    public static func input(for item: FavoriteItem, policy: RolePolicy, lastJustification: String?,
+                             answers: FavoriteAnswers? = nil) -> Result<ActivationInput, Validation.Failure> {
+        var ticketNumber: String?, ticketSystem: String?
+        if policy.requiresTicket {
+            guard let answers, Validation.ticketSystem(answers.ticketSystem, required: true) == nil,
+                  Validation.ticketNumber(answers.ticketNumber, required: true) == nil else { return .failure(.empty("ticket")) }
+            ticketNumber = answers.ticketNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+            ticketSystem = answers.ticketSystem.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let typed = (answers?.justification ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let justification = typed.isEmpty ? ownJustification(item, last: lastJustification) : typed
         if let error = Validation.justification(justification, required: policy.requiresJustification) {
             return .failure(error)
         }
@@ -143,7 +153,8 @@ public enum FavoriteRun {
             duration = ISODuration.string(cap)
         }
         if case .failure(let error) = Validation.duration(duration, policyMax: policy.maxDuration) { return .failure(error) }
-        return .success(ActivationInput(duration: duration, justification: justification))
+        return .success(ActivationInput(duration: duration, justification: justification, ticketNumber: ticketNumber,
+                                        ticketSystem: ticketSystem))
     }
 }
 

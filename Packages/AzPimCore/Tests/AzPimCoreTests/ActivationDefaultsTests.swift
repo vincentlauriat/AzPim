@@ -83,9 +83,10 @@ struct ActivationDurationTests {
 
 struct ActivationBlockTests {
     private func facts(minutes: Int = 60, justification: String = "Deploy", requiresTicket: Bool = false,
-                       ticket: String = "") -> ActivationBlock.Facts {
+                       ticketSystem: String = "ServiceNow", ticket: String = "") -> ActivationBlock.Facts {
         ActivationBlock.Facts(minutes: minutes, policyMax: "PT8H", requiresJustification: true,
-                              justification: justification, requiresTicket: requiresTicket, ticket: ticket)
+                              justification: justification, requiresTicket: requiresTicket, ticketSystem: ticketSystem,
+                              ticket: ticket)
     }
 
     @Test func readyWhenEverythingIsThere() {
@@ -100,6 +101,11 @@ struct ActivationBlockTests {
         #expect(ActivationBlock.reason(facts(justification: "  ")) == .justificationRequired)
         #expect(ActivationBlock.reason(facts(justification: String(repeating: "x", count: 501))) == .justificationTooLong)
         #expect(ActivationBlock.reason(facts(requiresTicket: true)) == .ticketRequired)
+        #expect(ActivationBlock.reason(facts(requiresTicket: true, ticketSystem: " ", ticket: "CHG-1")) == .ticketSystemRequired)
+        #expect(ActivationBlock.reason(facts(requiresTicket: true, ticketSystem: String(repeating: "s", count: 101),
+                                             ticket: "CHG-1")) == .ticketSystemTooLong)
+        // No ticket required: the fields are not checked, even empty.
+        #expect(ActivationBlock.reason(facts(ticketSystem: "")) == nil)
         #expect(ActivationBlock.reason(facts(requiresTicket: true, ticket: String(repeating: "1", count: 101)))
                 == .ticketTooLong)
         #expect(ActivationBlock.reason(facts(minutes: 540)) == .durationTooLong(maxMinutes: 480))
@@ -121,7 +127,8 @@ struct ActivationBlockTests {
 
     @Test func messagesAreShort() {
         let all: [ActivationBlock] = [.inProgress, .pending, .offline, .durationTooLong(maxMinutes: 90), .durationTooShort,
-                                      .justificationRequired, .justificationTooLong, .ticketRequired, .ticketTooLong]
+                                      .justificationRequired, .justificationTooLong, .ticketSystemRequired,
+                                      .ticketSystemTooLong, .ticketRequired, .ticketTooLong]
         // One sentence each; the pending one also says how to send another.
         for locale in [Locale(identifier: "en_US"), Locale(identifier: "fr_FR")] {
             for block in all where block != .pending {

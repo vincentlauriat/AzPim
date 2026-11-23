@@ -78,6 +78,8 @@ final class RoleStore {
     @ObservationIgnored var sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     /// Last duration per role (`PreferenceKeys.lastDurations` in the user's preferences).
     @ObservationIgnored var durationMemory = DurationMemory.defaults(.standard)
+    /// Ticket system per tenant and last ticket number per role (`PreferenceKeys.ticketSystems`, `.lastTickets`).
+    @ObservationIgnored var ticketMemory = TicketMemory.defaults(.standard)
 
     init(context: ModelContext, accounts: AccountService, notifications: NotificationScheduler) {
         self.context = context
@@ -267,6 +269,7 @@ final class RoleStore {
             // favorites and Extend.
             if !input.justification.isEmpty { role.lastJustification = input.justification }
             if viaFavorite == nil, action == .activate { rememberDuration(input.duration, for: role) }   // sheet only
+            rememberTicket(input, for: role)   // the sheet and the grouped favorite sheet
             try? context.save()
             if refreshAfter { await refresh() }
             return outcome.status

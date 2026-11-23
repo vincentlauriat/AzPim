@@ -79,6 +79,7 @@ struct MenuBarPanel: View {
     @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" || $0.statusRaw == "sent" })
     private var pendingRecords: [ActivationRecord]
     @State private var activating: EligibleRole?
+    @State private var askingFavorite: Favorite?   // grouped favorite sheet: justification and ticket asked once
     @State private var contentHeight: CGFloat = 0
     @State private var query: String
     @FocusState private var searchFocused: Bool
@@ -126,8 +127,9 @@ struct MenuBarPanel: View {
     var body: some View {
         Group {
             if let role = activating {
-                ActivationSheet(role: role) { activating = nil }
-                    .frame(width: Theme.panelWidth)
+                ActivationSheet(role: role) { activating = nil }.frame(width: Theme.panelWidth)
+            } else if let favorite = askingFavorite {
+                FavoriteActivationSheet(favorite: favorite) { askingFavorite = nil }.frame(width: Theme.panelWidth)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView(.vertical) {
@@ -270,7 +272,7 @@ struct MenuBarPanel: View {
     private var favoritesCard: some View {
         DisclosureCard(title: String(localized: "Favorites"), icon: "star.fill", iconColor: Theme.violet,
                        count: favorites.count, expanded: $showFavorites) {
-            FavoriteChips(favorites: favorites)
+            FavoriteChips(favorites: favorites) { askingFavorite = $0 }
         }
     }
 }
@@ -335,7 +337,7 @@ extension MenuBarPanel {
     /// ⌫ / ⌘⌫ ask to deactivate once the search is empty. Held action keys never repeat. Escape and ⌘F stay with the
     /// search field and the panel.
     fileprivate func handleKey(_ key: PaletteKey, isRepeat: Bool) -> Bool {
-        guard activating == nil else { return false }   // the Activation Sheet's own fields
+        guard activating == nil, askingFavorite == nil else { return false }   // the sheets' own fields
         guard confirmDeactivateId == nil else { return false }   // the Deactivate popover answers
         let rows = keyRows()
         let index = selectedRowId.flatMap { id in rows.firstIndex { $0.id == id } }

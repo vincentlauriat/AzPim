@@ -35,6 +35,14 @@ public enum Validation {
         return nil
     }
 
+    /// Name of the ticketing tool (ServiceNow, Jira…), asked with the ticket number.
+    public static func ticketSystem(_ text: String, required: Bool) -> Failure? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if required && trimmed.isEmpty { return .empty("ticketSystem") }
+        if trimmed.count > 100 { return .tooLong("ticketSystem", max: 100) }
+        return nil
+    }
+
     /// Longest activation Azure PIM accepts at all, whatever the policy: the hard ceiling of `duration` when the policy
     /// is unknown. Not the app's own default cap for an unknown policy (`ActivationDuration.unknownPolicyMaxMinutes`,
     /// 8 h), which keeps the durations the app proposes well under it.
@@ -170,7 +178,7 @@ extension Validation.Failure {
         switch field {
         case "name": L10n.string("Name", locale: locale)
         case "justification": L10n.string("Justification", locale: locale)
-        case "ticket": L10n.string("Ticket number", locale: locale)
+        case "ticket", "ticketSystem": ticketFieldName(field, locale: locale)
         case "duration": L10n.string("Duration", locale: locale)
         case "clientId": L10n.string("Client ID", locale: locale)
         case "azCLIPath": L10n.string("Azure CLI path", locale: locale)
@@ -179,5 +187,10 @@ extension Validation.Failure {
         case "historyRetentionDays": L10n.string("History retention", locale: locale)
         default: field
         }
+    }
+
+    private static func ticketFieldName(_ field: String, locale: Locale?) -> String {
+        if field == "ticket" { return L10n.string("Ticket number", locale: locale) }
+        return L10n.string("Ticket system", locale: locale)
     }
 }

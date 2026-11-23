@@ -106,9 +106,10 @@ extension RoleStore {
 
     // MARK: - Favorites (T4.2)
 
-    /// Activates every role of a favorite without a sheet. Returns the toast text.
+    /// Activates every role of a favorite without a sheet. Returns the toast text. `answers`: what the grouped favorite
+    /// sheet asked (`favoriteNeeds`); without them a role that requires a ticket is not sent.
     @discardableResult
-    func run(_ favorite: Favorite, fromPanel: Bool = true) async -> String {
+    func run(_ favorite: Favorite, fromPanel: Bool = true, answers: FavoriteAnswers? = nil) async -> String {
         // Value copies: the model may be deleted while requests are in flight.
         let favoriteId = favorite.id, favoriteName = favorite.name, items = favorite.items
         guard !runningFavorites.contains(favoriteId) else { return String(localized: "\(favoriteName) is already running.") }
@@ -133,7 +134,8 @@ extension RoleStore {
                 continue
             }
             await ensurePolicy(for: role)
-            switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
+            switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification,
+                                     answers: answers) {
             case .failure(let failure):
                 results.append(.init(roleName: role.displayRoleName, status: nil, error: failure.userMessage))
             case .success(let input):

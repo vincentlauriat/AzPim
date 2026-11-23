@@ -103,6 +103,8 @@ private struct FavoriteEditor: View {
     let others: [String]
     @State private var name = ""
     @State private var nameError: String?
+    /// The grouped sheet asks for the justification and the ticket first.
+    @State private var asking = false
 
     var body: some View {
         Form {
@@ -138,7 +140,15 @@ private struct FavoriteEditor: View {
             }
             Section {
                 HStack {
-                    Button("Run now") { Task { await store.run(favorite, fromPanel: false) } }
+                    Button("Run now") {
+                        Task {
+                            if await store.favoriteNeeds(favorite).any {
+                                asking = true
+                            } else {
+                                await store.run(favorite, fromPanel: false)
+                            }
+                        }
+                    }
                         .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id) || store.isOffline)
                     if store.runningFavorites.contains(favorite.id) { ProgressView().controlSize(.small) }
                     if let toast = store.favoriteToast, toast.favoriteId == favorite.id {
@@ -148,6 +158,9 @@ private struct FavoriteEditor: View {
             }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $asking) {
+            FavoriteActivationSheet(favorite: favorite, fromPanel: false) { asking = false }.frame(width: 380)
+        }
         .onAppear { name = favorite.name }
         .onDisappear(perform: rename)
     }
@@ -178,7 +191,7 @@ private struct FavoriteEditor: View {
                       prompt: Text(role?.lastJustification ?? String(localized: "Uses the last justification of this role")))
                 .font(.callout)
             if role?.requiresTicket == true {
-                Text("Needs a ticket number: activate it from the panel instead.").font(.caption).foregroundStyle(.orange)
+                Text("Asks for the ticket number when the favorite runs.").font(.caption).foregroundStyle(.orange)
             }
         }
         .padding(.vertical, 2)

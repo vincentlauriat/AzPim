@@ -300,6 +300,8 @@ struct ErrorBanner: View {
 struct FavoriteChips: View {
     @Environment(RoleStore.self) private var store
     let favorites: [Favorite]
+    /// A role needs a ticket, or a justification it does not have: the grouped sheet asks first.
+    let ask: (Favorite) -> Void
 
     var body: some View {
         if !favorites.isEmpty {
@@ -308,7 +310,9 @@ struct FavoriteChips: View {
                     HStack(spacing: 6) {
                         ForEach(favorites) { favorite in
                             Button {
-                                Task { await store.run(favorite) }
+                                Task {
+                                    if await store.favoriteNeeds(favorite).any { ask(favorite) } else { await store.run(favorite) }
+                                }
                             } label: {
                                 HStack(spacing: 4) {
                                     if store.runningFavorites.contains(favorite.id) {

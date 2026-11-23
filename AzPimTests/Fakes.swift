@@ -24,6 +24,8 @@ actor FakeSource: PIMSource {
     var pending: [RemoteRequest] = []
     var requestStatus: Result<RequestStatus, Error> = .success(.pendingApproval)
     private(set) var activateCount = 0
+    /// What each activation sent, in order.
+    private(set) var inputs: [ActivationInput] = []
     private(set) var deactivateCount = 0
     private(set) var pendingCount = 0
 
@@ -74,6 +76,7 @@ actor FakeSource: PIMSource {
 
     func activate(_ eligibility: RemoteEligibility, principalId: String, input: ActivationInput) async throws -> RequestOutcome {
         activateCount += 1
+        inputs.append(input)
         var queue = activateResults[eligibility.id] ?? []
         let result = queue.isEmpty ? .success(RequestOutcome(requestId: "req-\(activateCount)", status: .provisioned))
             : queue.removeFirst()
@@ -162,7 +165,8 @@ final class FakeTokenProvider: TokenProvider, @unchecked Sendable {
 
 // MARK: - HTTP
 
-/// Graph / ARM answers for the real clients: POSTs consume `posts` in order, every GET gets an empty list.
+/// Graph / ARM answers for the real clients: POSTs and PUTs (ARM requests) consume `posts` in order, every GET gets
+/// an empty list.
 final class FakeTransport: HTTPTransport, @unchecked Sendable {
     struct Answer {
         let status: Int
@@ -172,17 +176,24 @@ final class FakeTransport: HTTPTransport, @unchecked Sendable {
     private let lock = NSLock()
     private var posts: [Answer]
     private var sentPosts: [URL] = []
+    private var sentBodies: [[String: Any]] = []
 
     init(posts: [Answer]) {
         self.posts = posts
     }
 
     var postURLs: [URL] { lock.withLock { sentPosts } }
+    /// JSON bodies of the POSTs and PUTs, in order.
+    var bodies: [[String: Any]] { lock.withLock { sentBodies } }
 
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let answer: Answer = lock.withLock {
-            guard request.httpMethod == "POST" else { return Answer(status: 200, json: ["value": []]) }
+            guard request.httpMethod == "POST" || request.httpMethod == "PUT" else {
+                return Answer(status: 200, json: ["value": []])
+            }
             if let url = request.url { sentPosts.append(url) }
+            let body = request.httpBody.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]
+            sentBodies.append(body ?? [:])
             return posts.isEmpty ? Answer(status: 500, json: [:]) : posts.removeFirst()
         }
         let data = try JSONSerialization.data(withJSONObject: answer.json)
@@ -248,6 +259,7 @@ final class Harness {
         store = RoleStore(context: container.mainContext, accounts: accounts,
                           notifications: NotificationScheduler(center: center))
         store.durationMemory = .inMemory()   // never the user's preferences
+        store.ticketMemory = .inMemory()
         store.tokenProvider = { FakeTokenProvider(mode: $0.mode, objectId: $0.objectId, tenantId: $0.tenantId) }
         store.makeSources = { [unowned self] account, _, _ in self.sources[account.id] ?? [] }
         store.sleep = { [weak self] duration in await self?.slept(duration) }

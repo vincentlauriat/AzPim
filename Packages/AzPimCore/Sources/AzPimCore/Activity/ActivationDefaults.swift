@@ -67,6 +67,8 @@ public enum ActivationBlock: Equatable, Sendable {
     case durationTooShort
     case justificationRequired
     case justificationTooLong
+    case ticketSystemRequired
+    case ticketSystemTooLong
     case ticketRequired
     case ticketTooLong
 
@@ -79,11 +81,12 @@ public enum ActivationBlock: Equatable, Sendable {
         public var requiresJustification: Bool
         public var justification = ""
         public var requiresTicket = false
+        public var ticketSystem = ""
         public var ticket = ""
 
         public init(inProgress: Bool = false, pending: Bool = false, offline: Bool = false, minutes: Int,
                     policyMax: String?, requiresJustification: Bool, justification: String = "",
-                    requiresTicket: Bool = false, ticket: String = "") {
+                    requiresTicket: Bool = false, ticketSystem: String = "", ticket: String = "") {
             self.inProgress = inProgress
             self.pending = pending
             self.offline = offline
@@ -92,12 +95,13 @@ public enum ActivationBlock: Equatable, Sendable {
             self.requiresJustification = requiresJustification
             self.justification = justification
             self.requiresTicket = requiresTicket
+            self.ticketSystem = ticketSystem
             self.ticket = ticket
         }
     }
 
     /// The first reason, in this order: a request in progress, one already waiting, offline, the duration, the
-    /// justification, the ticket.
+    /// justification, the ticket system, the ticket number.
     public static func reason(_ facts: Facts) -> ActivationBlock? {
         if facts.inProgress { return .inProgress }
         if facts.pending { return .pending }
@@ -111,12 +115,24 @@ public enum ActivationBlock: Equatable, Sendable {
         case .failure: return .durationTooShort
         case .success: break
         }
-        switch Validation.justification(facts.justification, required: facts.requiresJustification) {
+        return fieldsReason(requiresJustification: facts.requiresJustification, justification: facts.justification,
+                            requiresTicket: facts.requiresTicket, ticketSystem: facts.ticketSystem, ticket: facts.ticket)
+    }
+
+    /// The typed fields only (Activation Sheet, grouped favorite sheet): justification, ticket system, ticket number.
+    static func fieldsReason(requiresJustification: Bool, justification: String, requiresTicket: Bool,
+                             ticketSystem: String, ticket: String) -> ActivationBlock? {
+        switch Validation.justification(justification, required: requiresJustification) {
         case .empty?: return .justificationRequired
         case .some: return .justificationTooLong
         case nil: break
         }
-        switch Validation.ticketNumber(facts.ticket, required: facts.requiresTicket) {
+        switch Validation.ticketSystem(ticketSystem, required: requiresTicket) {
+        case .empty?: return .ticketSystemRequired
+        case .some: return .ticketSystemTooLong
+        case nil: break
+        }
+        switch Validation.ticketNumber(ticket, required: requiresTicket) {
         case .empty?: return .ticketRequired
         case .some: return .ticketTooLong
         case nil: return nil
@@ -138,8 +154,16 @@ public enum ActivationBlock: Equatable, Sendable {
         case .durationTooShort: L10n.string("Azure needs at least 5 minutes.", locale: locale)
         case .justificationRequired: L10n.string("The policy requires a justification.", locale: locale)
         case .justificationTooLong: L10n.string("The justification is limited to 500 characters.", locale: locale)
+        case .ticketSystemRequired, .ticketSystemTooLong, .ticketRequired, .ticketTooLong: ticketMessage(locale: locale)
+        }
+    }
+
+    private func ticketMessage(locale: Locale?) -> String {
+        switch self {
+        case .ticketSystemRequired: L10n.string("The policy requires a ticket system.", locale: locale)
+        case .ticketSystemTooLong: L10n.string("The ticket system is limited to 100 characters.", locale: locale)
         case .ticketRequired: L10n.string("The policy requires a ticket number.", locale: locale)
-        case .ticketTooLong: L10n.string("The ticket number is limited to 100 characters.", locale: locale)
+        default: L10n.string("The ticket number is limited to 100 characters.", locale: locale)
         }
     }
 }

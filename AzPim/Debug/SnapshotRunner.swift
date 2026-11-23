@@ -35,6 +35,7 @@ enum SnapshotRunner {
         let store = RoleStore(context: context, accounts: accounts, notifications: NotificationScheduler())
         store.snapshotFrozen = true   // a window becoming key must not refresh the fixtures
         store.durationMemory = .inMemory()   // never the user's preferences
+        store.ticketMemory = .inMemory()
         return Env(container: demo, accounts: accounts, store: store)
     }
 
@@ -58,6 +59,7 @@ enum SnapshotRunner {
         let store = RoleStore(context: memory.mainContext, accounts: accounts, notifications: NotificationScheduler())
         store.snapshotFrozen = true
         store.durationMemory = .inMemory()   // never the user's preferences
+        store.ticketMemory = .inMemory()
         return Env(container: memory, accounts: accounts, store: store)
     }
 
@@ -291,7 +293,8 @@ enum SnapshotRunner {
 extension SnapshotRunner {
     /// Activation Sheet states, after the other renders (the pending request would show in History and the panel):
     /// a remembered duration, the 1 h default with a missing justification, a policy under one hour with a ticket, and
-    /// a request already waiting.
+    /// a request already waiting. Then the grouped favorite sheet: a ticket role and a role without a justification,
+    /// with the tenant's ticket system and a ticket number used an hour ago prefilled.
     private static func renderSheets(env: Env, directory: URL, defaults: UserDefaults) {
         let context = env.container.mainContext
         let msal = ((try? context.fetch(FetchDescriptor<Account>())) ?? []).first { $0.mode == .msal }
@@ -315,6 +318,15 @@ extension SnapshotRunner {
             record.remoteRequestId = "req-ops"
             context.insert(record)
         }
+        // A ticket used an hour ago for the Security Reader role: the same incident, so both sheets prefill it.
+        if let ticket {
+            env.store.rememberTicket(ActivationInput(duration: "PT30M", justification: "", ticketNumber: "INC0042137",
+                                                     ticketSystem: "ServiceNow"), for: ticket, at: .now - 3600)
+        }
+        let incident = Favorite(name: "Incident response", items: [ticket, fresh].compactMap { $0 }.map {
+            FavoriteItem(eligibleRoleId: $0.id, duration: "PT30M")
+        }, sortOrder: 9)
+        context.insert(incident)
         try? context.save()
         let sheets = [("remembered", remembered), ("justification", fresh), ("ticket", ticket), ("pending", waiting)]
         for scheme in [ColorScheme.dark, .light] {
@@ -330,7 +342,11 @@ extension SnapshotRunner {
             let favorite = ((try? context.fetch(FetchDescriptor<Favorite>())) ?? []).first { $0.name == "Morning deploy" }
             render(FavoritesView(initialSelection: favorite?.id), size: NSSize(width: 900, height: 520), scheme: scheme,
                    to: directory.appending(path: "favorite-editor-\(suffix).png"), env: env)
+            render(FavoriteActivationSheet(favorite: incident) {}, size: NSSize(width: Theme.panelWidth, height: 1400),
+                   scheme: scheme, to: directory.appending(path: "sheet-favorite-ticket-\(suffix).png"), env: env)
         }
+        context.delete(incident)
+        try? context.save()
     }
 
     /// Quick-activate palette (a search and the second row selected; the global shortcut itself cannot be rendered)
