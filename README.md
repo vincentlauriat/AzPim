@@ -151,8 +151,9 @@ ticket and maximum duration.
 - **AzPim stores no token.** The Azure CLI keeps its own; the Microsoft sign-in uses the Keychain cache of
   Microsoft's MSAL library.
 - **Local data** (roles, policies, history, favorites) sits in `~/Library/Application Support/AzPim/`, a folder
-  only your user can read. *Settings › Accounts › Privacy › Delete All Local Data* signs every account out and
-  deletes its content (details in [Persistence](#6-persistence)).
+  only your user can read. *Settings › Accounts › Privacy › Delete All Local Data* removes Microsoft sign-ins from
+  MSAL's Keychain cache, forgets Azure CLI accounts (your `az` session is not touched) and deletes the folder's
+  content (details in [Persistence](#6-persistence)).
 - **Small preferences** (remembered durations, ticket system per tenant, recent ticket numbers kept 8 h) are in the
   app's preferences file, `~/Library/Preferences/fr.vincentlauriat.azpim.plist`.
 - **`az` is run safely:** explicit arguments, no shell, a minimal environment; a custom path must be owned by you or
@@ -294,8 +295,10 @@ What `RoleStore.activate` guarantees (`AzPim/Services/RoleStore.swift`):
 - **Every attempt is recorded.** An `ActivationRecord` is inserted before the request. A `Failed`, `Denied` or
   `Canceled` answer is turned into the `RequestRefused` error: nothing was applied, the row shows the error, and
   the record keeps the status.
-- **Nothing is sent twice.** A role with a waiting request (`ActivationRecord.isWaiting`) cannot be sent again: a
-  pending approval waits until a decision, a request still `sent` for 15 minutes.
+- **Nothing is sent twice.** This check is made by the callers, not by `activate` itself: the sheet
+  (`ActivationBlock`), `quickActivate`, `runFavorite` and `IntentActivation` refuse a role with a waiting request
+  (`RoleStore.waitingRequest`, `ActivationRecord.isWaiting`). A pending approval waits until a decision; a request
+  still `sent` waits 15 minutes.
 - **The token belongs to the account.** `RoleStore.sources(for:)` (`RoleStore+Accounts.swift`) wraps the token
   source. A token whose `oid` and `tid` claims do not match the account is refused before any request. This covers
   `az login` switched to someone else meanwhile, or MSAL returning another identity.
@@ -361,8 +364,10 @@ Each `Account` has a `mode` (`SignInMode.azureCLI` or `.msal`). `AccountService.
 - **Silent first, one window at a time.** `acquire` tries `acquireTokenSilent`. Concurrent sources that need the
   user wait for the single open sign-in (`openSignIn`) instead of opening their own.
 - **No window in the background.** Inside `TokenInteraction.$isBackground` (the timer refresh, the panel's stale
-  refresh, Shortcuts), MSAL throws `TokenError.interactionRequired` instead of opening a window, and the panel shows
-  a Sign in banner.
+  refresh, the refresh after an expiry, the readiness wait of Shortcuts, and the policy reads a link or a favorite
+  intent does before its confirmation), MSAL throws `TokenError.interactionRequired` instead of opening a window,
+  and the panel shows a Sign in banner. Requests the user confirmed, including from Shortcuts, may open one (for a
+  step-up).
 - **Sign-out.** It removes the account from the MSAL cache. If that fails, the account is kept, so no orphaned
   credentials stay in the Keychain.
 
@@ -390,8 +395,8 @@ count:
 
 `AuthorizedClient.json` (`…/PIM/HTTPClient.swift`) retries a request **once** with claims in two cases:
 
-- **401 with `WWW-Authenticate: … claims="…"`** (or `insufficient_claims`). ARM sends the claims base64-encoded and
-  they are decoded; Graph may send JSON as is.
+- **401 with a `claims="…"` value in `WWW-Authenticate`.** ARM sends the claims base64-encoded and they are
+  decoded; Graph may send JSON as is.
 - **Graph 400 whose error message ends with `&claims=<url-encoded JSON>`** (`RoleAssignmentRequestAcrsValidationFailed`).
   This happens with an Entra role whose policy requires an authentication context. The message may be nested as a
   JSON string inside `error.message`. The request was rejected, so stepping up and sending it again is safe.
@@ -528,7 +533,9 @@ request that made it:
    capped by the policy.
 5. **Deactivate, then activate again.** If the deactivation fails, the role is still active and the user is told.
    Azure may keep reporting the old activation for a few seconds, so the activation is retried after 0, 3, 6 and
-   12 s. "Already active" refusals are discarded from History, except the last one.
+   12 s. "Already active" refusals are discarded from History, except the last one. If every attempt fails, **the
+   role is left deactivated**, and the message says so ("Role deactivated; re-activation failed…") so the user can
+   activate it from the panel.
 
 While this runs, the role is in `extending`, and its row and any replacement row show busy. Extend is reachable
 from the panel row, from the palette (⇧Return) and from the expiry notification.
@@ -592,8 +599,9 @@ Sparkle keeps its own `SU*` keys in the same domain.
 
 *Settings › Accounts › Privacy › Delete All Local Data* runs `AccountService.deleteAllLocalData()`:
 
-- It signs out every account. MSAL accounts are removed from the Keychain cache first, and the run stops at the first
-  failure, so no orphaned credentials stay behind.
+- It removes every account. MSAL accounts are first removed from MSAL's Keychain cache, and the run stops at the
+  first failure, so no orphaned credentials stay behind. Azure CLI accounts are only forgotten: your `az login`
+  session is not touched.
 - It deletes every `Account`, `Favorite`, `ActivationRecord`, `EligibleRole`, `ActiveAssignment` and `AppSettings`
   row, then seeds fresh settings, so onboarding shows again.
 - It prunes the remembered durations, ticket systems and ticket numbers (`pruneDurations`, `pruneTickets`). With no
@@ -803,7 +811,7 @@ enforced by Microsoft on every request; AzPim cannot grant anything that PIM wou
 | `management.azure.com` | ARM PIM | refresh, actions |
 | `graph.microsoft.com` | Entra roles, PIM groups | MSAL accounts with directory access |
 | `login.microsoftonline.com` | MSAL sign-in and token renewal, admin-consent link | MSAL accounts |
-| `raw.githubusercontent.com`, `github.com` | Sparkle feed (`SUFeedURL`) and the DMG download | release builds only; `UpdaterController` does not start the updater in Debug |
+| `raw.githubusercontent.com`, `github.com` (which redirects the DMG download to GitHub's asset storage) | Sparkle feed (`SUFeedURL`) and the DMG download | release builds only; `UpdaterController` does not start the updater in Debug |
 
 The Azure CLI contacts Microsoft through its own process, with its telemetry turned off by
 `AZURE_CORE_COLLECT_TELEMETRY=false`. There is no AzPim server, no telemetry, no analytics, and no logging
@@ -872,8 +880,7 @@ framework: History is the local audit trail.
   - The scheme runs the host in English, so assertions on text hold on any Mac.
   - The test bundle does not link `AzPimCore` again: a second copy would duplicate the `@Model` classes.
 - **Snapshot mode (Debug only).** `AZPIM_SNAPSHOT=<dir>` renders the panel and the windows to PNG from demo data.
-  It uses an in-memory store and a throwaway defaults suite, with no refresh, no `az` and no Keychain. The
-  screenshots in `docs/images/` come from it.
+  It uses an in-memory store and a throwaway defaults suite, with no refresh, no `az` and no Keychain.
 
 ```bash
 swift test --package-path Packages/AzPimCore                 # core tests
