@@ -35,10 +35,12 @@ struct ValidationTests {
     }
 
     @Test func isoDurationLabel() {
-        #expect(ISODuration.label(1_800) == "30 min")
-        #expect(ISODuration.label(7_200) == "2 h")
-        #expect(ISODuration.label(5_400) == "1 h 30 min")
-        #expect(Validation.Failure.exceedsPolicy(max: 2_700).userMessage == "Longer than the policy maximum (45 min)")
+        let english = Locale(identifier: "en_US")
+        #expect(plain(ISODuration.label(1_800, locale: english)) == "30 min")
+        #expect(plain(ISODuration.label(7_200, locale: english)) == "2 hr")
+        #expect(plain(ISODuration.label(5_400, locale: english)) == "1 hr 30 min")
+        #expect(plain(Validation.Failure.exceedsPolicy(max: 2_700).userMessage(locale: english))
+                == "Longer than the policy maximum (45 min)")
     }
 
     @Test func deepLinkEscapesReservedCharacters() throws {

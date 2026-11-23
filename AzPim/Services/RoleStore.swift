@@ -239,7 +239,7 @@ final class RoleStore {
         guard let account = role.account else { return nil }
         // One request per row: a second tap, a second sheet or a favorite during an Extend must not submit it twice.
         guard action == .extend || !extending.contains(role.id), inFlight.insert(role.id).inserted else {
-            rowErrors[role.id] = "A request for this role is already in progress."
+            rowErrors[role.id] = ActivationBlock.inProgress.message
             lastActivationError[role.id] = nil
             return nil
         }
@@ -288,7 +288,7 @@ final class RoleStore {
     @discardableResult
     func deactivate(_ assignment: ActiveAssignment, refreshAfter: Bool = true) async -> Bool {
         guard let account = assignment.account, let role = assignment.eligibleRole else {
-            rowErrors[assignment.id] = "This assignment is permanent and cannot be deactivated."
+            rowErrors[assignment.id] = String(localized: "This assignment is permanent and cannot be deactivated.")
             return false
         }
         // The row may be deleted by a refresh while the request runs: use copies after the first `await`.

@@ -8,6 +8,14 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var title: String {
+        switch self {
+        case .roles: String(localized: "Roles")
+        case .history: String(localized: "History")
+        case .favorites: String(localized: "Favorites")
+        }
+    }
+
     var symbol: String {
         switch self {
         case .roles: "key.horizontal.fill"
@@ -50,7 +58,7 @@ struct MainWindow: View {
         NavigationSplitView {
             List(SidebarItem.allCases, selection: snapshot == nil ? $selection : .constant(nil)) { item in
                 Label {
-                    Text(item.rawValue)
+                    Text(item.title)
                 } icon: {
                     Image(systemName: item.symbol).foregroundStyle(item.tint)
                 }

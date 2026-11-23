@@ -22,8 +22,9 @@ struct ErrorKindTests {
     }
 
     @Test func messages() {
-        #expect(ErrorKind.throttled(retryAfter: nil).message == "Microsoft is throttling requests — try again in 30 s.")
-        #expect(ErrorKind.forbidden("x").message == "Not allowed by your tenant policy: x")
+        #expect(plain(ErrorKind.throttled(retryAfter: nil).message(locale: english))
+                == "Microsoft is throttling requests — try again in 30 sec.")
+        #expect(ErrorKind.forbidden("x").message(locale: english) == "Not allowed by your tenant policy: x")
         #expect(ErrorKind.cliExpired(command: "az login").message.contains("az login"))
     }
 }

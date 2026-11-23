@@ -24,6 +24,9 @@ jobs:
       - name: Release metadata (appcast vs project.yml, pinned packages)
         run: python3 Scripts/check-release-metadata.py
 
+      - name: French strings complete (app catalog, core tables)
+        run: python3 Scripts/check-localizations.py
+
       - name: release.sh syntax
         run: bash -n Scripts/release.sh
 
@@ -71,11 +74,19 @@ jobs:
       - name: Generate project
         run: xcodegen generate
 
+      # Debug DerivedData at a known path: the localization check reads the .stringsdata files it holds.
       - name: Build app
         run: |
           xcodebuild -project AzPim.xcodeproj -scheme AzPim -configuration Debug \
-            -destination 'platform=macOS' -clonedSourcePackagesDirPath SourcePackages \
+            -destination 'platform=macOS' -derivedDataPath build/DD -clonedSourcePackagesDirPath SourcePackages \
             CODE_SIGNING_ALLOWED=NO build
+
+      # The strings the compiler extracted (SWIFT_EMIT_LOC_STRINGS) must match the String Catalog, all in French.
+      - name: Localizations match the code
+        run: |
+          plutil -lint Packages/AzPimCore/Sources/AzPimCore/Resources/*.lproj/*
+          python3 Scripts/check-localizations.py \
+            --stringsdata build/DD/Build/Intermediates.noindex/AzPim.build/Debug/AzPim.build
 
       # RoleStore tests hosted in the Debug app. The step fails unless tests actually ran: a bundle that does not
       # load into the host reports success with zero tests.
@@ -83,7 +94,7 @@ jobs:
         run: |
           rm -rf TestResults.xcresult
           xcodebuild -project AzPim.xcodeproj -scheme AzPim -configuration Debug \
-            -destination 'platform=macOS' -clonedSourcePackagesDirPath SourcePackages \
+            -destination 'platform=macOS' -derivedDataPath build/DD -clonedSourcePackagesDirPath SourcePackages \
             -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO test
           xcrun xcresulttool get test-results summary --path TestResults.xcresult --format json > test-summary.json
           python3 - <<'PY'

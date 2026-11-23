@@ -37,8 +37,8 @@ struct ActivationSheet: View {
         let block = self.block
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Activate \(role.roleName)").font(.headline)
-                Text(role.scopeName).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                Text("Activate \(role.displayRoleName)").font(.headline)
+                Text(role.displayScopeName).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 Text(policyHint).font(.caption).foregroundStyle(.secondary)
             }
 
@@ -96,10 +96,10 @@ struct ActivationSheet: View {
 
     private var policyHint: String {
         let max = ISODuration.label(TimeInterval(ActivationDuration.maxMinutes(policyMax: role.maxDuration) * 60))
-        var parts = ["Max \(max)"]
-        if role.requiresTicket { parts.append("Ticket required") }
-        if role.requiresMFA { parts.append("MFA required") }
-        if role.requiresApproval { parts.append("Approval required") }
+        var parts = [String(localized: "Max \(max)")]
+        if role.requiresTicket { parts.append(String(localized: "Ticket required")) }
+        if role.requiresMFA { parts.append(String(localized: "MFA required")) }
+        if role.requiresApproval { parts.append(String(localized: "Approval required")) }
         return parts.joined(separator: " · ")
     }
 

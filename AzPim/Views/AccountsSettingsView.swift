@@ -56,8 +56,10 @@ struct AccountsSettingsView: View {
                 store.pruneDurations()   // no role left: the remembered durations go too
             }
         } message: {
-            Text("Signs out every account and deletes cached roles, favorites, history and preferences. "
-                 + "Your roles in Azure are not changed.")
+            Text("""
+                Signs out every account and deletes cached roles, favorites, history and preferences. \
+                Your roles in Azure are not changed.
+                """)
         }
         .confirmationDialog("Remove \(pendingRemoval?.upn ?? "")?", isPresented: .constant(pendingRemoval != nil),
                             presenting: pendingRemoval) { account in
@@ -154,10 +156,10 @@ private struct PreferencesSection: View {
 
     var body: some View {
         Section("Preferences") {
-            Stepper("Refresh every \(settings.refreshIntervalMinutes) min",
+            Stepper("Refresh every \(ISODuration.label(TimeInterval(settings.refreshIntervalMinutes * 60)))",
                     value: $settings.refreshIntervalMinutes, in: 1...30)
                 .onChange(of: settings.refreshIntervalMinutes) { store.restartAutoRefresh() }
-            Stepper("Notify \(settings.notificationLeadMinutes) min before expiry",
+            Stepper("Notify \(ISODuration.label(TimeInterval(settings.notificationLeadMinutes * 60))) before expiry",
                     value: $settings.notificationLeadMinutes, in: 5...60, step: 5)
             Stepper("Keep history \(settings.historyRetentionDays) days",
                     value: $settings.historyRetentionDays, in: 7...365, step: 7)
@@ -170,7 +172,8 @@ private struct PreferencesSection: View {
         Section("Advanced") {
             LabeledContent("Azure CLI") {
                 HStack {
-                    Text(settings.azCLIPath ?? "Auto-detect").foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                    Text(settings.azCLIPath ?? String(localized: "Auto-detect"))
+                        .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     Button("Choose…", action: chooseAZ)
                     if settings.azCLIPath != nil { Button("Reset") { settings.azCLIPath = nil } }
                 }
@@ -199,13 +202,13 @@ private struct PreferencesSection: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.directoryURL = URL(fileURLWithPath: "/opt/homebrew/bin")
-        panel.prompt = "Choose az"
+        panel.prompt = String(localized: "Choose az")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         if Validation.azPath(url.path) == nil {
             settings.azCLIPath = url.path
             azPathError = nil
         } else {
-            azPathError = "Choose the executable named `az`."
+            azPathError = String(localized: "Choose the executable named `az`.")
         }
     }
 }

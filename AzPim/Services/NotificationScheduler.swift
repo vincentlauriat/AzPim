@@ -81,8 +81,9 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         self.center = center
         super.init()
         // Changes privileges: needs an unlocked Mac (security review I1).
-        let extend = UNNotificationAction(identifier: Self.extendAction, title: "Extend", options: [.authenticationRequired])
-        let dismiss = UNNotificationAction(identifier: Self.dismissAction, title: "Dismiss", options: [.destructive])
+        let extend = UNNotificationAction(identifier: Self.extendAction, title: String(localized: "Extend"),
+                                          options: [.authenticationRequired])
+        let dismiss = UNNotificationAction(identifier: Self.dismissAction, title: String(localized: "Dismiss"), options: [.destructive])
         center.setUp(delegate: self, categories: [UNNotificationCategory(identifier: Self.category, actions: [extend, dismiss],
                                                                          intentIdentifiers: [])])
     }
@@ -102,9 +103,10 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             }
             assignment.notifiedAt = fireAt
             let roleId = assignment.eligibleRole?.id
+            let time = end.appFormatted(date: .omitted, time: .shortened), lead = ISODuration.label(Double(leadMinutes) * 60)
             requests.append(LocalNotification(
-                id: Self.prefix + (roleId ?? assignment.id), title: "\(assignment.roleName) — \(assignment.scopeName)",
-                body: "Expires at \(end.formatted(date: .omitted, time: .shortened)) (\(leadMinutes) min).", sound: true,
+                id: Self.prefix + (roleId ?? assignment.id), title: "\(assignment.displayRoleName) — \(assignment.displayScopeName)",
+                body: String(localized: "Expires at \(time) (\(lead))."), sound: true,
                 category: roleId == nil ? nil : Self.category, roleId: roleId, delay: max(1, fireAt.timeIntervalSince(now))))
         }
         let pending = await center.pendingIdentifiers().filter { $0.hasPrefix(Self.prefix) }

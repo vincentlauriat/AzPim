@@ -21,8 +21,8 @@ struct DurationPicker: View {
             .accessibilityLabel("Duration")
             .accessibilityValue(label(minutes))
             .help("15-minute steps, up to the policy maximum (\(label(maxMinutes)))")
-            if maxMinutes > 60 { chip("1 h", value: 60) }
-            chip("Max (\(label(maxMinutes)))", value: maxMinutes)
+            if maxMinutes > 60 { chip(label(60), value: 60) }
+            chip(String(localized: "Max (\(label(maxMinutes)))"), value: maxMinutes)
         }
     }
 

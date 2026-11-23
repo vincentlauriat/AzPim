@@ -20,7 +20,7 @@ struct FavoritesView: View {
                         Image(systemName: "star.fill").foregroundStyle(Theme.violet)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(favorite.name).font(.system(size: 13, weight: .medium))
-                            Text(favorite.items.count == 1 ? "1 role" : "\(favorite.items.count) roles")
+                            Text("\(favorite.items.count) roles")
                                 .font(.system(size: 11)).foregroundStyle(.secondary)
                         }
                     }
@@ -74,10 +74,11 @@ struct FavoritesView: View {
     }
 
     private func add() {
-        var name = "New favorite"
+        let base = String(localized: "New favorite")
+        var name = base
         var index = 2
         while case .failure = Validation.favoriteName(name, existing: favorites.map(\.name)) {
-            name = "New favorite \(index)"
+            name = "\(base) \(index)"
             index += 1
         }
         let favorite = Favorite(name: name, items: [], sortOrder: (favorites.map(\.sortOrder).max() ?? -1) + 1)
@@ -127,7 +128,7 @@ private struct FavoriteEditor: View {
                         !favorite.items.contains { $0.eligibleRoleId == role.id }
                             && role.account.map { !supersession.hides($0.id, role.source) } == true
                     }) { role in
-                        Button("\(role.roleName) — \(role.scopeName)") {
+                        Button("\(role.displayRoleName) — \(role.displayScopeName)") {
                             favorite.items.append(FavoriteItem(eligibleRoleId: role.id, duration: store.defaultFavoriteDuration(for: role)))
                             try? context.save()
                         }
@@ -156,8 +157,9 @@ private struct FavoriteEditor: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(role?.roleName ?? "No longer eligible").foregroundStyle(role == nil ? .secondary : .primary)
-                    Text(role?.scopeName ?? item.eligibleRoleId).font(.caption).foregroundStyle(.secondary)
+                    Text(role?.displayRoleName ?? String(localized: "No longer eligible"))
+                        .foregroundStyle(role == nil ? .secondary : .primary)
+                    Text(role?.displayScopeName ?? item.eligibleRoleId).font(.caption).foregroundStyle(.secondary)
                         .lineLimit(1).truncationMode(.middle)
                 }
                 Spacer()
@@ -173,7 +175,7 @@ private struct FavoriteEditor: View {
             DurationPicker(minutes: durationBinding(item.eligibleRoleId, policyMax: role?.maxDuration),
                            policyMax: role?.maxDuration)
             TextField("Justification", text: justificationBinding(item.eligibleRoleId),
-                      prompt: Text(role?.lastJustification ?? "Uses the last justification of this role"))
+                      prompt: Text(role?.lastJustification ?? String(localized: "Uses the last justification of this role")))
                 .font(.callout)
             if role?.requiresTicket == true {
                 Text("Needs a ticket number: activate it from the panel instead.").font(.caption).foregroundStyle(.orange)
@@ -217,7 +219,7 @@ private struct FavoriteEditor: View {
                 try? context.save()
             }
         case .failure(let failure):
-            nameError = failure.userMessage + " — kept “\(favorite.name)”."
+            nameError = String(localized: "\(failure.userMessage) — kept “\(favorite.name)”.")
         }
     }
 }

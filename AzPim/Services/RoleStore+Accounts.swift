@@ -48,7 +48,7 @@ extension RoleStore {
             let jwt = JWTClaims(token: token.value)
             guard jwt?.objectId?.lowercased() == objectId, jwt?.tenantId?.lowercased() == tenantId.lowercased() else {
                 throw mode == .azureCLI ? TokenError.cliNotSignedIn(command: "az login --tenant \(tenantId)  # as \(upn)")
-                    : TokenError.failed("Microsoft returned a token for another identity than \(upn). Sign in again.")
+                    : TokenError.failed(String(localized: "Microsoft returned a token for another identity than \(upn). Sign in again."))
             }
             return token
         }, account.directoryAccess == .enabled)

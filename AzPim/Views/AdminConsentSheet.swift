@@ -53,7 +53,7 @@ struct AdminConsentSheet: View {
                     Button("Copy consent link") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(link.absoluteString, forType: .string)
-                        status = "Link copied."
+                        status = String(localized: "Link copied.")
                     }
                     Button("Prepare email") {
                         if let mail = ConsentRequest.mailto(account: account, link: link) { NSWorkspace.shared.open(mail) }
@@ -77,11 +77,11 @@ struct AdminConsentSheet: View {
         do {
             try await accounts.enableDirectoryAccess(for: account)
             if account.directoryAccess == .enabled {
-                status = "Consent granted — loading Entra roles."
+                status = String(localized: "Consent granted — loading Entra roles.")
                 await store.refresh()
                 dismissWindow()
             } else {
-                status = "Still waiting for admin consent."
+                status = String(localized: "Still waiting for admin consent.")
             }
         } catch {
             status = AccountService.message(for: error)
@@ -90,15 +90,15 @@ struct AdminConsentSheet: View {
 }
 
 enum ConsentRequest {
-    static let permissions: [(String, String)] = [
-        ("User.Read", "identify the signed-in user"),
-        ("RoleEligibilitySchedule.Read.Directory", "list eligible Entra roles"),
-        ("RoleAssignmentSchedule.ReadWrite.Directory", "activate / deactivate your own Entra roles"),
-        ("RoleManagementPolicy.Read.Directory", "read PIM rules"),
-        ("PrivilegedEligibilitySchedule.Read.AzureADGroup", "list eligible PIM groups"),
-        ("PrivilegedAssignmentSchedule.ReadWrite.AzureADGroup", "activate your own PIM group membership"),
-        ("RoleManagementPolicy.Read.AzureADGroup", "read PIM group rules")
-    ]
+    static var permissions: [(String, String)] { [
+        ("User.Read", String(localized: "identify the signed-in user")),
+        ("RoleEligibilitySchedule.Read.Directory", String(localized: "list eligible Entra roles")),
+        ("RoleAssignmentSchedule.ReadWrite.Directory", String(localized: "activate / deactivate your own Entra roles")),
+        ("RoleManagementPolicy.Read.Directory", String(localized: "read PIM rules")),
+        ("PrivilegedEligibilitySchedule.Read.AzureADGroup", String(localized: "list eligible PIM groups")),
+        ("PrivilegedAssignmentSchedule.ReadWrite.AzureADGroup", String(localized: "activate your own PIM group membership")),
+        ("RoleManagementPolicy.Read.AzureADGroup", String(localized: "read PIM group rules"))
+    ] }
 
     static func link(tenantId: String, clientId: String?) -> URL? {
         guard let clientId else { return nil }
@@ -111,26 +111,27 @@ enum ConsentRequest {
         return components.url
     }
 
-    /// `mailto:` draft based on docs/admin-consent/email-template-tenant-admin.md (French when the Mac is in French).
+    /// `mailto:` draft based on docs/admin-consent/email-template-tenant-admin.md, in the language the app shows.
     static func mailto(account: Account, link: URL) -> URL? {
-        let french = Locale.preferredLanguages.first?.hasPrefix("fr") == true
-        let list = permissions.map { "- \($0.0): \($0.1)" }.joined(separator: "\n")
+        let french = Bundle.main.preferredLocalizations.first == "fr"
+        let separator = french ? "\u{00A0}: " : ": "
+        let list = permissions.map { "- \($0.0)\(separator)\($0.1)" }.joined(separator: "\n")
         let tenant = account.tenantName ?? account.tenantId
         let subject = french ? "Demande de consentement administrateur – AzPim (activation PIM)"
                              : "Admin consent request — AzPim (self-service PIM activation)"
         let body = french ? """
         Bonjour,
 
-        J'utilise AzPim, une application macOS gratuite pour activer, suivre et révoquer mes propres rôles PIM. \
-        Pour les rôles Entra et les groupes PIM, Microsoft Graph exige un consentement administrateur.
+        J’utilise AzPim, une application macOS gratuite pour activer, suivre et terminer mes propres rôles PIM. \
+        Pour les rôles Microsoft Entra et les groupes PIM, Microsoft Graph exige un consentement administrateur.
 
-        Peux-tu donner le consentement pour le tenant \(tenant) ?
+        Pourriez-vous accorder ce consentement pour le locataire \(tenant)\u{00A0}?
         \(link.absoluteString)
 
-        Permissions déléguées uniquement (l'application agit au nom de l'utilisateur, avec ses propres droits) :
+        Autorisations déléguées uniquement (l’application agit au nom de l’utilisateur, avec ses propres droits)\u{00A0}:
         \(list)
 
-        Les règles PIM (MFA, justification, ticket, approbation, durée max) restent appliquées par Microsoft. \
+        Les règles PIM (MFA, justification, ticket, approbation, durée maximale) restent appliquées par Microsoft. \
         Aucun serveur, aucune télémétrie.
 
         Merci,

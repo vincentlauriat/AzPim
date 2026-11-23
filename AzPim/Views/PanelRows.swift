@@ -2,32 +2,46 @@ import AppKit
 import AzPimCore
 import SwiftUI
 
+/// Time left on an activation, by the system formatters in the app's language (rounded down to the minute, to the
+/// second in the last 5). Two styles: `compact` in the countdown capsules, `full` in sentences.
 enum Countdown {
+    /// Menu bar: « 5:16 » (hours:minutes), « 3:12 » (minutes:seconds) in the last 5 minutes.
     static func short(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds))
-        if total < 300 { return String(format: "%d:%02d", total / 60, total % 60) }
-        return String(format: "%d:%02d", total / 3600, (total % 3600) / 60)
+        if total < 300 { return clock(total) }
+        return Duration.seconds(total)
+            .formatted(.time(pattern: .hourMinute(padHourToLength: 1, roundSeconds: .down)).locale(AppLanguage.locale))
     }
 
+    /// Capsules (panel rows, palette): « 5h 16m » / « 5h 16min », « 42m », « 3:12 » in the last 5 minutes.
+    static func compact(_ seconds: TimeInterval) -> String {
+        let total = max(0, Int(seconds))
+        return total < 300 ? clock(total) : units(total, width: .narrow)
+    }
+
+    /// Sentences (hero line, tiles, tooltips): « 5 hr 16 min » / « 5 h 16 min », « 3:12 » in the last 5 minutes.
+    static func full(_ seconds: TimeInterval) -> String {
+        let total = max(0, Int(seconds))
+        return total < 300 ? clock(total) : units(total, width: .condensedAbbreviated)
+    }
+
+    /// « 5 hr 16 min left » / « Reste 5 h 16 min ».
     static func long(_ seconds: TimeInterval) -> String {
-        let total = max(0, Int(seconds))
-        let hours = total / 3600, minutes = (total % 3600) / 60
-        if total < 300 { return String(format: "%d:%02d left", total / 60, total % 60) }
-        return hours > 0 ? "\(hours) h \(String(format: "%02d", minutes)) left" : "\(minutes) min left"
+        String(localized: "\(full(seconds)) left")
     }
 
-    /// Hero card value: « 5h 16m », « 42m », « 3:12 » in the last 5 minutes.
-    static func hero(_ seconds: TimeInterval) -> String {
-        let total = max(0, Int(seconds))
-        if total < 300 { return String(format: "%d:%02d", total / 60, total % 60) }
-        let hours = total / 3600, minutes = (total % 3600) / 60
-        return hours > 0 ? "\(hours)h \(String(format: "%02d", minutes))m" : "\(minutes)m"
-    }
-
+    /// VoiceOver: « 5 hours, 16 minutes ».
     static func spoken(_ seconds: TimeInterval?) -> String {
-        guard let seconds else { return "unknown" }
-        let minutes = max(0, Int(seconds) / 60)
-        return minutes >= 60 ? "\(minutes / 60) hours \(minutes % 60) minutes" : "\(minutes) minutes"
+        guard let seconds else { return String(localized: "unknown") }
+        return units(max(0, Int(seconds)), width: .wide)
+    }
+
+    private static func clock(_ total: Int) -> String {
+        Duration.seconds(total).formatted(.time(pattern: .minuteSecond).locale(AppLanguage.locale))
+    }
+
+    private static func units(_ total: Int, width: Duration.UnitsFormatStyle.UnitWidth) -> String {
+        Duration.seconds(total / 60 * 60).formatted(.units(allowed: [.hours, .minutes], width: width).locale(AppLanguage.locale))
     }
 
     static func color(_ seconds: TimeInterval?) -> Color {
@@ -75,8 +89,8 @@ struct EligibleRow: View {
             HStack(spacing: 8) {
                 Image(systemName: SourceIcon.name(role.source)).frame(width: 22).foregroundStyle(Theme.accent)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(role.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                    Text(role.scopeName + (role.memberType == .group ? " · via group" : ""))
+                    Text(role.displayRoleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                    Text(role.memberType == .group ? String(localized: "\(role.displayScopeName) · via group") : role.displayScopeName)
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 }
                 Spacer()
@@ -140,12 +154,12 @@ struct ActiveRow: View {
                 Image(systemName: SourceIcon.name(assignment.source)).frame(width: 22).foregroundStyle(Theme.active)
                 VStack(alignment: .leading, spacing: 1) {
                     // The role name keeps the full width; the type tag and the scope share the second line.
-                    Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                    Text(assignment.displayRoleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
                     HStack(spacing: 4) {
                         if showTypeTag { TypeTag(source: assignment.source) }
                         // "Directory" repeats the Entra tag: hide it so "also permanent" fits beside the countdown.
                         if !(showTypeTag && assignment.source == .entraRole && assignment.scope == "/") {
-                            Text(assignment.scopeName).lineLimit(1).truncationMode(.middle)
+                            Text(assignment.displayScopeName).lineLimit(1).truncationMode(.middle)
                         }
                         if alsoPermanent {
                             Label("also permanent", systemImage: "lock").labelStyle(.titleAndIcon).imageScale(.small)
@@ -159,7 +173,7 @@ struct ActiveRow: View {
                 Spacer(minLength: 4)
                 if let end = assignment.endAt {
                     let remaining = end.timeIntervalSince(store.now)
-                    Text(Countdown.hero(remaining))
+                    Text(Countdown.compact(remaining))
                         .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
                         .lineLimit(1)
                         .fixedSize()
@@ -175,7 +189,7 @@ struct ActiveRow: View {
                     Button {
                         confirming = true
                     } label: {
-                        Label("Deactivate \(assignment.roleName)", systemImage: "stop.circle.fill").labelStyle(.iconOnly)
+                        Label("Deactivate \(assignment.displayRoleName)", systemImage: "stop.circle.fill").labelStyle(.iconOnly)
                             .font(.system(size: 16))
                             .foregroundStyle(tooRecent ? Color.secondary : Theme.danger)
                     }
@@ -184,8 +198,8 @@ struct ActiveRow: View {
                     .help(tooRecent ? "Can't deactivate within 5 minutes of activation" : "Deactivate")
                     .popover(isPresented: confirmShown) {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Deactivate \(assignment.roleName)?").font(.headline)
-                            Text(assignment.scopeName).font(.caption).foregroundStyle(.secondary)
+                            Text("Deactivate \(assignment.displayRoleName)?").font(.headline)
+                            Text(assignment.displayScopeName).font(.caption).foregroundStyle(.secondary)
                             HStack {
                                 Spacer()
                                 Button("Cancel") { confirmShown.wrappedValue = false }
@@ -222,10 +236,10 @@ struct PermanentRow: View {
         HStack(spacing: 8) {
             Image(systemName: SourceIcon.name(assignment.source)).frame(width: 22).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 1) {
-                Text(assignment.roleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                Text(assignment.displayRoleName).font(.system(size: 13, weight: .medium)).lineLimit(1)
                 HStack(spacing: 4) {
                     if showTypeTag { TypeTag(source: assignment.source) }
-                    Text(showAccount ? "\(assignment.scopeName) · \(assignment.account?.upn ?? "")" : assignment.scopeName)
+                    Text(showAccount ? "\(assignment.displayScopeName) · \(assignment.account?.upn ?? "")" : assignment.displayScopeName)
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 }
             }
@@ -235,7 +249,7 @@ struct PermanentRow: View {
         }
         .frame(minHeight: 36)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(assignment.roleName), \(assignment.scopeName), permanent")
+        .accessibilityLabel("\(assignment.displayRoleName), \(assignment.displayScopeName), permanent")
     }
 }
 
@@ -250,7 +264,7 @@ struct ErrorBanner: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Label {
-                Text(account.map { "\($0): \(kind.message)" } ?? kind.message).font(.system(size: 12))
+                Text(account.map { String(localized: "\($0): \(kind.message)") } ?? kind.message).font(.system(size: 12))
             } icon: {
                 Image(systemName: icon).foregroundStyle(Theme.warning)
             }
@@ -309,12 +323,12 @@ struct FavoriteChips: View {
                             .tint(Theme.violet)
                             .controlSize(.regular)
                             .disabled(favorite.items.isEmpty || store.runningFavorites.contains(favorite.id) || store.isOffline)
-                            .help("Activate \(favorite.items.count) role(s)")
+                            .help("Activate \(favorite.items.count) roles")
                         }
                     }
                 }
                 if let toast = store.favoriteToast {
-                    let name = favorites.first { $0.id == toast.favoriteId }?.name ?? "Favorite"
+                    let name = favorites.first { $0.id == toast.favoriteId }?.name ?? String(localized: "Favorite")
                     HStack(alignment: .top) {
                         Text("\(name): \(toast.text)").font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                         Spacer()

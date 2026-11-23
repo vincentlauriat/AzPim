@@ -134,28 +134,50 @@ public enum ISODuration {
         }
     }
 
-    /// Short label for a duration: « 45 min », « 2 h », « 1 h 30 min » (never « 0 h » for a policy under one hour).
-    public static func label(_ seconds: TimeInterval) -> String {
-        let total = Int((seconds / 60).rounded())
-        let hours = total / 60, minutes = total % 60
-        switch (hours, minutes) {
-        case (0, let mins): return "\(mins) min"
-        case (let hrs, 0): return "\(hrs) h"
-        case (let hrs, let mins): return "\(hrs) h \(mins) min"
-        }
+    /// Short label for a duration, rounded to the minute, by the system formatter: « 45 min », « 2 hr », « 1 hr 30 min »
+    /// in English, « 1 h 30 min » in French (never « 0 h » for a policy under one hour). `locale` nil: the app's language.
+    public static func label(_ seconds: TimeInterval, locale: Locale? = nil) -> String {
+        Duration.seconds(Int((seconds / 60).rounded()) * 60)
+            .formatted(.units(allowed: [.hours, .minutes], width: .condensedAbbreviated).locale(locale ?? AppLanguage.locale))
     }
 }
 
 extension Validation.Failure {
-    /// Short English message for inline errors and toasts.
-    public var userMessage: String {
+    /// Short message for inline errors and toasts, in the system language.
+    public var userMessage: String { userMessage(locale: nil) }
+
+    public func userMessage(locale: Locale?) -> String {
         switch self {
-        case .empty(let field): field == "ticket" ? "Ticket number required by policy" : "\(field.capitalized) required"
-        case .tooLong(let field, let max): "\(field.capitalized) is limited to \(max) characters"
-        case .outOfRange(let field, let range): "\(field.capitalized) must be between \(range.lowerBound) and \(range.upperBound)"
-        case .invalidFormat(let field): "Invalid \(field)"
-        case .duplicate(let field): "This \(field) is already used"
-        case .exceedsPolicy(let max): "Longer than the policy maximum (\(ISODuration.label(max)))"
+        case .empty("name"): L10n.string("Name required", locale: locale)
+        case .empty("justification"): L10n.string("Justification required", locale: locale)
+        case .empty("ticket"): L10n.string("Ticket number required by policy", locale: locale)
+        case .empty(let field): L10n.string("\(Self.fieldName(field, locale: locale)) required", locale: locale)
+        case .tooLong(let field, let max):
+            L10n.string("\(Self.fieldName(field, locale: locale)) is limited to \(max) characters", locale: locale)
+        case .outOfRange(let field, let range):
+            L10n.string("\(Self.fieldName(field, locale: locale)) must be between \(range.lowerBound) and \(range.upperBound)",
+                        locale: locale)
+        case .invalidFormat(let field): L10n.string("Invalid \(Self.fieldName(field, locale: locale))", locale: locale)
+        case .duplicate("name"): L10n.string("This name is already used", locale: locale)
+        case .duplicate(let field): L10n.string("Already used: \(Self.fieldName(field, locale: locale))", locale: locale)
+        case .exceedsPolicy(let max):
+            L10n.string("Longer than the policy maximum (\(ISODuration.label(max, locale: locale)))", locale: locale)
+        }
+    }
+
+    /// Name of a validated field, as the messages show it.
+    static func fieldName(_ field: String, locale: Locale?) -> String {
+        switch field {
+        case "name": L10n.string("Name", locale: locale)
+        case "justification": L10n.string("Justification", locale: locale)
+        case "ticket": L10n.string("Ticket number", locale: locale)
+        case "duration": L10n.string("Duration", locale: locale)
+        case "clientId": L10n.string("Client ID", locale: locale)
+        case "azCLIPath": L10n.string("Azure CLI path", locale: locale)
+        case "refreshIntervalMinutes": L10n.string("Refresh interval", locale: locale)
+        case "notificationLeadMinutes": L10n.string("Notification lead time", locale: locale)
+        case "historyRetentionDays": L10n.string("History retention", locale: locale)
+        default: field
         }
     }
 }

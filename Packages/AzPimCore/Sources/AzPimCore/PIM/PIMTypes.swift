@@ -167,8 +167,8 @@ public enum PIMError: Error, Equatable, Sendable {
     public var userMessage: String {
         switch self {
         case .http(_, _, let message): message
-        case .throttled: "Microsoft is throttling requests — retrying shortly."
-        case .decoding(let detail): "Unexpected response from Microsoft (\(detail))."
+        case .throttled: L10n.string("Microsoft is throttling requests — retrying shortly.", locale: nil)
+        case .decoding(let detail): L10n.string("Unexpected response from Microsoft (\(detail)).", locale: nil)
         }
     }
 }

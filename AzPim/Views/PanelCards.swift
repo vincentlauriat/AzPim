@@ -74,7 +74,9 @@ struct PanelModel {
     func filtered(by query: String) -> PanelModel {
         guard !RoleSearch.isEmpty(query) else { return self }
         let matches = { (name: String, scope: String, source: RoleSource, tenant: String?) in
-            RoleSearch.matches(query, fields: [name, scope, TypeTag.text(source),
+            // Raw and displayed names: « Owner » and « Propriétaire », « Directory » and « Annuaire » both match.
+            RoleSearch.matches(query, fields: [name, scope, DisplayName.role(name, source: source),
+                                               DisplayName.scope(scope, source: source), TypeTag.text(source),
                                                PanelRoleType.allCases.first { $0.source == source }?.title ?? "",
                                                tenant ?? ""])
         }
@@ -106,9 +108,9 @@ enum PanelRoleType: CaseIterable {
 
     var title: String {
         switch self {
-        case .entra: "Entra roles"
-        case .azure: "Azure roles"
-        case .groups: "PIM groups"
+        case .entra: String(localized: "Entra roles")
+        case .azure: String(localized: "Azure roles")
+        case .groups: String(localized: "PIM groups")
         }
     }
 }
@@ -122,9 +124,9 @@ struct TypeTag: View {
     /// Nonisolated: the panel search matches on it too.
     nonisolated static func text(_ source: RoleSource) -> String {
         switch source {
-        case .entraRole: "Entra"
-        case .azureResource: "Azure"
-        case .pimGroup: "Group"
+        case .entraRole: String(localized: "Entra")
+        case .azureResource: String(localized: "Azure")
+        case .pimGroup: String(localized: "Group")
         }
     }
 
@@ -159,8 +161,9 @@ struct GroupHeader: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(title), \(count), \(expanded ? "expanded" : "collapsed")")
-        .accessibilityHint(expanded ? "Hide \(title.lowercased())" : "Show \(title.lowercased())")
+        .accessibilityLabel(expanded ? String(localized: "\(title), \(count), expanded")
+                                     : String(localized: "\(title), \(count), collapsed"))
+        .accessibilityHint(expanded ? String(localized: "Hide \(title)") : String(localized: "Show \(title)"))
     }
 }
 
@@ -179,7 +182,7 @@ struct ActiveRolesCard: View {
 
     var body: some View {
         // The badge counts activations, like the hero card; the Permanent group shows its own count.
-        DisclosureCard(title: "Active roles", icon: "bolt.fill", iconColor: Theme.active,
+        DisclosureCard(title: String(localized: "Active roles"), icon: "bolt.fill", iconColor: Theme.active,
                        count: model.activations.count, expanded: searching ? .constant(true) : $showActive) {
             if model.activations.isEmpty && model.permanents.isEmpty && !searching {
                 EmptyLine(text: emptyText)
@@ -192,7 +195,7 @@ struct ActiveRolesCard: View {
             }
             if !model.permanents.isEmpty {
                 if !model.activations.isEmpty { RowDivider(inset: 0) }
-                GroupHeader(title: "Permanent", count: model.permanents.count,
+                GroupHeader(title: String(localized: "Permanent"), count: model.permanents.count,
                             expanded: searching ? .constant(true) : $showPermanent)
                 if showPermanent || searching {
                     ForEach(Array(model.permanents.enumerated()), id: \.element.id) { index, row in
@@ -242,7 +245,7 @@ struct EligibleRolesCard: View {
     }
 
     var body: some View {
-        DisclosureCard(title: "Eligible roles", icon: "key.horizontal.fill", iconColor: Theme.accent,
+        DisclosureCard(title: String(localized: "Eligible roles"), icon: "key.horizontal.fill", iconColor: Theme.accent,
                        count: model.eligible.count, expanded: searching ? .constant(true) : $showEligible) {
             if noAccount && !searching {
                 Button("Add an account…") {
@@ -278,7 +281,7 @@ struct EligibleRolesCard: View {
     /// Why a tenant shows no row, and the admin consent link.
     @ViewBuilder private func tenantNotes(_ tenantAccounts: [Account], roles: [EligibleRole]) -> some View {
         if roles.isEmpty, tenantAccounts.contains(where: { (model.heldEligibleCount[$0.id] ?? 0) > 0 }) {
-            EmptyLine(text: "All eligible roles are active")
+            EmptyLine(text: String(localized: "All eligible roles are active"))
         }
         ForEach(tenantAccounts) { account in
             // No eligibility at all: say why (error, first load, or truly none).

@@ -5,7 +5,7 @@
 	<key>AzPimClientID</key>
 	<string>$(AZPIM_CLIENT_ID)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>AzPim</string>
 	<key>CFBundleExecutable</key>
@@ -14,6 +14,11 @@
 	<string>fr.vincentlauriat.azpim</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>fr</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>AzPim</string>
 	<key>CFBundlePackageType</key>

@@ -349,6 +349,8 @@ extension SnapshotRunner {
             render(Form { Section("Keyboard") { QuickActivateShortcutRow() } }.formStyle(.grouped),
                    size: NSSize(width: 620, height: 150), scheme: scheme,
                    to: directory.appending(path: "settings-shortcut-\(suffix).png"), env: env)
+            render(GeneralSettingsView(), size: NSSize(width: 620, height: 300), scheme: scheme,
+                   to: directory.appending(path: "settings-general-\(suffix).png"), env: env)
         }
     }
 }

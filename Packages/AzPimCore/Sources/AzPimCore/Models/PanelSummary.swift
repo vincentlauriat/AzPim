@@ -29,10 +29,11 @@ public struct HeroSummary: Equatable, Sendable {
     public let pending: String?
 
     /// `nextExpiry`: the countdown of the activation ending first, already formatted.
-    public init(activeCount: Int, nextExpiry: String?, pendingCount: Int) {
-        active = "\(activeCount) active"
-        expiry = nextExpiry.map { "next expiry in \($0)" }
-        pending = pendingCount > 0 ? "\(pendingCount) pending" : nil
+    /// `locale` nil: the system language.
+    public init(activeCount: Int, nextExpiry: String?, pendingCount: Int, locale: Locale? = nil) {
+        active = L10n.string("\(activeCount) active", locale: locale)
+        expiry = nextExpiry.map { L10n.string("next expiry in \($0)", locale: locale) }
+        pending = pendingCount > 0 ? L10n.string("\(pendingCount) pending", locale: locale) : nil
     }
 
     public var line: String { [active, expiry, pending].compactMap { $0 }.joined(separator: " · ") }
@@ -53,21 +54,31 @@ public struct MenuBarBadge: Equatable, Sendable {
     /// Shown next to the key while a request waits for approval.
     public var pendingSymbol: String? { pendingCount > 0 ? "hourglass" : nil }
 
-    public var spokenPending: String? {
-        pendingCount > 0 ? "\(pendingCount) request\(pendingCount == 1 ? "" : "s") waiting for approval" : nil
+    public var spokenPending: String? { spokenPending(locale: nil) }
+
+    public func spokenPending(locale: Locale?) -> String? {
+        pendingCount > 0 ? L10n.string("\(pendingCount) requests waiting for approval", locale: locale) : nil
     }
 }
 
 /// Notification posted when a request that waited for approval is decided.
 public enum RequestDecision {
     /// Title and body, nil for a status that is not a decision.
-    public static func notification(status: RequestStatus, roleName: String,
-                                    scopeName: String) -> (title: String, body: String)? {
+    public static func notification(status: RequestStatus, roleName: String, scopeName: String,
+                                    locale: Locale? = nil) -> (title: String, body: String)? {
         switch status {
-        case .provisioned: ("Request approved: \(roleName)", "\(scopeName) — the role is active.")
-        case .denied: ("Request denied: \(roleName)", "\(scopeName) — the approver denied the request.")
-        case .failed: ("Request expired or failed: \(roleName)", "\(scopeName) — no approval in time, or the request failed.")
-        case .canceled: ("Request canceled: \(roleName)", "\(scopeName) — the request was canceled or revoked.")
+        case .provisioned:
+            (L10n.string("Request approved: \(roleName)", locale: locale),
+             L10n.string("\(scopeName) — the role is active.", locale: locale))
+        case .denied:
+            (L10n.string("Request denied: \(roleName)", locale: locale),
+             L10n.string("\(scopeName) — the approver denied the request.", locale: locale))
+        case .failed:
+            (L10n.string("Request expired or failed: \(roleName)", locale: locale),
+             L10n.string("\(scopeName) — no approval in time, or the request failed.", locale: locale))
+        case .canceled:
+            (L10n.string("Request canceled: \(roleName)", locale: locale),
+             L10n.string("\(scopeName) — the request was canceled or revoked.", locale: locale))
         case .sent, .pendingApproval: nil
         }
     }

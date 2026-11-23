@@ -43,7 +43,8 @@ struct MenuBarLabel: View {
                 if let symbol = badge.pendingSymbol { Image(systemName: symbol) }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel((activations.isEmpty ? "AzPim, no active role" : "AzPim, \(activations.count) active") + pending)
+            .accessibilityLabel((activations.isEmpty ? String(localized: "AzPim, no active role")
+                                 : String(localized: "AzPim, \(activations.count) active")) + pending)
         } else {
             let remaining = activations.compactMap(\.endAt).min().map { $0.timeIntervalSince(store.now) }
             HStack(spacing: 3) {
@@ -54,7 +55,8 @@ struct MenuBarLabel: View {
             }
             .foregroundStyle(Countdown.color(remaining))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("AzPim, \(activations.count) active, next expiry in \(Countdown.spoken(remaining))" + pending)
+            .accessibilityLabel(String(localized: "AzPim, \(activations.count) active, next expiry in \(Countdown.spoken(remaining))")
+                                + pending)
         }
     }
 
@@ -171,7 +173,9 @@ struct MenuBarPanel: View {
             heroCard(model)
             errorBanners
             if RoleSearch.isEmpty(query) {
-                ActiveRolesCard(model: model, emptyText: accountList.isEmpty ? "Add an account to see your roles" : "No active role",
+                ActiveRolesCard(model: model,
+                                emptyText: accountList.isEmpty ? String(localized: "Add an account to see your roles")
+                                    : String(localized: "No active role"),
                                 showAccount: shownAccounts.count > 1, selectedId: selectedRowId, confirmId: $confirmDeactivateId)
                 if !favorites.isEmpty { favoritesCard }
                 EligibleRolesCard(model: model, accounts: shownAccounts, pendingRecords: pendingRecords,
@@ -188,7 +192,7 @@ struct MenuBarPanel: View {
     /// Matching rows only, every group open; card counts are those of the matches.
     @ViewBuilder private func searchResults(_ found: PanelModel) -> some View {
         if found.isEmpty {
-            EmptyLine(text: "No role matches")
+            EmptyLine(text: String(localized: "No role matches"))
                 .padding(.horizontal, 14)
                 .card()
         }
@@ -235,10 +239,12 @@ struct MenuBarPanel: View {
 
     private func heroCard(_ model: PanelModel) -> some View {
         let next = nextActivation(model.activations.map(\.assignment))
-        let summary = HeroSummary(activeCount: model.activations.count, nextExpiry: next.map { Countdown.hero($0.remaining) },
+        // No-break spaces: a wrapped hero line never splits « 3 h 24 min ».
+        let expiry = next.map { Countdown.full($0.remaining).replacingOccurrences(of: " ", with: "\u{00A0}") }
+        let summary = HeroSummary(activeCount: model.activations.count, nextExpiry: expiry,
                                   pendingCount: model.pendingApprovalCount(in: pendingRecords))
         return CompactHeroCard(summary: summary, activeCount: model.activations.count, remaining: next?.remaining,
-                               nextRole: next.map { "\($0.assignment.roleName) · \($0.assignment.scopeName)" },
+                               nextRole: next.map { "\($0.assignment.displayRoleName) · \($0.assignment.displayScopeName)" },
                                signedIn: !accountList.isEmpty)
     }
 
@@ -262,7 +268,7 @@ struct MenuBarPanel: View {
     // MARK: Cards
 
     private var favoritesCard: some View {
-        DisclosureCard(title: "Favorites", icon: "star.fill", iconColor: Theme.violet,
+        DisclosureCard(title: String(localized: "Favorites"), icon: "star.fill", iconColor: Theme.violet,
                        count: favorites.count, expanded: $showFavorites) {
             FavoriteChips(favorites: favorites)
         }
@@ -272,9 +278,11 @@ struct MenuBarPanel: View {
 extension MenuBarPanel {
     /// "No eligible role" only once a refresh read every source: an error or a first load is not that.
     fileprivate func noEligibleText(_ account: Account) -> String {
-        if !(store.refreshErrors[account.id] ?? [:]).isEmpty { return "Couldn't load the eligible roles of \(account.upn)" }
-        if account.lastRefreshAt == nil { return "Loading the eligible roles of \(account.upn)…" }
-        return "No eligible PIM role for \(account.upn)"
+        if !(store.refreshErrors[account.id] ?? [:]).isEmpty {
+            return String(localized: "Couldn't load the eligible roles of \(account.upn)")
+        }
+        if account.lastRefreshAt == nil { return String(localized: "Loading the eligible roles of \(account.upn)…") }
+        return String(localized: "No eligible PIM role for \(account.upn)")
     }
 }
 
@@ -356,14 +364,14 @@ extension MenuBarPanel {
     }
 
     private func extend(_ role: EligibleRole) {
-        keyboardMessage = "Extending \(role.roleName)…"
+        keyboardMessage = String(localized: "Extending \(role.displayRoleName)…")
         Task { keyboardMessage = await store.extend(eligibleRoleId: role.id) }
     }
 
     /// Opens the row's own Deactivate question, or says why it cannot (as the row's disabled button).
     private func askToDeactivate(_ assignment: ActiveAssignment) {
         if Date.now.timeIntervalSince(assignment.startAt) < 300 {
-            keyboardMessage = "Can't deactivate within 5 minutes of activation."
+            keyboardMessage = String(localized: "Can't deactivate within 5 minutes of activation.")
         } else if store.isOffline {
             keyboardMessage = ActivationBlock.offline.message
         } else {

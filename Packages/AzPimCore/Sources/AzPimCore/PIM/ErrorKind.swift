@@ -39,8 +39,9 @@ public enum ErrorKind: Hashable, Sendable {
         case .cliStepUp(let command): return .cliStepUp(command: command)
         case .consentRequired: return .consentRequired
         case .timedOut: return .timedOut
-        case .notConfigured: return .other("Microsoft sign-in is not configured in this build (no client ID).")
-        case .cancelled: return .other("Sign-in cancelled.")
+        case .notConfigured:
+            return .other(L10n.string("Microsoft sign-in is not configured in this build (no client ID).", locale: nil))
+        case .cancelled: return .other(L10n.string("Sign-in cancelled.", locale: nil))
         case .failed(let message): return .other(message)
         }
     }
@@ -58,20 +59,32 @@ public enum ErrorKind: Hashable, Sendable {
         }
     }
 
-    /// Short English text for banners and rows.
-    public var message: String {
+    /// Short text for banners and rows, in the system language. Azure's own messages (`forbidden`, `other`) are shown
+    /// as Microsoft wrote them.
+    public var message: String { message(locale: nil) }
+
+    public func message(locale: Locale?) -> String {
         switch self {
-        case .offline: "Offline."
-        case .timedOut: "Microsoft did not answer in time — try again."
+        case .offline: L10n.string("Offline.", locale: locale)
+        case .timedOut: L10n.string("Microsoft did not answer in time — try again.", locale: locale)
         case .throttled(let retryAfter):
-            "Microsoft is throttling requests — try again in \(Int(retryAfter ?? 30)) s."
-        case .cliNotFound: "Azure CLI not found. Install it or choose its location in Settings."
-        case .cliExpired(let command): "Azure CLI session expired — run `\(command)`."
-        case .cliStepUp(let command): "Your organization requires a new sign-in (MFA) — run `\(command)` in Terminal, then refresh."
-        case .interactionRequired: "Your organization requires you to sign in again (MFA)."
-        case .consentRequired: "Admin consent required in this tenant."
-        case .forbidden(let detail): "Not allowed by your tenant policy: \(detail)"
+            L10n.string("Microsoft is throttling requests — try again in \(Self.wait(retryAfter ?? 30, locale: locale)).",
+                        locale: locale)
+        case .cliNotFound: L10n.string("Azure CLI not found. Install it or choose its location in Settings.", locale: locale)
+        case .cliExpired(let command): L10n.string("Azure CLI session expired — run `\(command)`.", locale: locale)
+        case .cliStepUp(let command):
+            L10n.string("Your organization requires a new sign-in (MFA) — run `\(command)` in Terminal, then refresh.",
+                        locale: locale)
+        case .interactionRequired: L10n.string("Your organization requires you to sign in again (MFA).", locale: locale)
+        case .consentRequired: L10n.string("Admin consent required in this tenant.", locale: locale)
+        case .forbidden(let detail): L10n.string("Not allowed by your tenant policy: \(detail)", locale: locale)
         case .other(let text): text
         }
+    }
+
+    /// « 30 s », « 2 min »: the wait Microsoft asks for.
+    static func wait(_ seconds: TimeInterval, locale: Locale?) -> String {
+        Duration.seconds(Int(seconds.rounded()))
+            .formatted(.units(allowed: [.minutes, .seconds], width: .condensedAbbreviated).locale(locale ?? AppLanguage.locale))
     }
 }

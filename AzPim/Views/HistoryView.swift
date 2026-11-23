@@ -41,8 +41,8 @@ struct HistoryView: View {
                             ForEach(externalPending, id: \.1.id) { account, request in
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text("\(request.roleName) — \(request.scopeName)")
-                                        Text(request.createdAt?.formatted(date: .abbreviated, time: .shortened) ?? "")
+                                        Text("\(request.displayRoleName) — \(request.displayScopeName)")
+                                        Text(request.createdAt?.appFormatted(date: .abbreviated, time: .shortened) ?? "")
                                             .font(.caption).foregroundStyle(.secondary)
                                     }
                                     Spacer()
@@ -79,7 +79,7 @@ struct HistoryView: View {
             .disabled(store.isRefreshing)
         }
         .fileExporter(isPresented: $exporting, document: csv,
-                      contentType: .commaSeparatedText, defaultFilename: "AzPim history") { _ in }
+                      contentType: .commaSeparatedText, defaultFilename: String(localized: "AzPim history")) { _ in }
         .navigationTitle("History")
         .onAppear {
             store.historyVisible = true
@@ -90,18 +90,26 @@ struct HistoryView: View {
 
     private var summary: some View {
         HStack(spacing: 10) {
-            StatTile(label: "Median time to activate",
-                     value: ActivationStats.medianTimeToActivation(records).map { String(format: "%.1f s", $0) } ?? "—",
-                     note: "Panel opened → role provisioned", tint: Theme.accent, icon: "stopwatch")
-            StatTile(label: "Activations", value: "\(records.filter { $0.action != .deactivate && $0.status == .provisioned }.count)",
-                     note: "Provisioned, kept \(retentionDays) days", tint: Theme.active, icon: "bolt.fill")
-            StatTile(label: "Pending approval",
+            StatTile(label: String(localized: "Median time to activate"),
+                     value: ActivationStats.medianTimeToActivation(records).map(Self.seconds) ?? "—",
+                     note: String(localized: "Panel opened → role provisioned"), tint: Theme.accent, icon: "stopwatch")
+            StatTile(label: String(localized: "Activations"),
+                     value: "\(records.filter { $0.action != .deactivate && $0.status == .provisioned }.count)",
+                     note: String(localized: "Provisioned, kept \(retentionDays) days"), tint: Theme.active, icon: "bolt.fill")
+            StatTile(label: String(localized: "Pending approval"),
                      value: "\(records.filter { $0.status == .pendingApproval }.count + externalPending.count)",
-                     note: "Including requests sent elsewhere", tint: Theme.warning, icon: "clock")
+                     note: String(localized: "Including requests sent elsewhere"), tint: Theme.warning, icon: "clock")
         }
     }
 
     private var retentionDays: Int { accountService.settings.historyRetentionDays }
+
+    /// « 12.3 sec » / « 12,3 s ».
+    static func seconds(_ value: TimeInterval) -> String {
+        Measurement(value: value, unit: UnitDuration.seconds)
+            .formatted(.measurement(width: .abbreviated, numberFormatStyle: .number.precision(.fractionLength(1)))
+                .locale(AppLanguage.locale))
+    }
 
     @ViewBuilder private func cancelButton(id: String, source: RoleSource, account: Account) -> some View {
         if canceling.contains(id) {
@@ -132,7 +140,7 @@ private struct HistoryRow<Trailing: View>: View {
         HStack(spacing: 10) {
             Image(systemName: icon).foregroundStyle(color).frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(record.action.rawValue.capitalized) \(record.roleName) — \(record.scopeName)").lineLimit(1)
+                Text(title).lineLimit(1)
                 Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                 if let error = record.errorMessage {
                     Text(error).font(.caption).foregroundStyle(.red).lineLimit(3).textSelection(.enabled)
@@ -145,12 +153,22 @@ private struct HistoryRow<Trailing: View>: View {
         .padding(.vertical, 2)
     }
 
-    private var detail: String {
-        var parts = [record.sentAt.formatted(date: .abbreviated, time: .shortened)]
-        if let duration = record.requestedDuration, let seconds = ISODuration.seconds(duration) {
-            parts.append(seconds >= 3600 ? "\(Int(seconds / 3600)) h" : "\(Int(seconds / 60)) min")
+    /// « Activate Reader — Tenant Root Group ».
+    private var title: String {
+        let role = record.displayRoleName, scope = record.displayScopeName
+        return switch record.action {
+        case .activate: String(localized: "Activate \(role) — \(scope)")
+        case .deactivate: String(localized: "Deactivate \(role) — \(scope)")
+        case .extend: String(localized: "Extend \(role) — \(scope)")
         }
-        if let time = record.timeToActivation { parts.append(String(format: "%.1f s to activate", time)) }
+    }
+
+    private var detail: String {
+        var parts = [record.sentAt.appFormatted(date: .abbreviated, time: .shortened)]
+        if let duration = record.requestedDuration, let seconds = ISODuration.seconds(duration) {
+            parts.append(ISODuration.label(seconds))
+        }
+        if let time = record.timeToActivation { parts.append(String(localized: "\(HistoryView.seconds(time)) to activate")) }
         if let favorite = record.viaFavorite { parts.append("★ \(favorite)") }
         if let justification = record.justification, !justification.isEmpty { parts.append("“\(justification)”") }
         if let account = record.account?.upn { parts.append(account) }
@@ -159,8 +177,12 @@ private struct HistoryRow<Trailing: View>: View {
 
     private var statusText: String {
         switch record.status {
-        case .pendingApproval: "Pending approval"
-        default: record.status.rawValue.capitalized
+        case .pendingApproval: String(localized: "Pending approval")
+        case .sent: String(localized: "Sent")
+        case .provisioned: String(localized: "Provisioned")
+        case .denied: String(localized: "Denied")
+        case .canceled: String(localized: "Canceled")
+        case .failed: String(localized: "Failed")
         }
     }
 

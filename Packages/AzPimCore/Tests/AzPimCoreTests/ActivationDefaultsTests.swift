@@ -123,11 +123,15 @@ struct ActivationBlockTests {
         let all: [ActivationBlock] = [.inProgress, .pending, .offline, .durationTooLong(maxMinutes: 90), .durationTooShort,
                                       .justificationRequired, .justificationTooLong, .ticketRequired, .ticketTooLong]
         // One sentence each; the pending one also says how to send another.
-        for block in all where block != .pending {
-            #expect(block.message.hasSuffix("."))
-            #expect(block.message.dropLast().contains(".") == false)
+        for locale in [Locale(identifier: "en_US"), Locale(identifier: "fr_FR")] {
+            for block in all where block != .pending {
+                #expect(block.message(locale: locale).hasSuffix("."))
+                #expect(block.message(locale: locale).dropLast().contains(".") == false)
+            }
         }
-        #expect(ActivationBlock.pending.message.hasSuffix("Cancel it in History to send another."))
-        #expect(ActivationBlock.durationTooLong(maxMinutes: 90).message == "The policy allows 1 h 30 min at most.")
+        let english = Locale(identifier: "en_US")
+        #expect(ActivationBlock.pending.message(locale: english).hasSuffix("Cancel it in History to send another."))
+        #expect(plain(ActivationBlock.durationTooLong(maxMinutes: 90).message(locale: english))
+                == "The policy allows 1 hr 30 min at most.")
     }
 }

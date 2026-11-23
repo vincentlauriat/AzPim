@@ -71,7 +71,7 @@ public actor AzureCLITokenProvider: TokenProvider {
         cache["\(Resource.arm.rawValue)|\(tenantId ?? "default")"] = nil
         let token = try await token(for: .arm, tenantId: tenantId, claims: nil)
         guard let claims = JWTClaims(token: token.value), let oid = claims.objectId, let tid = claims.tenantId else {
-            throw TokenError.failed("Unreadable Azure CLI token")
+            throw TokenError.failed(L10n.string("Unreadable Azure CLI token", locale: nil))
         }
         let tenantName = try? await tenantDisplayName(tenantId: tid)
         return SignedInIdentity(upn: claims.upn ?? oid, objectId: oid, tenantId: tid, tenantName: tenantName)
@@ -128,7 +128,7 @@ public actor AzureCLITokenProvider: TokenProvider {
     static func parseToken(_ json: String) throws -> AccessToken {
         guard let object = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any],
               let value = object["accessToken"] as? String else {
-            throw TokenError.failed("Unexpected Azure CLI output")
+            throw TokenError.failed(L10n.string("Unexpected Azure CLI output", locale: nil))
         }
         // Recent CLIs give `expires_on` (POSIX seconds); older ones only `expiresOn` (local time string).
         if let epoch = object["expires_on"] as? Double ?? (object["expires_on"] as? String).flatMap(Double.init) {
@@ -137,7 +137,7 @@ public actor AzureCLITokenProvider: TokenProvider {
         if let exp = JWTClaims(token: value)?.expiresOn {
             return AccessToken(value: value, expiresOn: exp)
         }
-        throw TokenError.failed("Azure CLI token has no expiry")
+        throw TokenError.failed(L10n.string("Azure CLI token has no expiry", locale: nil))
     }
 
     static func mapError(_ stderr: String, tenantArgument arguments: [String]) -> TokenError {
@@ -154,7 +154,7 @@ public actor AzureCLITokenProvider: TokenProvider {
             || text.contains("no subscription found") || text.contains("refresh token") || text.contains("not logged in") {
             return .cliNotSignedIn(command: login)
         }
-        let firstLine = stderr.split(separator: "\n").first.map(String.init) ?? "Azure CLI error"
+        let firstLine = stderr.split(separator: "\n").first.map(String.init) ?? L10n.string("Azure CLI error", locale: nil)
         return .failed(firstLine.replacingOccurrences(of: "ERROR: ", with: ""))
     }
 }

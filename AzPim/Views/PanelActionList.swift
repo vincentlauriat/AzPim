@@ -17,8 +17,8 @@ struct PanelActionList: View {
                 openWindow(id: WindowID.main)
                 NSApp.activate(ignoringOtherApps: true)
             } label: {
-                ActionRow(icon: "macwindow", iconColor: Theme.accent, title: "Open AzPim…",
-                          subtitle: "Roles, history and favorites") { Chevron() }
+                ActionRow(icon: "macwindow", iconColor: Theme.accent, title: String(localized: "Open AzPim…"),
+                          subtitle: String(localized: "Roles, history and favorites")) { Chevron() }
             }
             .buttonStyle(.plain)
             .keyboardShortcut("0")
@@ -27,7 +27,8 @@ struct PanelActionList: View {
                 Task { await store.refresh() }
             } label: {
                 ActionRow(icon: "arrow.clockwise", iconColor: Theme.accent,
-                          title: store.isRefreshing ? "Refreshing…" : "Refresh", subtitle: refreshSubtitle) {
+                          title: store.isRefreshing ? String(localized: "Refreshing…") : String(localized: "Refresh"),
+                          subtitle: refreshSubtitle) {
                     if store.isRefreshing { ProgressView().controlSize(.small) } else { KeyHint(text: "⌘R") }
                 }
             }
@@ -39,7 +40,7 @@ struct PanelActionList: View {
                 NSApp.activate(ignoringOtherApps: true)
                 openSettings()
             } label: {
-                ActionRow(icon: "gearshape.fill", iconColor: .secondary, title: "Settings…") { Chevron() }
+                ActionRow(icon: "gearshape.fill", iconColor: .secondary, title: String(localized: "Settings…")) { Chevron() }
             }
             .buttonStyle(.plain)
             .keyboardShortcut(",")
@@ -47,7 +48,7 @@ struct PanelActionList: View {
             Button {
                 NSApp.terminate(nil)
             } label: {
-                ActionRow(icon: "power", iconColor: Theme.danger, title: "Quit AzPim") {
+                ActionRow(icon: "power", iconColor: Theme.danger, title: String(localized: "Quit AzPim")) {
                     Text("v\(Self.version)").font(.system(size: 11, design: .monospaced)).foregroundStyle(.tertiary)
                 }
             }
@@ -59,8 +60,8 @@ struct PanelActionList: View {
     }
 
     private var refreshSubtitle: String {
-        guard let last = store.lastRefresh else { return "Never updated" }
-        return "Updated \(last.formatted(date: .omitted, time: .shortened))"
+        guard let last = store.lastRefresh else { return String(localized: "Never updated") }
+        return String(localized: "Updated \(last.appFormatted(date: .omitted, time: .shortened))")
     }
 
     private static let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
