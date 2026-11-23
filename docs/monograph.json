@@ -899,9 +899,9 @@
         "zh": "Azure 角色"
        },
        {
-        "en": "Azure Resource Manager, <code>Microsoft.Authorization</code>: <code>roleEligibilityScheduleInstances</code>, <code>roleAssignmentScheduleInstances</code>, <code>roleAssignmentScheduleRequests</code> (<code>SelfActivate</code>, <code>SelfDeactivate</code>, <code>SelfExtend</code>), <code>roleManagementPolicyAssignments</code>",
-        "fr": "Azure Resource Manager, <code>Microsoft.Authorization</code> : <code>roleEligibilityScheduleInstances</code>, <code>roleAssignmentScheduleInstances</code>, <code>roleAssignmentScheduleRequests</code> (<code>SelfActivate</code>, <code>SelfDeactivate</code>, <code>SelfExtend</code>), <code>roleManagementPolicyAssignments</code>",
-        "zh": "Azure Resource Manager 的 <code>Microsoft.Authorization</code>：<code>roleEligibilityScheduleInstances</code>、<code>roleAssignmentScheduleInstances</code>、<code>roleAssignmentScheduleRequests</code>（<code>SelfActivate</code>、<code>SelfDeactivate</code>、<code>SelfExtend</code>）、<code>roleManagementPolicyAssignments</code>"
+        "en": "Azure Resource Manager, <code>Microsoft.Authorization</code>: <code>roleEligibilityScheduleInstances</code>, <code>roleAssignmentScheduleInstances</code>, <code>roleAssignmentScheduleRequests</code> (<code>SelfActivate</code>, <code>SelfDeactivate</code>; Extend ends the activation and activates again), <code>roleManagementPolicyAssignments</code>",
+        "fr": "Azure Resource Manager, <code>Microsoft.Authorization</code> : <code>roleEligibilityScheduleInstances</code>, <code>roleAssignmentScheduleInstances</code>, <code>roleAssignmentScheduleRequests</code> (<code>SelfActivate</code>, <code>SelfDeactivate</code>; Prolonger termine l'activation puis réactive), <code>roleManagementPolicyAssignments</code>",
+        "zh": "Azure Resource Manager 的 <code>Microsoft.Authorization</code>：<code>roleEligibilityScheduleInstances</code>、<code>roleAssignmentScheduleInstances</code>、<code>roleAssignmentScheduleRequests</code>（<code>SelfActivate</code>、<code>SelfDeactivate</code>；「延長」會先結束啟用再重新啟用）、<code>roleManagementPolicyAssignments</code>"
        }
       ],
       [
@@ -994,9 +994,9 @@
         "zh": "無伺服器、無遙測"
        },
        "p": {
-        "en": "AzPim talks only to <code>management.azure.com</code>, <code>graph.microsoft.com</code> and <code>login.microsoftonline.com</code>. No account to create.",
-        "fr": "AzPim ne parle qu'à <code>management.azure.com</code>, <code>graph.microsoft.com</code> et <code>login.microsoftonline.com</code>. Aucun compte à créer.",
-        "zh": "AzPim 只與 <code>management.azure.com</code>、<code>graph.microsoft.com</code> 和 <code>login.microsoftonline.com</code> 通訊，無需建立帳號。"
+        "en": "AzPim has no server of its own: it talks to <code>management.azure.com</code>, <code>graph.microsoft.com</code> and <code>login.microsoftonline.com</code> for PIM, and to GitHub only to check for and download updates. No account to create.",
+        "fr": "AzPim n'a aucun serveur à lui : il parle à <code>management.azure.com</code>, <code>graph.microsoft.com</code> et <code>login.microsoftonline.com</code> pour PIM, et à GitHub uniquement pour vérifier et télécharger les mises à jour. Aucun compte à créer.",
+        "zh": "AzPim 沒有自己的伺服器：PIM 相關只與 <code>management.azure.com</code>、<code>graph.microsoft.com</code> 和 <code>login.microsoftonline.com</code> 通訊，僅在檢查與下載更新時連線 GitHub。無需建立帳號。"
        }
       },
       {
