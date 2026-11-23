@@ -157,9 +157,9 @@
     "zh": "一鍵啟用"
    },
    "p": {
-    "en": "Duration capped by the role policy, last justification pre-filled. The result arrives as a notification, not a dialog.",
-    "fr": "Durée plafonnée par la politique du rôle, dernière justification préremplie. Le résultat arrive en notification, pas dans une boîte de dialogue.",
-    "zh": "時長受角色原則上限約束，自動帶入上次的理由。結果以通知送達，而非對話框。"
+    "en": "Duration capped by the role policy, last justification pre-filled. From 1.0, the Activation Sheet's result arrives as a notification, not a dialog.",
+    "fr": "Durée plafonnée par la politique du rôle, dernière justification préremplie. Depuis la 1.0, le résultat de la fiche d'activation arrive en notification, pas dans une boîte de dialogue.",
+    "zh": "時長受角色原則上限約束，自動帶入上次的理由。自 1.0 起，啟用表單的結果以通知送達，而非對話框。"
    }
   },
   {
@@ -217,9 +217,9 @@
     "zh": "Entra 角色與 PIM 群組"
    },
    "p": {
-    "en": "Sign in with Microsoft for Azure resource roles, Entra roles and PIM groups; the Azure CLI covers Azure roles.",
-    "fr": "Connectez-vous avec Microsoft pour les rôles Azure, les rôles Entra et les groupes PIM ; l'Azure CLI couvre les rôles Azure.",
-    "zh": "使用 Microsoft 登入即可管理 Azure 資源角色、Entra 角色與 PIM 群組；Azure CLI 則涵蓋 Azure 角色。"
+    "en": "Sign in with Microsoft for Azure resource roles, Entra roles and PIM groups; the Azure CLI covers Azure roles. From 1.0.",
+    "fr": "Connectez-vous avec Microsoft pour les rôles Azure, les rôles Entra et les groupes PIM ; l'Azure CLI couvre les rôles Azure. Depuis la 1.0.",
+    "zh": "使用 Microsoft 登入即可管理 Azure 資源角色、Entra 角色與 PIM 群組；Azure CLI 則涵蓋 Azure 角色。（1.0 起）"
    }
   },
   {
@@ -229,9 +229,9 @@
     "zh": "最小權限時長"
    },
    "p": {
-    "en": "The sheet starts on the duration you last used for the role, in 15-minute steps up to the policy maximum.",
-    "fr": "La fiche reprend la dernière durée utilisée pour le rôle, par pas de 15 minutes jusqu'au maximum de la politique.",
-    "zh": "啟用表單從你上次為該角色使用的時長開始，以 15 分鐘為單位，最多到原則上限。"
+    "en": "The sheet starts on the duration you last used for the role, in 15-minute steps up to the policy maximum. From 1.0.",
+    "fr": "La fiche reprend la dernière durée utilisée pour le rôle, par pas de 15 minutes jusqu'au maximum de la politique. Depuis la 1.0.",
+    "zh": "啟用表單從你上次為該角色使用的時長開始，以 15 分鐘為單位，最多到原則上限。（1.0 起）"
    }
   },
   {
@@ -241,9 +241,9 @@
     "zh": "工單欄位"
    },
    "p": {
-    "en": "Ticket system and number when the policy asks for them, remembered per tenant; a favorite asks once per tenant.",
-    "fr": "Système et numéro de ticket quand la politique les exige, mémorisés par tenant ; un favori ne les demande qu'une fois par tenant.",
-    "zh": "原則要求時才出現工單系統與編號，並依租用戶記住；我的最愛每個租用戶只問一次。"
+    "en": "Ticket system and number when the policy asks for them, remembered per tenant; a favorite asks once per tenant. From 1.0.",
+    "fr": "Système et numéro de ticket quand la politique les exige, mémorisés par tenant ; un favori ne les demande qu'une fois par tenant. Depuis la 1.0.",
+    "zh": "原則要求時才出現工單系統與編號，並依租用戶記住；我的最愛每個租用戶只問一次。（1.0 起）"
    }
   },
   {
@@ -253,9 +253,9 @@
     "zh": "快速啟用面板"
    },
    "p": {
-    "en": "<code>⌃⌥P</code> from any app: type a few letters, Return activates, ⌘Return opens the sheet.",
-    "fr": "<code>⌃⌥P</code> depuis n'importe quelle app : tapez quelques lettres, Retour active, ⌘Retour ouvre la fiche.",
-    "zh": "在任何 App 中按 <code>⌃⌥P</code>：輸入幾個字，Return 啟用，⌘Return 開啟表單。"
+    "en": "<code>⌃⌥P</code> from any app: type a few letters, Return activates, ⌘Return opens the sheet. From 1.0.",
+    "fr": "<code>⌃⌥P</code> depuis n'importe quelle app : tapez quelques lettres, Retour active, ⌘Retour ouvre la fiche. Depuis la 1.0.",
+    "zh": "在任何 App 中按 <code>⌃⌥P</code>：輸入幾個字，Return 啟用，⌘Return 開啟表單。（1.0 起）"
    }
   },
   {
@@ -265,9 +265,9 @@
     "zh": "捷徑動作"
    },
    "p": {
-    "en": "Activate Role, Run Favorite, List Active Roles and Deactivate All Roles in Shortcuts, Siri and Spotlight, always confirmed.",
-    "fr": "Activer un rôle, Lancer un favori, Lister les rôles actifs et Tout désactiver dans Raccourcis, Siri et Spotlight, toujours confirmés.",
-    "zh": "在捷徑、Siri 與 Spotlight 中使用「啟用角色」、「執行我的最愛」、「列出已啟用角色」與「停用所有角色」，每次都需確認。"
+    "en": "Activate Role, Run Favorite, List Active Roles and Deactivate All Roles in Shortcuts, Siri and Spotlight, always confirmed. From 1.0.",
+    "fr": "Activer un rôle, Lancer un favori, Lister les rôles actifs et Tout désactiver dans Raccourcis, Siri et Spotlight, toujours confirmés. Depuis la 1.0.",
+    "zh": "在捷徑、Siri 與 Spotlight 中使用「啟用角色」、「執行我的最愛」、「列出已啟用角色」與「停用所有角色」，每次都需確認。（1.0 起）"
    }
   },
   {
@@ -277,9 +277,9 @@
     "zh": "法文與英文"
    },
    "p": {
-    "en": "The app follows the macOS language.",
-    "fr": "L'app suit la langue de macOS.",
-    "zh": "App 介面跟隨 macOS 語言。"
+    "en": "The app follows the macOS language. From 1.0.",
+    "fr": "L'app suit la langue de macOS. Depuis la 1.0.",
+    "zh": "App 介面跟隨 macOS 語言。（1.0 起）"
    }
   }
  ],
@@ -321,9 +321,9 @@
         "zh": "快速啟用面板：搜尋 reader，顯示一個已啟用角色與兩個可啟用的 Entra 角色。"
        },
        "caption": {
-        "en": "<code>⌃⌥P</code> from any app: search, Return to activate.",
-        "fr": "<code>⌃⌥P</code> depuis n'importe quelle app : cherchez, Retour pour activer.",
-        "zh": "在任何 App 中按 <code>⌃⌥P</code>：搜尋後按 Return 啟用。"
+        "en": "From 1.0: <code>⌃⌥P</code> from any app: search, Return to activate.",
+        "fr": "Depuis la 1.0 : <code>⌃⌥P</code> depuis n'importe quelle app : cherchez, Retour pour activer.",
+        "zh": "1.0 起：在任何 App 中按 <code>⌃⌥P</code>：搜尋後按 Return 啟用。"
        }
       },
       {
@@ -351,9 +351,9 @@
         "zh": "跨兩個租用戶的我的最愛：每個角色列出其租用戶，每個租用戶一張工單。"
        },
        "caption": {
-        "en": "A favorite across tenants asks once per tenant.",
-        "fr": "Un favori sur plusieurs tenants demande une fois par tenant.",
-        "zh": "跨租用戶的我的最愛，每個租用戶只問一次。"
+        "en": "From 1.0: A favorite across tenants asks once per tenant.",
+        "fr": "Depuis la 1.0 : Un favori sur plusieurs tenants demande une fois par tenant.",
+        "zh": "1.0 起：跨租用戶的我的最愛，每個租用戶只問一次。"
        }
       },
       {
@@ -366,9 +366,9 @@
         "zh": "法文介面的面板，深色外觀。"
        },
        "caption": {
-        "en": "In French or English, light or dark.",
-        "fr": "En français ou en anglais, clair ou sombre.",
-        "zh": "法文或英文，淺色或深色。"
+        "en": "From 1.0: In French or English, light or dark.",
+        "fr": "Depuis la 1.0 : En français ou en anglais, clair ou sombre.",
+        "zh": "1.0 起：法文或英文，淺色或深色。"
        }
       },
       {
@@ -399,9 +399,9 @@
     "zh": "兩種登入方式"
    },
    "p": {
-    "en": "Sign in with Microsoft for Entra roles and PIM groups as well as Azure roles, or start in a minute with the Azure CLI you already use.",
-    "fr": "Connectez-vous avec Microsoft pour les rôles Entra et les groupes PIM en plus des rôles Azure, ou démarrez en une minute avec l'Azure CLI que vous utilisez déjà.",
-    "zh": "使用 Microsoft 登入，除了 Azure 角色外也能管理 Entra 角色與 PIM 群組；或用你已在使用的 Azure CLI 一分鐘即可開始。"
+    "en": "From 1.0: Sign in with Microsoft for Entra roles and PIM groups as well as Azure roles, or start in a minute with the Azure CLI you already use.",
+    "fr": "Depuis la 1.0 : Connectez-vous avec Microsoft pour les rôles Entra et les groupes PIM en plus des rôles Azure, ou démarrez en une minute avec l'Azure CLI que vous utilisez déjà.",
+    "zh": "1.0 起：使用 Microsoft 登入，除了 Azure 角色外也能管理 Entra 角色與 PIM 群組；或用你已在使用的 Azure CLI 一分鐘即可開始。"
    },
    "blocks": [
     {
@@ -541,9 +541,9 @@
     "zh": "安裝"
    },
    "p": {
-    "en": "Download the signed and notarized DMG from GitHub Releases; it updates itself. It signs in with Microsoft or with the Azure CLI. Or build it from source (Xcode and XcodeGen required):",
-    "fr": "Téléchargez le DMG signé et notarisé depuis GitHub Releases ; il se met à jour tout seul. Il se connecte avec Microsoft ou via Azure CLI. Ou compilez-le depuis les sources (Xcode et XcodeGen requis) :",
-    "zh": "從 GitHub Releases 下載已簽章並經公證的 DMG，它會自動更新。可使用 Microsoft 或 Azure CLI 登入。或從原始碼建置（需要 Xcode 與 XcodeGen）："
+    "en": "Download the signed and notarized DMG from GitHub Releases; it updates itself. From 1.0 it signs in with Microsoft as well as with the Azure CLI. Or build it from source (Xcode and XcodeGen required):",
+    "fr": "Téléchargez le DMG signé et notarisé depuis GitHub Releases ; il se met à jour tout seul. Depuis la 1.0, il se connecte avec Microsoft comme via Azure CLI. Ou compilez-le depuis les sources (Xcode et XcodeGen requis) :",
+    "zh": "從 GitHub Releases 下載已簽章並經公證的 DMG，它會自動更新。自 1.0 起可使用 Microsoft 或 Azure CLI 登入。或從原始碼建置（需要 Xcode 與 XcodeGen）："
    },
    "blocks": [
     {

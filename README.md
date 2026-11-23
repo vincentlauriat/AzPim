@@ -22,9 +22,9 @@
   <img src="docs/images/panel-fr-light.png" width="340" alt="The same panel in French, light appearance">
 </p>
 
-> **Status: 0.9, pre-1.0.** The signed DMG works with Azure CLI. The client ID is now built in, so
-> Microsoft sign-in (Entra roles and PIM groups) needs no app registration of your own; it has not been tested live
-> yet and ships with 1.0.
+> **Status: 1.0.** Sign in with Microsoft (client ID built in, no app registration of your own) or with the Azure
+> CLI. Verified live: Entra roles, PIM groups, MFA step-up. Not verified live yet: Shortcuts run headless
+> (`shortcuts run`, Raycast), see the Shortcuts row below.
 
 ## Why
 
@@ -38,7 +38,7 @@ about to end in the middle of a deployment. AzPim keeps all of it one click away
 |---|---|
 | **Active roles at a glance** | The panel opens on the number of active PIM roles, the next expiry and a progress bar; permanent roles are listed too. |
 | **Menu bar countdown** | `2 · 0:41` next to the key icon, orange at 15 minutes, red at 5. |
-| **One-click activation** | Duration capped by the role policy, last justification pre-filled. The result arrives as a notification (or inline when notifications are off), never a dialog. |
+| **One-click activation** | Duration capped by the role policy, last justification pre-filled. From the Activation Sheet, the result arrives as a notification (or inline when notifications are off), not a dialog. |
 | **Least-privilege durations** | The sheet starts on the duration you last used for the role (1 h the first time), in 15-minute steps up to the policy maximum, with a **Max** button. |
 | **Ticket fields** | Ticket system and number side by side when the policy asks for them, remembered per tenant; a favorite asks once per tenant. |
 | **Quick-activate palette** | ⌃⌥P from any app: type a few letters, Return activates with the default duration, ⌘Return opens the sheet. |
