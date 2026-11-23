@@ -2,70 +2,6 @@ import AzPimCore
 import SwiftData
 import SwiftUI
 
-/// Menu bar label (DesignBrief › Components): `key.fill` when nothing is active; otherwise count + next expiry,
-/// orange at ≤ 15 min, red at ≤ 5 min. An hourglass follows while a request waits for approval (an SF Symbol, so
-/// the status item keeps it a template image). Rendered at launch: also opens Onboarding on first run.
-struct MenuBarLabel: View {
-    @Environment(AccountService.self) private var accounts
-    @Environment(RoleStore.self) private var store
-    @Environment(\.openWindow) private var openWindow
-    @Query(sort: \ActiveAssignment.endAt) private var assignments: [ActiveAssignment]
-    @Query private var accountList: [Account]
-    @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" })
-    private var pendingRecords: [ActivationRecord]
-
-    /// Rows of the accounts in use, one per role (superseded Azure CLI rows count for nothing).
-    private var model: PanelModel {
-        let supersession = store.supersession(accountList)
-        let accounts = accountList.filter { !supersession.isRetired($0.id) }
-        return PanelModel(accounts: accounts, assignments: assignments, supersession: supersession, now: store.now)
-    }
-
-    var body: some View {
-        let model = model
-        label(activations: model.activations.map(\.assignment),
-              badge: MenuBarBadge(activeCount: model.activations.count,
-                                  pendingCount: model.pendingApprovalCount(in: pendingRecords)))
-            .task {
-                if !accounts.settings.onboardingCompleted {
-                    openWindow(id: WindowID.onboarding)
-                    NSApp.activate(ignoringOtherApps: true)
-                }
-            }
-    }
-
-    @ViewBuilder private func label(activations: [ActiveAssignment], badge: MenuBarBadge) -> some View {
-        let style = accounts.settings.menuBarStyle
-        let pending = badge.spokenPending.map { ", \($0)" } ?? ""
-        if activations.isEmpty || style == .icon {
-            HStack(spacing: 2) {
-                Image(systemName: badge.keySymbol)
-                if let symbol = badge.pendingSymbol { Image(systemName: symbol) }
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel((activations.isEmpty ? String(localized: "AzPim, no active role")
-                                 : String(localized: "AzPim, \(activations.count) active")) + pending)
-        } else {
-            let remaining = activations.compactMap(\.endAt).min().map { $0.timeIntervalSince(store.now) }
-            HStack(spacing: 3) {
-                Image(systemName: badge.keySymbol)
-                Text(text(count: activations.count, remaining: style == .iconCountTime ? remaining : nil))
-                    .monospacedDigit()
-                if let symbol = badge.pendingSymbol { Image(systemName: symbol) }
-            }
-            .foregroundStyle(Countdown.color(remaining))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(localized: "AzPim, \(activations.count) active, next expiry in \(Countdown.spoken(remaining))")
-                                + pending)
-        }
-    }
-
-    private func text(count: Int, remaining: TimeInterval?) -> String {
-        guard let remaining else { return "\(count)" }
-        return "\(count) · \(Countdown.short(remaining))"
-    }
-}
-
 /// Menu Bar Panel (AppFlow), in the Juicy / Claude Cockpit look: a hero card with the active count and the next
 /// expiry, collapsible cards (Active roles, Favorites, Eligible roles) and a settings-style action list.
 struct MenuBarPanel: View {
@@ -178,17 +114,20 @@ struct MenuBarPanel: View {
                 ActiveRolesCard(model: model,
                                 emptyText: accountList.isEmpty ? String(localized: "Add an account to see your roles")
                                     : String(localized: "No active role"),
-                                showAccount: shownAccounts.count > 1, selectedId: selectedRowId, confirmId: $confirmDeactivateId)
+                                showAccount: shownAccounts.count > 1, selectedId: selectedRowId, confirmId: $confirmDeactivateId,
+                                openSheet: { activating = $0 })
                 if !favorites.isEmpty { favoritesCard }
                 EligibleRolesCard(model: model, accounts: shownAccounts, pendingRecords: pendingRecords,
                                   noAccount: accountList.isEmpty, noEligibleText: noEligibleText,
-                                  selectedId: selectedRowId) { activateTapped($0) }
+                                  selectedId: selectedRowId, activateNow: quickActivate) { activateTapped($0) }
             } else {
                 searchResults(model.filtered(by: query))
             }
             PanelActionList()
         }
         .padding(10)
+        .announcesChanges(keyboardMessage)
+        .onChange(of: bannerTexts) { old, new in new.filter { !old.contains($0) }.forEach(VoiceOverAnnouncer.post) }
     }
 
     /// Matching rows only, every group open; card counts are those of the matches.
@@ -200,11 +139,13 @@ struct MenuBarPanel: View {
         }
         if !found.activations.isEmpty || !found.permanents.isEmpty {
             ActiveRolesCard(model: found, emptyText: "", showAccount: shownAccounts.count > 1, searching: true,
-                            selectedId: selectedRowId, confirmId: $confirmDeactivateId)
+                            selectedId: selectedRowId, confirmId: $confirmDeactivateId,
+                            openSheet: { activating = $0 })
         }
         if !found.eligible.isEmpty {
             EligibleRolesCard(model: found, accounts: shownAccounts, pendingRecords: pendingRecords, noAccount: false,
-                              noEligibleText: noEligibleText, searching: true, selectedId: selectedRowId) { activateTapped($0) }
+                              noEligibleText: noEligibleText, searching: true, selectedId: selectedRowId,
+                              activateNow: quickActivate) { activateTapped($0) }
         }
     }
 
@@ -243,9 +184,12 @@ struct MenuBarPanel: View {
         let next = nextActivation(model.activations.map(\.assignment))
         // No-break spaces: a wrapped hero line never splits « 3 h 24 min ».
         let expiry = next.map { Countdown.full($0.remaining).replacingOccurrences(of: " ", with: "\u{00A0}") }
-        let summary = HeroSummary(activeCount: model.activations.count, nextExpiry: expiry,
-                                  pendingCount: model.pendingApprovalCount(in: pendingRecords))
-        return CompactHeroCard(summary: summary, activeCount: model.activations.count, remaining: next?.remaining,
+        let pending = model.pendingApprovalCount(in: pendingRecords)
+        let summary = HeroSummary(activeCount: model.activations.count, nextExpiry: expiry, pendingCount: pending)
+        let spoken = HeroSummary(activeCount: model.activations.count, nextExpiry: next.map { Countdown.spoken($0.remaining) },
+                                 pendingCount: pending)
+        return CompactHeroCard(summary: summary, spokenLine: spoken.line, activeCount: model.activations.count,
+                               remaining: next?.remaining,
                                nextRole: next.map { "\($0.assignment.displayRoleName) · \($0.assignment.displayScopeName)" },
                                signedIn: !accountList.isEmpty)
     }
@@ -255,6 +199,13 @@ struct MenuBarPanel: View {
     private func bannerKinds(_ account: Account) -> [ErrorKind] {
         let kinds: Set<ErrorKind> = Set((store.refreshErrors[account.id] ?? [:]).values)
         return kinds.filter { $0 != .offline }.sorted { $0.message < $1.message }
+    }
+
+    /// What the banners say, for VoiceOver: a new problem is announced once, when its banner appears.
+    private var bannerTexts: [String] {
+        shownAccounts.flatMap { account in bannerKinds(account).map { kind in
+            activeAccounts.count > 1 ? String(localized: "\(account.upn): \(kind.message)") : kind.message
+        } }
     }
 
     /// One banner per distinct problem (Offline is shown in the hero card instead).
@@ -387,9 +338,15 @@ extension MenuBarPanel {
     }
 
     /// Errors and blocks land on the row (`rowErrors`).
-    private func quickActivate(_ role: EligibleRole) {
+    fileprivate func quickActivate(_ role: EligibleRole) {
         Task {
-            if await store.quickActivate(role) == .needsSheet { activating = role }
+            switch await store.quickActivate(role) {
+            case .needsSheet: activating = role
+            // A refusal is spoken each time, even when the row already shows the same message.
+            case .sent(nil): VoiceOverAnnouncer.post(store.rowErrors[role.id])
+            case .blocked(let reason): VoiceOverAnnouncer.post(reason)
+            case .sent: break
+            }
         }
     }
 }

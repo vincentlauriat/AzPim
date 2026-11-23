@@ -241,9 +241,10 @@ private struct StateBadge: View {
         } else if let end = row.assignment?.endAt {
             let left = Countdown.long(end.timeIntervalSince(now))
             Text(row.heldPermanently ? String(localized: "\(left) · also permanent") : left)
-                .foregroundStyle(.green).monospacedDigit()
+                .foregroundStyle(Theme.active).monospacedDigit()
+                .accessibilityLabel(String(localized: "\(Countdown.spoken(end.timeIntervalSince(now))) left"))
         } else if row.heldPermanently {
-            Text("Active · permanent").foregroundStyle(.green)
+            Text("Active · permanent").foregroundStyle(Theme.active)
                 .help("Also assigned permanently: already held without an activation")
         } else {
             Text("Eligible").foregroundStyle(.secondary)
@@ -293,7 +294,7 @@ private struct RoleDetail: View {
                         .font(.callout).foregroundStyle(.secondary)
                 }
                 if let error = store.rowErrors[row.id] ?? row.assignment.flatMap({ store.rowErrors[$0.id] }) {
-                    Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                    Text(error).font(.caption).foregroundStyle(Theme.danger).textSelection(.enabled)
                 }
             }
             .padding(16)
@@ -346,7 +347,7 @@ private struct RoleDetail: View {
                         Text(assignment.displayScopeName)
                     }
             } else {
-                Button("Activate…") { activating = true }.buttonStyle(.borderedProminent).tint(Theme.accent)
+                Button("Activate…") { activating = true }.buttonStyle(.borderedProminent).tint(Theme.accentFill)
                     .disabled(block != nil)
             }
             Menu("Add to favorite") { AddToFavoriteMenu(role: role) }.fixedSize()

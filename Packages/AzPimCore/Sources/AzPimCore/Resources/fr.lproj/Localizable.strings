@@ -24,8 +24,10 @@
 "Azure CLI token has no expiry" = "Le jeton Azure CLI n’a pas de date d’expiration";
 "Azure needs at least 5 minutes." = "Azure exige au moins 5 minutes.";
 "Azure refuses changes within 5 minutes of activation." = "Azure refuse toute modification dans les 5 minutes qui suivent l’activation.";
+"Azure role" = "rôle Azure";
 "Client ID" = "ID client";
 "Duration" = "Durée";
+"Entra role" = "rôle Entra";
 "History retention" = "Conservation de l’historique";
 "Invalid %@" = "%@ non valide";
 "Justification" = "Justification";
@@ -42,6 +44,7 @@
 "Not allowed by your tenant policy: %@" = "Refusé par la stratégie de votre locataire : %@";
 "Notification lead time" = "Délai de notification";
 "Offline." = "Hors ligne.";
+"PIM group" = "groupe PIM";
 "Refresh interval" = "Intervalle d’actualisation";
 "Request approved: %@" = "Demande approuvée : %@";
 "Request canceled: %@" = "Demande annulée : %@";
@@ -68,6 +71,15 @@
 "You're offline: activation needs a connection to Microsoft." = "Vous êtes hors ligne : l’activation nécessite une connexion à Microsoft.";
 "Your organization requires a new sign-in (MFA) — run `%@` in Terminal, then refresh." = "Votre organisation exige une nouvelle connexion (MFA) — exécutez `%@` dans Terminal, puis actualisez.";
 "Your organization requires you to sign in again (MFA)." = "Votre organisation vous demande de vous reconnecter (MFA).";
+"active" = "actif";
+"also permanent" = "également permanent";
+"eligible" = "éligible";
 "failed" = "échec";
+"less than a minute" = "moins d’une minute";
 "next expiry in %@" = "prochaine expiration dans %@";
 "no end date" = "sans date de fin";
+"pending approval" = "en attente d’approbation";
+"permanent" = "permanent";
+"request in progress" = "demande en cours";
+"request sent, not confirmed yet" = "demande envoyée, pas encore confirmée";
+"via group" = "via un groupe";

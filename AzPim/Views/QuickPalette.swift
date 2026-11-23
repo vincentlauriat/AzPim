@@ -131,6 +131,7 @@ struct QuickPaletteView: View {
                 .frame(height: 34)
         }
         .onChange(of: query) { session.queryChanged(firstId: makeRows(makeModel()).first?.id) }
+        .announcesChanges(session.message)
         .onAppear {
             searchFocused = true
             if let initialSelection, rows.indices.contains(initialSelection) { session.select(rows[initialSelection].id) }
@@ -267,8 +268,23 @@ private struct PaletteRowView: View {
         .padding(.vertical, 5)
         .frame(minHeight: 40)
         .keyboardSelected(selected)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(SpokenRole.label(role: row.entry.name, source: source, scope: row.entry.scope,
+                                             state: spokenState, account: row.entry.tenant))
         .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAddTraits(row.assignment?.endAt != nil ? .updatesFrequently : [])
+    }
+
+    private var source: RoleSource { row.assignment?.source ?? row.role?.source ?? .azureResource }
+
+    private var spokenState: SpokenRoleState {
+        if row.assignment.map({ store.isBusy($0) }) ?? row.role.map({ store.busy.contains($0.id) }) ?? false { return .busy }
+        if let assignment = row.assignment { return .active(remaining: assignment.endAt?.timeIntervalSince(store.now)) }
+        switch pending {
+        case .sent?: return .sent
+        case .some: return .pendingApproval
+        case nil: return .eligible
+        }
     }
 
     @ViewBuilder private var trailing: some View {

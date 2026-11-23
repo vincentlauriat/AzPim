@@ -56,13 +56,13 @@ struct ActivationSheet: View {
             }
 
             if let error = store.rowErrors[role.id] {
-                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                Text(error).font(.caption).foregroundStyle(Theme.danger).textSelection(.enabled)
             } else if result == .pendingApproval {
-                Label("Request sent — pending approval.", systemImage: "clock").font(.caption).foregroundStyle(.orange)
+                Label("Request sent — pending approval.", systemImage: "clock").font(.caption).foregroundStyle(Theme.warning)
             } else if result != nil {
                 // Accepted but not confirmed yet (or already decided): sending it again would submit a second request.
                 Label("Request sent — not confirmed yet. Check the panel in a moment.", systemImage: "paperplane")
-                    .font(.caption).foregroundStyle(.orange)
+                    .font(.caption).foregroundStyle(Theme.warning)
             }
 
             VStack(alignment: .trailing, spacing: 6) {
@@ -75,6 +75,7 @@ struct ActivationSheet: View {
                         if result != nil { close() } else { Task { await send() } }
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(Theme.accentFill)
                     .keyboardShortcut(.defaultAction)
                     .disabled(result == nil && block != nil)
                 }
@@ -86,6 +87,7 @@ struct ActivationSheet: View {
             }
         }
         .padding(14)
+        .announcesChanges(store.rowErrors[role.id])
         .task {
             justification = role.lastJustification ?? ""
             ticketSystem = store.ticketSystem(for: role)

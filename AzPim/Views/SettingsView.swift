@@ -56,7 +56,7 @@ struct GeneralSettingsView: View {
                     }
                 }
                 if let error {
-                    Text(error).foregroundStyle(.red).textSelection(.enabled)
+                    Text(error).foregroundStyle(Theme.danger).textSelection(.enabled)
                 }
             }
             Section("Keyboard") {
@@ -120,7 +120,7 @@ struct QuickActivateShortcutRow: View {
         }
         if let refused {
             Text("\(refused) is already used by another app: the shortcut was not changed. Choose another one.")
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.danger)
         }
     }
 

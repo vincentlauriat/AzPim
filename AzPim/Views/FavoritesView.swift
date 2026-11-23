@@ -114,7 +114,7 @@ private struct FavoriteEditor: View {
                 // Saved on Return or when the editor closes: the deep link should not change at every keystroke.
                 TextField("Name", text: $name)
                     .onSubmit(rename)
-                if let nameError { Text(nameError).font(.caption).foregroundStyle(.red) }
+                if let nameError { Text(nameError).font(.caption).foregroundStyle(Theme.danger) }
                 Text("Deep link: \(DeepLink.activate(favorite: favorite.name)?.absoluteString ?? "—")")
                     .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             }
@@ -186,7 +186,7 @@ private struct FavoriteEditor: View {
                       prompt: Text(role?.lastJustification ?? String(localized: "Uses the last justification of this role")))
                 .font(.callout)
             if role?.requiresTicket == true {
-                Text("Asks for the ticket when the favorite runs.").font(.caption).foregroundStyle(.orange)
+                Text("Asks for the ticket when the favorite runs.").font(.caption).foregroundStyle(Theme.warning)
             }
         }
         .padding(.vertical, 2)

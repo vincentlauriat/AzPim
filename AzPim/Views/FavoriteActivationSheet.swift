@@ -50,7 +50,7 @@ struct FavoriteActivationSheet: View {
                             .lineLimit(1).truncationMode(.middle)
                         Spacer(minLength: 4)
                         if role.requiresTicket {
-                            Text("Ticket required").font(.caption).foregroundStyle(.orange)
+                            Text("Ticket required").font(.caption).foregroundStyle(Theme.warning)
                         }
                     }
                     .font(.callout)
@@ -81,6 +81,7 @@ struct FavoriteActivationSheet: View {
                     if sending { ProgressView().controlSize(.small) }
                     Button("Activate") { Task { await send() } }
                         .buttonStyle(.borderedProminent)
+                        .tint(Theme.accentFill)
                         .keyboardShortcut(.defaultAction)
                         .disabled(block != nil || sending)
                 }

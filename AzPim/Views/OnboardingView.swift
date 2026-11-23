@@ -62,7 +62,7 @@ struct OnboardingView: View {
                  : String(localized: "Not available in this build yet (no app registration client ID)."))
                 .font(.caption).foregroundStyle(.secondary)
             if busy { ProgressView().controlSize(.small) }
-            if let error { Text(error).font(.callout).foregroundStyle(.red) }
+            if let error { Text(error).font(.callout).foregroundStyle(Theme.danger) }
         }
     }
 
@@ -78,6 +78,7 @@ struct OnboardingView: View {
             }
             .controlSize(.large)
             .buttonStyle(.borderedProminent)
+            .tint(Theme.accentFill)
             .disabled(busy)
             Text("Azure resource roles, no admin consent needed.").font(.caption).foregroundStyle(.secondary)
         case .notSignedIn(let command):
@@ -86,7 +87,7 @@ struct OnboardingView: View {
         case .notInstalled:
             Label("Azure CLI not found (optional).", systemImage: "terminal").foregroundStyle(.secondary)
         case .error(let message):
-            Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+            Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(Theme.warning)
         case .unknown:
             ProgressView("Looking for the Azure CLI…").controlSize(.small)
         }
@@ -97,7 +98,7 @@ struct OnboardingView: View {
             Toggle("Notify me before an activation expires", isOn: $notifications)
             Toggle("Launch AzPim at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { loginItemError = nil }   // Done tries again with the new choice
-            if let loginItemError { Text(loginItemError).foregroundStyle(.red) }
+            if let loginItemError { Text(loginItemError).foregroundStyle(Theme.danger) }
         }
         .formStyle(.grouped)
     }

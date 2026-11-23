@@ -34,7 +34,7 @@ struct HistoryView: View {
                     ForEach(accounts.filter { store.pendingErrors[$0.id] != nil }) { account in
                         Label("Couldn't fetch pending requests: \(store.pendingErrors[account.id] ?? "")",
                               systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange).font(.callout)
+                            .foregroundStyle(Theme.warning).font(.callout)
                     }
                     if !externalPending.isEmpty {
                         Section("Pending approval (sent elsewhere)") {
@@ -125,7 +125,7 @@ struct HistoryView: View {
                 }
                 .controlSize(.small)
                 if let error = cancelErrors[id] {
-                    Text(error).font(.caption).foregroundStyle(.red)
+                    Text(error).font(.caption).foregroundStyle(Theme.danger)
                 }
             }
         }
@@ -143,7 +143,7 @@ private struct HistoryRow<Trailing: View>: View {
                 Text(title).lineLimit(1)
                 Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                 if let error = record.errorMessage {
-                    Text(error).font(.caption).foregroundStyle(.red).lineLimit(3).textSelection(.enabled)
+                    Text(error).font(.caption).foregroundStyle(Theme.danger).lineLimit(3).textSelection(.enabled)
                 }
             }
             Spacer()
@@ -197,9 +197,9 @@ private struct HistoryRow<Trailing: View>: View {
 
     private var color: Color {
         switch record.status {
-        case .provisioned: .green
-        case .pendingApproval, .sent: .orange
-        case .denied, .failed: .red
+        case .provisioned: Theme.active
+        case .pendingApproval, .sent: Theme.warning
+        case .denied, .failed: Theme.danger
         case .canceled: .secondary
         }
     }

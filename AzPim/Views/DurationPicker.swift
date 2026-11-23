@@ -30,7 +30,7 @@ struct DurationPicker: View {
         let button = Button(title) { minutes = value }.controlSize(.small)
         // The chip matching the current duration is filled.
         if minutes == value {
-            button.buttonStyle(.borderedProminent).tint(Theme.accent).accessibilityAddTraits(.isSelected)
+            button.buttonStyle(.borderedProminent).tint(Theme.accentFill).accessibilityAddTraits(.isSelected)
         } else {
             button.buttonStyle(.bordered)
         }

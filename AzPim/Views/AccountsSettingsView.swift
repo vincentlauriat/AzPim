@@ -37,7 +37,7 @@ struct AccountsSettingsView: View {
                     if busy { ProgressView().controlSize(.small) }
                     Spacer()
                 }
-                if let error { Text(error).font(.callout).foregroundStyle(.red) }
+                if let error { Text(error).font(.callout).foregroundStyle(Theme.danger) }
             }
             PreferencesSection(settings: service.settings)
             Section("Privacy") {
@@ -125,6 +125,7 @@ private struct AccountRow: View {
             }
             Button(role: .destructive, action: remove) { Image(systemName: "minus.circle") }
                 .buttonStyle(.borderless).help("Remove account")
+                .accessibilityLabel("Remove account")
         }
     }
 
@@ -138,7 +139,7 @@ private struct AccountRow: View {
         case .consentRequired:
             Label("Consent required", systemImage: "info.circle").font(.caption).foregroundStyle(.blue)
         case .enabled:
-            Label("Entra roles", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
+            Label("Entra roles", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Theme.active)
         }
     }
 
@@ -178,7 +179,7 @@ private struct PreferencesSection: View {
                     if settings.azCLIPath != nil { Button("Reset") { settings.azCLIPath = nil } }
                 }
             }
-            if let azPathError { Text(azPathError).font(.caption).foregroundStyle(.red) }
+            if let azPathError { Text(azPathError).font(.caption).foregroundStyle(Theme.danger) }
             // Shortcuts actions that activate obey it too (RoleStore+Intents).
             Toggle("Shortcuts can activate roles and favorites; links (azpim://activate) can run favorites.",
                    isOn: $linksMayActivate)
@@ -187,7 +188,7 @@ private struct PreferencesSection: View {
                 .onSubmit(saveClientId)
                 .onAppear { clientIdText = settings.customClientId ?? "" }
             if !clientIdText.isEmpty, Validation.clientId(clientIdText) != nil {
-                Text("Must be a GUID.").font(.caption).foregroundStyle(.red)
+                Text("Must be a GUID.").font(.caption).foregroundStyle(Theme.danger)
             }
         }
     }
