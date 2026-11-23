@@ -40,7 +40,7 @@ about to end in the middle of a deployment. AzPim keeps all of it one click away
 | **Deactivate** | End a role as soon as you are done (Azure refuses it in the first 5 minutes; the button says so). |
 | **Expiry notifications** | A reminder before the end, with an **Extend** button. |
 | **Favorites** | Activate several roles in one click, from the panel or `azpim://activate?favorite=<name>` (always confirmed). |
-| **Shortcuts** | *Activate Role*, *Run Favorite*, *List Active Roles* and *Deactivate All Roles* actions for Shortcuts, Siri and Spotlight (and Raycast or Alfred through `shortcuts run`). Every request is confirmed, missing justifications and tickets are asked, and the same setting as links turns activation off. |
+| **Shortcuts** | *Activate Role*, *Run Favorite*, *List Active Roles* and *Deactivate All Roles* actions for Shortcuts, Siri and Spotlight (and Raycast or Alfred through `shortcuts run`). Every request is confirmed, missing justifications and tickets are asked, and the same setting as links turns activation off (*Deactivate All Roles* is not gated by it: it only removes access, after its own confirmation). A shortcut started by `shortcuts run` or Raycast still shows the confirmation; with no UI to show it, it fails without sending anything (to be verified live). |
 | **History** | Every request, pending approvals (including ones sent from the portal) with **Cancel**, CSV export, median time to activate. |
 | **Roles window** | Search and filter every role, see its policy: maximum duration, justification, ticket, MFA, approval. |
 | **Several accounts and tenants** | One panel, filter per account. |

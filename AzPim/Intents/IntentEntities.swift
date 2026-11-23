@@ -15,23 +15,43 @@ enum IntentSupport {
         return store
     }
 
-    /// Text built at run time (already localized): never looked up again as a catalog key.
+    /// Text built at run time (already localized, may hold user content such as a justification): the argument of a
+    /// `%@` key, never a key itself, so a `%` typed by the user is never read as a format.
     static func resource(_ text: String) -> LocalizedStringResource {
-        LocalizedStringResource(stringLiteral: text)
+        LocalizedStringResource("\(text)")
     }
 
     static func dialog(_ text: String) -> IntentDialog {
         IntentDialog(resource(text))
     }
 
-    /// Asks Shortcuts to confirm `text`; Cancel throws, so nothing is sent. True once confirmed.
-    static func confirm(_ intent: some AppIntent, _ text: String) async throws -> Bool {
+    /// Asks Shortcuts for a field the policy requires, through the action's own parameter.
+    static func ask(_ field: RoleStore.IntentField, justification: IntentParameter<String?>,
+                    system: IntentParameter<String?>, ticket: IntentParameter<String?>) async throws -> String {
+        switch field {
+        case .justification:
+            try await justification.requestValue("The policy requires a justification. Why do you need this role?")
+        case .ticketSystem(let tenant?):
+            try await system.requestValue("A role in \(tenant) requires a ticket. Which ticket system?")
+        case .ticketSystem(nil):
+            try await system.requestValue("The policy requires a ticket. Which ticket system?")
+        case .ticketNumber(let tenant?):
+            try await ticket.requestValue("Ticket number for \(tenant)?")
+        case .ticketNumber(nil):
+            try await ticket.requestValue("The policy requires a ticket number. Which ticket?")
+        }
+    }
+
+    /// Asks Shortcuts to confirm `text`; Cancel throws, so nothing is sent. True once confirmed. macOS 14 has no
+    /// non-deprecated intent-level confirmation with a dialog: there, the confirmation is asked on one of the action's
+    /// parameters (`parameter`, showing `value`), with the same text.
+    static func confirm<Value>(_ intent: some AppIntent, _ text: String, on parameter: IntentParameter<Value>,
+                               showing value: Value.ValueType) async throws -> Bool {
         if #available(macOS 15.0, *) {
             try await intent.requestConfirmation(actionName: .go, dialog: dialog(text))
-        } else {
-            try await intent.requestConfirmation(result: .result(dialog: dialog(text)))
+            return true
         }
-        return true
+        return try await parameter.requestConfirmation(for: value, dialog: dialog(text))
     }
 }
 

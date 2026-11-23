@@ -10,7 +10,7 @@ struct ActivateRoleIntent: AppIntent {
     static let title: LocalizedStringResource = "Activate Role"
     static let description = IntentDescription("""
         Activates an eligible Azure role after you confirm its scope, account and duration. \
-        Asks for a justification or a ticket number when the role's policy requires one.
+        Asks for a justification or a ticket when the role's policy requires one.
         """)
 
     @Parameter(title: "Role")
@@ -23,6 +23,9 @@ struct ActivateRoleIntent: AppIntent {
     @Parameter(title: "Justification")
     var justification: String?
 
+    @Parameter(title: "Ticket system", description: "Default: the one last used in the role's tenant.")
+    var ticketSystem: String?
+
     @Parameter(title: "Ticket number")
     var ticket: String?
 
@@ -30,6 +33,7 @@ struct ActivateRoleIntent: AppIntent {
         Summary("Activate \(\.$role)") {
             \.$minutes
             \.$justification
+            \.$ticketSystem
             \.$ticket
         }
     }
@@ -41,32 +45,40 @@ struct ActivateRoleIntent: AppIntent {
 
     @MainActor
     private func run() async throws -> String {
-        let request = RoleStore.IntentRequest(roleId: role.id, minutes: minutes, justification: justification, ticket: ticket)
+        let request = RoleStore.IntentRequest(roleId: role.id, minutes: minutes, justification: justification,
+                                              ticketSystem: ticketSystem, ticket: ticket)
         return try await IntentSupport.store().intentActivate(
             request, allowed: RoleStore.intentActivationAllowed,
-            ask: { field in
-                switch field {
-                case .justification:
-                    try await $justification.requestValue("The policy requires a justification. Why do you need this role?")
-                case .ticket:
-                    try await $ticket.requestValue("The policy requires a ticket number. Which ticket?")
-                }
-            },
-            confirm: { try await IntentSupport.confirm(self, $0) })
+            ask: { try await IntentSupport.ask($0, justification: $justification, system: $ticketSystem, ticket: $ticket) },
+            confirm: { try await IntentSupport.confirm(self, $0, on: $role, showing: role) })
     }
 }
 
 struct RunFavoriteIntent: AppIntent {
     static let title: LocalizedStringResource = "Run Favorite"
     static let description = IntentDescription("""
-        Activates every role of an AzPim favorite after you confirm what each one will send.
+        Activates every role of an AzPim favorite after you confirm what each one will send. \
+        Asks for a justification or a ticket when a role's policy requires one.
         """)
 
     @Parameter(title: "Favorite")
     var favorite: FavoriteEntity
 
+    @Parameter(title: "Justification", description: "Replaces the justification of every role.")
+    var justification: String?
+
+    @Parameter(title: "Ticket system", description: "Used when the ticket roles are all in one tenant.")
+    var ticketSystem: String?
+
+    @Parameter(title: "Ticket number", description: "Used when the ticket roles are all in one tenant.")
+    var ticket: String?
+
     static var parameterSummary: some ParameterSummary {
-        Summary("Run \(\.$favorite)")
+        Summary("Run \(\.$favorite)") {
+            \.$justification
+            \.$ticketSystem
+            \.$ticket
+        }
     }
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
@@ -76,8 +88,12 @@ struct RunFavoriteIntent: AppIntent {
 
     @MainActor
     private func run() async throws -> String {
-        try await IntentSupport.store().intentRunFavorite(id: favorite.id, allowed: RoleStore.intentActivationAllowed,
-                                                          confirm: { try await IntentSupport.confirm(self, $0) })
+        let request = RoleStore.IntentFavoriteRequest(id: favorite.id, justification: justification,
+                                                      ticketSystem: ticketSystem, ticket: ticket)
+        return try await IntentSupport.store().intentRunFavorite(
+            request, allowed: RoleStore.intentActivationAllowed,
+            ask: { try await IntentSupport.ask($0, justification: $justification, system: $ticketSystem, ticket: $ticket) },
+            confirm: { try await IntentSupport.confirm(self, $0, on: $favorite, showing: favorite) })
     }
 }
 
@@ -86,18 +102,27 @@ struct ListActiveRolesIntent: AppIntent {
     static let description = IntentDescription("Lists the Azure roles active now, with their scope and the time left.")
 
     func perform() async throws -> some IntentResult & ReturnsValue<[RoleEntity]> & ProvidesDialog {
-        let (roles, text) = try await MainActor.run {
-            let store = try IntentSupport.store()
-            let active = store.intentRoles().filter(\.active)
-            return (active.map(RoleEntity.init), store.intentActiveSummary(active))
-        }
+        let (roles, text) = try await run()
         return .result(value: roles, dialog: IntentSupport.dialog(text))
+    }
+
+    @MainActor
+    private func run() async throws -> ([RoleEntity], String) {
+        let store = try IntentSupport.store()
+        await store.intentReady()
+        let active = store.intentRoles().filter(\.active)
+        return (active.map(RoleEntity.init), store.intentActiveSummary(active))
     }
 }
 
 struct DeactivateAllIntent: AppIntent {
     static let title: LocalizedStringResource = "Deactivate All Roles"
-    static let description = IntentDescription("Deactivates every active Azure role after you confirm the list.")
+    static let description = IntentDescription("""
+        Deactivates every active Azure role, or only the roles given, after you confirm the list.
+        """)
+
+    @Parameter(title: "Roles", description: "Leave empty to deactivate every active role.")
+    var roles: [RoleEntity]?
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let text = try await run()
@@ -106,7 +131,14 @@ struct DeactivateAllIntent: AppIntent {
 
     @MainActor
     private func run() async throws -> String {
-        try await IntentSupport.store().intentDeactivateAll(confirm: { try await IntentSupport.confirm(self, $0) })
+        let store = try IntentSupport.store()
+        let only = roles.map { Set($0.map(\.id)) }
+        return try await store.intentDeactivateAll(only: only, confirm: { text in
+            // macOS 14 confirms on the Roles parameter (one role shown; the dialog lists them all).
+            let shown = store.intentRoles().first { $0.active && only?.contains($0.id) != false }
+            guard let shown else { return false }
+            return try await IntentSupport.confirm(self, text, on: $roles, showing: RoleEntity(shown))
+        })
     }
 }
 

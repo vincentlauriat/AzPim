@@ -8,7 +8,9 @@ import AzPimCore
 enum DeepLinkHandler {
     /// Set by `AzPimApp.init`, before any URL can arrive.
     static var store: RoleStore?
-    /// Settings › Advanced: links may ask to activate favorites (default on). `role` and `open` links always work.
+    /// Settings › Accounts › Advanced: links may ask to run favorites, and Shortcuts actions to activate roles and
+    /// favorites (default on; `RoleStore.intentActivationAllowed`). `role` and `open` links, and Shortcuts' Deactivate
+    /// All, always work.
     static let activationKey = PreferenceKeys.allowLinkActivation
     /// A confirmation is on screen: further activation links are ignored, not queued (no prompt flood).
     private static var confirming = false

@@ -11,16 +11,29 @@ extension RoleStore {
         let message: String
     }
 
-    enum IntentField: Sendable {
-        case justification, ticket
+    /// A field asked through Shortcuts. `tenant`: the tenant shown when a favorite asks one ticket per tenant.
+    enum IntentField: Sendable, Hashable {
+        case justification
+        case ticketSystem(tenant: String?)
+        case ticketNumber(tenant: String?)
     }
 
-    /// The parameters of « Activate role »; `minutes` nil for the role's default duration.
+    /// The parameters of « Activate role »; `minutes` nil for the role's default duration, `ticketSystem` nil or empty
+    /// for the one last used in the role's tenant.
     struct IntentRequest: Sendable {
         var roleId: String
         var minutes: Int?
         var justification: String?
+        var ticketSystem: String?
         var ticket: String?
+
+        mutating func set(_ field: IntentField, to answer: String) {
+            switch field {
+            case .justification: justification = answer
+            case .ticketSystem: ticketSystem = answer
+            case .ticketNumber: ticket = answer
+            }
+        }
     }
 
     /// A role as Shortcuts lists it: an eligible role, or one active now (same id: the eligible role's).
@@ -46,6 +59,14 @@ extension RoleStore {
 
     static var intentCancelled: IntentFailure {
         IntentFailure(message: String(localized: "Not confirmed: nothing was sent."))
+    }
+
+    /// After a cold launch by a shortcut: waits for the launch refresh (or runs one), so the lists and confirmations
+    /// leave out the Azure CLI accounts a Microsoft sign-in supersedes (`loadedSources` is empty before it).
+    func intentReady() async {
+        for _ in 0..<600 where lastRefresh == nil {
+            if isRefreshing { try? await sleep(.milliseconds(100)) } else { await refresh() }
+        }
     }
 
     // MARK: - Roles
@@ -97,22 +118,25 @@ extension RoleStore {
     func intentActivate(_ request: IntentRequest, allowed: Bool, ask: (IntentField) async throws -> String?,
                         confirm: (String) async throws -> Bool) async throws -> String {
         guard allowed else { throw Self.intentActivationDisabled }
+        await intentReady()
         guard let role = resolvedRole(id: request.roleId) else {
             throw IntentFailure(message: String(localized: "This role is no longer eligible."))
         }
         await ensurePolicy(for: role)
         var request = request
+        if (request.ticketSystem ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            request.ticketSystem = ticketSystem(for: role)
+        }
         var asked: Set<IntentField> = []
         while true {
             let decision = IntentActivation.decide(intentFacts(role, request, allowed: allowed))
             switch decision {
-            case .needsJustification, .needsTicket:
-                let field: IntentField = decision == .needsTicket ? .ticket : .justification
-                let block: ActivationBlock = field == .ticket ? .ticketRequired : .justificationRequired
+            case .needsJustification, .needsTicketSystem, .needsTicket:
+                let (field, block) = Self.missingField(decision)
                 guard asked.insert(field).inserted, let answer = try await ask(field) else {
                     throw IntentFailure(message: block.message)
                 }
-                if field == .ticket { request.ticket = answer } else { request.justification = answer }
+                request.set(field, to: answer)
             case .refused(let refusal):
                 throw IntentFailure(message: Self.message(for: refusal, role: role))
             case .send(let input):
@@ -122,11 +146,20 @@ extension RoleStore {
         }
     }
 
+    private static func missingField(_ decision: IntentActivation) -> (IntentField, ActivationBlock) {
+        switch decision {
+        case .needsTicketSystem: (.ticketSystem(tenant: nil), .ticketSystemRequired)
+        case .needsTicket: (.ticketNumber(tenant: nil), .ticketRequired)
+        default: (.justification, .justificationRequired)
+        }
+    }
+
     private func intentFacts(_ role: EligibleRole, _ request: IntentRequest, allowed: Bool) -> IntentActivation.Facts {
         IntentActivation.Facts(allowed: allowed, policy: role.policy, policyKnown: role.policyFetchedAt != nil,
                                active: activeActivations().contains { $0.eligibleRole?.id == role.id },
                                lastDuration: lastDuration(for: role), requestedMinutes: request.minutes,
-                               justification: request.justification ?? "", ticket: request.ticket ?? "",
+                               justification: request.justification ?? "", ticketSystem: request.ticketSystem ?? "",
+                               ticket: request.ticket ?? "",
                                inProgress: busy.contains(role.id),
                                pending: waitingRequest(for: role) != nil, offline: isOffline)
     }
@@ -155,11 +188,18 @@ extension RoleStore {
         let duration = ISODuration.label(ISODuration.seconds(input.duration) ?? 0)
         lines.append(String(localized: "Duration: \(duration)"))
         if !input.justification.isEmpty { lines.append(String(localized: "Justification: “\(input.justification)”")) }
-        if let ticket = input.ticketNumber { lines.append(String(localized: "Ticket: \(ticket)")) }
+        if let ticket = Self.ticketText(input) { lines.append(ticket) }
         return lines.joined(separator: "\n")
     }
 
-    private static func accountLine(_ account: Account?) -> String {
+    /// « Ticket: Jira INC-1 », nil without a ticket.
+    static func ticketText(_ input: ActivationInput) -> String? {
+        guard let number = input.ticketNumber else { return nil }
+        let ticket = [input.ticketSystem ?? "", number].filter { !$0.isEmpty }.joined(separator: " ")
+        return String(localized: "Ticket: \(ticket)")
+    }
+
+    static func accountLine(_ account: Account?) -> String {
         account.map { String(localized: "\($0.upn) (tenant \($0.tenantName ?? $0.tenantId))") }
             ?? String(localized: "unknown account")
     }
@@ -173,48 +213,18 @@ extension RoleStore {
         }
     }
 
-    // MARK: - Favorites
-
-    /// « Run favorite »: the confirmation lists what each role will send (as `azpim://activate` does), then the
-    /// favorite runs as from the panel (`run`). Returns the run's summary.
-    func intentRunFavorite(id: UUID, allowed: Bool, confirm: (String) async throws -> Bool) async throws -> String {
-        guard allowed else { throw Self.intentActivationDisabled }
-        let favorites = (try? context.fetch(FetchDescriptor<Favorite>())) ?? []
-        guard let favorite = favorites.first(where: { $0.id == id }) else {
-            throw IntentFailure(message: String(localized: "This favorite no longer exists."))
-        }
-        if isOffline { throw IntentFailure(message: ActivationBlock.offline.message) }
-        for role in favorite.items.compactMap({ favoriteRole(for: $0) }) {
-            await ensurePolicy(for: role)
-        }
-        let lines = favorite.items.compactMap { item -> String? in
-            guard let role = favoriteRole(for: item) else { return nil }
-            let account = Self.accountLine(role.account)
-            let heading = "• \(role.displayRoleName) — \(role.displayScopeName)\n   "
-            if waitingRequest(for: role) != nil {
-                return heading + String(localized: "\(account): skipped (already requested, waiting)")
-            }
-            switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
-            case .success(let input):
-                let duration = ISODuration.label(ISODuration.seconds(input.duration) ?? 0)
-                return heading + "\(account), \(duration), “\(input.justification)”"
-            case .failure(let failure):
-                return heading + String(localized: "\(account): not sent (\(failure.userMessage))")
-            }
-        }
-        let text = String(localized: "Activate “\(favorite.name)”?") + "\n" + lines.joined(separator: "\n")
-        guard try await confirm(text) else { throw Self.intentCancelled }
-        return await run(favorite, fromPanel: false)
-    }
-
     // MARK: - Deactivate all
 
-    /// « Deactivate all »: every timed activation of the accounts in use, after a confirmation listing them. Returns
-    /// « 2 of 2 deactivated », with the failures.
-    func intentDeactivateAll(confirm: (String) async throws -> Bool) async throws -> String {
-        let targets = activeActivations().filter { $0.eligibleRole != nil }
+    /// « Deactivate all »: every timed activation of the accounts in use (only those of `ids`, eligible role ids, when
+    /// given), after a confirmation listing them (with their account and tenant). Not gated by the link setting: it
+    /// only removes access. Returns « 2 of 2 deactivated », with the failures.
+    func intentDeactivateAll(only ids: Set<String>? = nil, confirm: (String) async throws -> Bool) async throws -> String {
+        await intentReady()
+        let targets = activeActivations().filter { row in
+            row.eligibleRole.map { ids?.contains($0.id) != false } == true
+        }
         guard !targets.isEmpty else { return String(localized: "No active role to deactivate.") }
-        let lines = targets.map { "• \($0.displayRoleName) — \($0.displayScopeName)" }
+        let lines = targets.map { "• \($0.displayRoleName) — \($0.displayScopeName)\n   \(Self.accountLine($0.account))" }
         let text = String(localized: "Deactivate these roles?") + "\n" + lines.joined(separator: "\n")
         guard try await confirm(text) else { throw Self.intentCancelled }
         var results: [IntentSummary.Deactivation] = []

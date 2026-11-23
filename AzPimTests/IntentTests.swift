@@ -47,23 +47,44 @@ struct IntentTests {
         #expect(harness.records().isEmpty)
     }
 
-    /// Missing fields are asked, then the confirmed request carries them.
-    @Test func requiredFieldsAreAskedThenSent() async throws {
+    private static func answer(_ field: RoleStore.IntentField) -> String {
+        switch field {
+        case .justification: "Audit"
+        case .ticketSystem: "Jira"
+        case .ticketNumber: "INC-1"
+        }
+    }
+
+    /// Missing fields are asked (justification, ticket system, ticket number), then the confirmed request carries them.
+    @Test func ticketSystemAskedThenSent() async throws {
         await refresh(policy: RolePolicy(maxDuration: "PT8H", requiresJustification: true, requiresTicket: true))
         var asked: [RoleStore.IntentField] = []
         var shown = ""
         let text = try await harness.store.intentActivate(
-            request(), allowed: true,
-            ask: { field in asked.append(field); return field == .justification ? "Audit" : "INC-1" },
+            request(), allowed: true, ask: { asked.append($0); return Self.answer($0) },
             confirm: { shown = $0; return true })
-        #expect(asked == [.justification, .ticket])
-        #expect(shown.contains("Audit") && shown.contains("INC-1"))
+        #expect(asked == [.justification, .ticketSystem(tenant: nil), .ticketNumber(tenant: nil)])
+        #expect(shown.contains("Audit") && shown.contains("Jira INC-1"))
         #expect(text.contains("is active until"))
         #expect(await arm.activateCount == 1)
         let record = try #require(harness.records().first)
         #expect(record.justification == "Audit")
         #expect(record.ticketNumber == "INC-1")
         #expect(record.panelOpenedAt == nil)
+    }
+
+    /// The ticket system last used in the tenant is prefilled: only the number is asked.
+    @Test func theRememberedTicketSystemIsPrefilled() async throws {
+        await refresh(policy: RolePolicy(maxDuration: "PT8H", requiresJustification: false, requiresTicket: true))
+        let role = try #require(harness.role(account, "e1"))
+        harness.store.rememberTicket(ActivationInput(duration: "PT1H", justification: "", ticketNumber: "OLD-1",
+                                                     ticketSystem: "ServiceNow"), for: role)
+        var asked: [RoleStore.IntentField] = []
+        var shown = ""
+        _ = try await harness.store.intentActivate(request(), allowed: true, ask: { asked.append($0); return Self.answer($0) },
+                                                   confirm: { shown = $0; return true })
+        #expect(asked == [.ticketNumber(tenant: nil)])
+        #expect(shown.contains("ServiceNow INC-1"))
     }
 
     @Test func aMissingJustificationIsRefused() async throws {
@@ -99,7 +120,9 @@ struct IntentTests {
         let favorite = Favorite(name: "Morning", items: [FavoriteItem(eligibleRoleId: roleId, duration: "PT1H")])
         harness.context.insert(favorite)
         await #expect(throws: RoleStore.intentActivationDisabled) {
-            try await harness.store.intentRunFavorite(id: favorite.id, allowed: false, confirm: { _ in calls += 1; return true })
+            try await harness.store.intentRunFavorite(.init(id: favorite.id), allowed: false,
+                                                      ask: { _ in calls += 1; return nil },
+                                                      confirm: { _ in calls += 1; return true })
         }
         #expect(calls == 0)
         #expect(await arm.activateCount == 0)
@@ -110,11 +133,60 @@ struct IntentTests {
         let favorite = Favorite(name: "Morning", items: [FavoriteItem(eligibleRoleId: roleId, duration: "PT2H")])
         harness.context.insert(favorite)
         var shown = ""
-        let text = try await harness.store.intentRunFavorite(id: favorite.id, allowed: true,
+        let text = try await harness.store.intentRunFavorite(.init(id: favorite.id), allowed: true, ask: { _ in nil },
                                                              confirm: { shown = $0; return true })
         #expect(shown.contains("Morning") && shown.contains("Owner"))
         #expect(text == FavoriteRun.summary([FavoriteRoleResult(roleName: "Owner", status: .provisioned)]))
         #expect(harness.records().map(\.requestedDuration) == ["PT2H"])
+    }
+
+    /// Ticket roles in two tenants: a ticket asked per tenant, each sent only to its own tenant's role. A role whose
+    /// policy cannot be read is listed as not sent and is not sent; one already active is listed as such.
+    @Test func aFavoriteAsksATicketPerTenantAndSkipsUnreadablePolicies() async throws {
+        let ticketPolicy = RolePolicy(maxDuration: "PT8H", requiresJustification: false, requiresTicket: true)
+        await arm.set(policy: .success(ticketPolicy))
+        let (other, otherSources) = harness.addAccount(objectId: "oid-2", tenantId: "tenant-2", sortOrder: 1)
+        let otherArm = otherSources[0]
+        await otherArm.set(eligible: [Fixture.eligibility("t2", role: "Contributor"), Fixture.eligibility("u2", role: "Viewer")])
+        await otherArm.set(policy: .success(ticketPolicy))
+        await harness.refresh()
+        // The second account's policy reads now fail; « u2 » has never been read.
+        try #require(harness.role(other, "u2")).policyFetchedAt = nil
+        await otherArm.set(policy: .failure(URLError(.timedOut)))
+        await arm.set(assignments: [Fixture.activation(Fixture.eligibility("e2", role: "Reader"), instance: "i2")])
+        await harness.refresh()
+        let ids = [roleId, "\(account.id.uuidString)|e2", "\(other.id.uuidString)|t2", "\(other.id.uuidString)|u2"]
+        let favorite = Favorite(name: "Incident", items: ids.map { FavoriteItem(eligibleRoleId: $0, duration: "PT1H") })
+        harness.context.insert(favorite)
+        var asked: [RoleStore.IntentField] = []
+        var shown = ""
+        _ = try await harness.store.intentRunFavorite(
+            .init(id: favorite.id), allowed: true,
+            ask: { field in
+                asked.append(field)
+                if case .ticketNumber(let tenant?) = field { return "INC-\(tenant)" }
+                return Self.answer(field)
+            },
+            confirm: { shown = $0; return true })
+        #expect(asked == [.ticketSystem(tenant: "tenant-1"), .ticketNumber(tenant: "tenant-1"),
+                          .ticketSystem(tenant: "tenant-2"), .ticketNumber(tenant: "tenant-2")])
+        #expect(shown.contains("Jira INC-tenant-1") && shown.contains("Jira INC-tenant-2"))
+        #expect(shown.contains("already active"))
+        #expect(shown.contains("not sent (unreadable policy)"))
+        let sent = harness.records().filter { $0.action == .activate }
+        #expect(Set(sent.map(\.eligibleRoleId)) == [roleId, "\(other.id.uuidString)|t2"])
+        #expect(sent.first { $0.eligibleRoleId == roleId }?.ticketNumber == "INC-tenant-1")
+        #expect(await otherArm.activateCount == 1)
+    }
+
+    /// Cold launch: nothing refreshed yet, the action refreshes before listing.
+    @Test func aColdLaunchRefreshesFirst() async throws {
+        await arm.set(assignments: [Fixture.activation(Fixture.eligibility("e1", role: "Owner"), instance: "i1")])
+        #expect(harness.store.lastRefresh == nil)
+        var shown = ""
+        _ = try await harness.store.intentDeactivateAll(confirm: { shown = $0; return true })
+        #expect(shown.contains("Owner") && shown.contains("user@test"))
+        #expect(await arm.deactivateCount == 1)
     }
 
     /// Deactivate all lists every activation before acting, then sums up.

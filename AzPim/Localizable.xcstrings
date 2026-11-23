@@ -7,6 +7,9 @@
     " · " : {
       "shouldTranslate" : false
     },
+    "%@" : {
+      "shouldTranslate" : false
+    },
     "%@ (tenant %@)" : {
       "localizations" : {
         "en" : {
@@ -242,6 +245,16 @@
         }
       }
     },
+    "%@: already active" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : déjà actif"
+          }
+        }
+      }
+    },
     "%@: not sent (%@)" : {
       "localizations" : {
         "en" : {
@@ -367,6 +380,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un lien demande à AzPim d’activer :"
+          }
+        }
+      }
+    },
+    "A role in %@ requires a ticket. Which ticket system?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un rôle de %@ exige un ticket. Quel système de tickets ?"
           }
         }
       }
@@ -603,22 +626,22 @@
         }
       }
     },
-    "Activates an eligible Azure role after you confirm its scope, account and duration. Asks for a justification or a ticket number when the role's policy requires one." : {
+    "Activates an eligible Azure role after you confirm its scope, account and duration. Asks for a justification or a ticket when the role's policy requires one." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Active un rôle Azure éligible après confirmation de son étendue, de son compte et de sa durée. Demande une justification ou un numéro de ticket quand la stratégie du rôle l’exige."
+            "value" : "Active un rôle Azure éligible après confirmation de son étendue, de son compte et de sa durée. Demande une justification ou un ticket quand la stratégie du rôle l’exige."
           }
         }
       }
     },
-    "Activates every role of an AzPim favorite after you confirm what each one will send." : {
+    "Activates every role of an AzPim favorite after you confirm what each one will send. Asks for a justification or a ticket when a role's policy requires one." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Active tous les rôles d’un favori AzPim après confirmation de ce que chacun enverra."
+            "value" : "Active tous les rôles d’un favori AzPim après confirmation de ce que chacun enverra. Demande une justification ou un ticket quand la stratégie d’un rôle l’exige."
           }
         }
       }
@@ -1590,12 +1613,12 @@
         }
       }
     },
-    "Deactivates every active Azure role after you confirm the list." : {
+    "Deactivates every active Azure role, or only the roles given, after you confirm the list." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Désactive tous les rôles Azure actifs après confirmation de la liste."
+            "value" : "Désactive tous les rôles Azure actifs, ou seulement les rôles indiqués, après confirmation de la liste."
           }
         }
       }
@@ -1636,6 +1659,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Par défaut : la dernière durée utilisée pour ce rôle, sinon 1 heure."
+          }
+        }
+      }
+    },
+    "Default: the one last used in the role's tenant." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par défaut : le dernier utilisé dans le locataire du rôle."
           }
         }
       }
@@ -2244,6 +2277,16 @@
         }
       }
     },
+    "Leave empty to deactivate every active role." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laissez vide pour désactiver tous les rôles actifs."
+          }
+        }
+      }
+    },
     "Leave empty to keep each role’s own" : {
       "localizations" : {
         "fr" : {
@@ -2260,16 +2303,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lien copié."
-          }
-        }
-      }
-    },
-    "Links and Shortcuts can ask to activate roles and favorites (azpim://activate)" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les liens et Raccourcis peuvent demander d’activer des rôles et des favoris (azpim://activate)"
           }
         }
       }
@@ -3183,6 +3216,16 @@
         }
       }
     },
+    "Replaces the justification of every role." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplace la justification de chaque rôle."
+          }
+        }
+      }
+    },
     "Request sent — not confirmed yet. Check the panel in a moment." : {
       "localizations" : {
         "fr" : {
@@ -3436,6 +3479,16 @@
         }
       }
     },
+    "Shortcuts can activate roles and favorites; links (azpim://activate) can run favorites." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les Raccourcis peuvent activer des rôles et des favoris ; les liens (azpim://activate) peuvent lancer des favoris."
+          }
+        }
+      }
+    },
     "Show %@" : {
       "localizations" : {
         "fr" : {
@@ -3585,6 +3638,16 @@
         }
       }
     },
+    "The policy requires a ticket. Which ticket system?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La stratégie exige un ticket. Quel système de tickets ?"
+          }
+        }
+      }
+    },
     "The request timed out." : {
       "localizations" : {
         "fr" : {
@@ -3651,6 +3714,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Numéro de ticket"
+          }
+        }
+      }
+    },
+    "Ticket number for %@?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numéro de ticket pour %@ ?"
           }
         }
       }
@@ -3757,6 +3830,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Utiliser la session Azure CLI (%1$@, %2$@)"
+          }
+        }
+      }
+    },
+    "Used when the ticket roles are all in one tenant." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisé quand les rôles à ticket sont tous dans un même locataire."
           }
         }
       }
@@ -4031,6 +4114,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "erreur inconnue"
+          }
+        }
+      }
+    },
+    "unreadable policy" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "stratégie illisible"
           }
         }
       }

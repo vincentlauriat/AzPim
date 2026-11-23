@@ -8,7 +8,9 @@ public enum IntentActivation: Equatable, Sendable {
     case send(ActivationInput)
     /// The policy requires a justification and none was given: ask for it.
     case needsJustification
-    /// The policy requires a ticket number and none was given: ask for it.
+    /// The policy requires a ticket and no ticket system was given: ask for it.
+    case needsTicketSystem
+    /// The policy requires a ticket and no ticket number was given: ask for it.
     case needsTicket
     /// Nothing can be sent.
     case refused(Refusal)
@@ -34,13 +36,15 @@ public enum IntentActivation: Equatable, Sendable {
         /// Duration asked by the shortcut, in minutes; nil for the default (last used, else 1 h).
         public var requestedMinutes: Int?
         public var justification = ""
+        /// Ticket system: prefilled with the one last used in the role's tenant, or asked.
+        public var ticketSystem = ""
         public var ticket = ""
         public var inProgress = false
         public var pending = false
         public var offline = false
 
         public init(allowed: Bool, policy: RolePolicy, policyKnown: Bool, active: Bool = false, lastDuration: String? = nil,
-                    requestedMinutes: Int? = nil, justification: String = "", ticket: String = "",
+                    requestedMinutes: Int? = nil, justification: String = "", ticketSystem: String = "", ticket: String = "",
                     inProgress: Bool = false, pending: Bool = false, offline: Bool = false) {
             self.allowed = allowed
             self.policy = policy
@@ -49,6 +53,7 @@ public enum IntentActivation: Equatable, Sendable {
             self.lastDuration = lastDuration
             self.requestedMinutes = requestedMinutes
             self.justification = justification
+            self.ticketSystem = ticketSystem
             self.ticket = ticket
             self.inProgress = inProgress
             self.pending = pending
@@ -74,16 +79,20 @@ public enum IntentActivation: Equatable, Sendable {
         guard facts.policyKnown else { return .refused(.unknownPolicy) }
         let justification = facts.justification.trimmingCharacters(in: .whitespacesAndNewlines)
         let ticket = facts.ticket.trimmingCharacters(in: .whitespacesAndNewlines)
+        let system = facts.ticketSystem.trimmingCharacters(in: .whitespacesAndNewlines)
         if facts.policy.requiresJustification, justification.isEmpty { return .needsJustification }
+        if facts.policy.requiresTicket, system.isEmpty { return .needsTicketSystem }
         if facts.policy.requiresTicket, ticket.isEmpty { return .needsTicket }
         let minutes = minutes(facts)
         let block = ActivationBlock.reason(.init(minutes: minutes, policyMax: facts.policy.maxDuration,
                                                  requiresJustification: facts.policy.requiresJustification,
                                                  justification: justification, requiresTicket: facts.policy.requiresTicket,
-                                                 ticket: ticket))
+                                                 ticketSystem: system, ticket: ticket))
         if let block { return .refused(.blocked(block)) }
+        // A ticket only goes with a role whose policy asks for one (as the Activation Sheet sends it).
+        let sendsTicket = facts.policy.requiresTicket && !ticket.isEmpty
         return .send(ActivationInput(duration: ActivationDuration.iso(minutes), justification: justification,
-                                     ticketNumber: ticket.isEmpty ? nil : ticket))
+                                     ticketNumber: sendsTicket ? ticket : nil, ticketSystem: sendsTicket ? system : nil))
     }
 }
 

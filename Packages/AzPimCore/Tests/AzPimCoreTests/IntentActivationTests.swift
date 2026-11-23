@@ -35,16 +35,27 @@ struct IntentActivationTests {
         #expect(IntentActivation.decide(.init(allowed: true, policy: strict, policyKnown: true, justification: "  "))
                 == .needsJustification)
         #expect(IntentActivation.decide(.init(allowed: true, policy: strict, policyKnown: true, justification: "Audit"))
-                == .needsTicket)
+                == .needsTicketSystem)
+        #expect(IntentActivation.decide(.init(allowed: true, policy: strict, policyKnown: true, justification: "Audit",
+                                              ticketSystem: "Jira")) == .needsTicket)
         let ready = IntentActivation.decide(.init(allowed: true, policy: strict, policyKnown: true,
-                                                  justification: " Audit ", ticket: "INC-1"))
-        #expect(ready == .send(ActivationInput(duration: "PT1H", justification: "Audit", ticketNumber: "INC-1")))
+                                                  justification: " Audit ", ticketSystem: " Jira ", ticket: "INC-1"))
+        #expect(ready == .send(ActivationInput(duration: "PT1H", justification: "Audit", ticketNumber: "INC-1",
+                                               ticketSystem: "Jira")))
+    }
+
+    /// A ticket typed for a role that does not require one is not sent (as in the Activation Sheet).
+    @Test func aTicketIsSentOnlyWhenRequired() {
+        let decision = IntentActivation.decide(.init(allowed: true, policy: open, policyKnown: true,
+                                                     ticketSystem: "Jira", ticket: "INC-1"))
+        #expect(decision == .send(ActivationInput(duration: "PT1H", justification: "")))
     }
 
     @Test func theDurationAskedIsCappedByThePolicy() {
         let decision = IntentActivation.decide(.init(allowed: true, policy: strict, policyKnown: true, requestedMinutes: 600,
-                                                     justification: "Audit", ticket: "INC-1"))
-        #expect(decision == .send(ActivationInput(duration: "PT2H", justification: "Audit", ticketNumber: "INC-1")))
+                                                     justification: "Audit", ticketSystem: "Jira", ticket: "INC-1"))
+        #expect(decision == .send(ActivationInput(duration: "PT2H", justification: "Audit", ticketNumber: "INC-1",
+                                                  ticketSystem: "Jira")))
         #expect(IntentActivation.minutes(.init(allowed: true, policy: open, policyKnown: true, lastDuration: "PT45M")) == 45)
     }
 

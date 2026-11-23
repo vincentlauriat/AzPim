@@ -180,7 +180,8 @@ private struct PreferencesSection: View {
             }
             if let azPathError { Text(azPathError).font(.caption).foregroundStyle(.red) }
             // Shortcuts actions that activate obey it too (RoleStore+Intents).
-            Toggle("Links and Shortcuts can ask to activate roles and favorites (azpim://activate)", isOn: $linksMayActivate)
+            Toggle("Shortcuts can activate roles and favorites; links (azpim://activate) can run favorites.",
+                   isOn: $linksMayActivate)
                 .help("Each request is still confirmed. Turn off if you never activate from links, scripts or Shortcuts.")
             TextField("Custom client ID", text: $clientIdText, prompt: Text("AzPim app registration"))
                 .onSubmit(saveClientId)
