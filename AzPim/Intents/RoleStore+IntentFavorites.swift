@@ -25,7 +25,9 @@ extension RoleStore {
             throw IntentFailure(message: String(localized: "This favorite no longer exists."))
         }
         if isOffline { throw IntentFailure(message: ActivationBlock.offline.message) }
-        let toSend = await favoriteRolesToSend(favorite).filter { $0.role.policyFetchedAt != nil }
+        // Background policy reads: no sign-in window opens before the confirmation (such a role shows « unreadable policy »).
+        let toSend = await TokenInteraction.$isBackground.withValue(true) { await favoriteRolesToSend(favorite) }
+            .filter { $0.role.policyFetchedAt != nil }
         let answers = try await favoriteAnswers(for: toSend, request: request, ask: ask)
         let (lines, confirmed) = favoriteConfirmation(favorite, answers: answers)
         let text = String(localized: "Activate “\(favorite.name)”?") + "\n" + lines.joined(separator: "\n")
@@ -71,8 +73,9 @@ extension RoleStore {
     /// justification it does not have, is listed as not sent). `confirm` false sends nothing; true sends exactly the
     /// roles the confirmation listed as sent, on the policies it was built from. Nil when not confirmed.
     func linkRunFavorite(_ favorite: Favorite, confirm: (String) async -> Bool) async -> FavoriteOutcome? {
-        // Same policy as the lines read (fetched if never read).
-        _ = await favoriteRolesToSend(favorite)
+        // Same policy as the lines read (fetched if never read), in the background: no sign-in window opens before
+        // the confirmation (such a role shows « unreadable policy »).
+        _ = await TokenInteraction.$isBackground.withValue(true) { await favoriteRolesToSend(favorite) }
         let (lines, confirmed) = favoriteConfirmation(favorite, answers: nil)
         guard await confirm(String(localized: "A link asked AzPim to activate:") + "\n" + lines.joined(separator: "\n")) else {
             return nil

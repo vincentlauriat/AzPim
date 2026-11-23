@@ -171,7 +171,7 @@ struct PaletteSessionTests {
         var session = PaletteSession(selectedId: "e2")
         #expect(session.index(in: ids) == 1)
         #expect(session.index(in: ["a1", "e2"]) == 1)   // rows reordered: still e2
-        #expect(session.index(in: ["a1"]) == 0)        // gone: the first row
+        #expect(session.index(in: ["a1"]) == nil)      // gone: no row (Return never acts on another role)
         #expect(PaletteSession().index(in: []) == nil)
         session.move(by: 1, in: ids)
         #expect(session.selectedId == "a1")

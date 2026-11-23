@@ -1653,6 +1653,16 @@
         }
       }
     },
+    "Couldn't run the link." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’exécuter le lien."
+          }
+        }
+      }
+    },
     "Create it in AzPim › Favorites." : {
       "localizations" : {
         "fr" : {
@@ -3890,6 +3900,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cette activation n’a pas d’éligibilité à prolonger."
+          }
+        }
+      }
+    },
+    "This activation isn't confirmed yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette activation n’est pas encore confirmée."
           }
         }
       }

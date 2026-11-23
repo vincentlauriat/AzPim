@@ -46,7 +46,15 @@ enum DeepLinkHandler {
         confirming = true
         defer { confirming = false }
         // After a cold launch by the link: the launch refresh first, so the lines leave out superseded accounts.
-        try? await store.intentReady()
+        do {
+            try await store.intentReady()
+        } catch {
+            // Still loading after about a minute: nothing is asked or sent on unfiltered data.
+            NSApp.activate(ignoringOtherApps: true)
+            alert(String(localized: "Couldn't run the link."),
+                  info: (error as? RoleStore.IntentFailure)?.message ?? RoleStore.message(for: error))
+            return
+        }
         guard let favorite = store.favorite(named: name) else {
             NSApp.activate(ignoringOtherApps: true)
             // The name comes from the link: shown short and quoted, never as instructions. A dialog, not a

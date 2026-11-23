@@ -35,7 +35,13 @@ extension RoleStore {
         // attempts, even when a refresh replaces it meanwhile.
         let activeSince = current.startAt
         // The justification and the duration of the request that made this activation, never an older one.
-        let made = activationRecord(of: role, since: activeSince)
+        let records = activationRecords(of: role, since: activeSince)
+        let made = records.first { $0.status == .provisioned }
+        // Only a request Azure has not confirmed yet: nothing to reuse safely, and no other justification is sent.
+        if made == nil, records.contains(where: { $0.status == .sent }) {
+            let reason = String(localized: "This activation isn't confirmed yet.")
+            return (String(localized: "\(reason) The role is still active."), nil)
+        }
         // Never decide on a cached or default policy: ending the activation must be safe to undo.
         guard await refreshPolicy(for: role) else {
             return (String(localized: "Couldn't read the role's policy: not extended, the role is still active."), nil)
@@ -50,20 +56,22 @@ extension RoleStore {
         }
     }
 
-    /// The latest accepted activation or extension of this role sent since the activation started (5 minutes of clock
-    /// skew allowed), under any account the role's account supersedes. Extend is refused for approval roles, so an
-    /// accepted request starts at about the time it was sent.
-    private func activationRecord(of role: EligibleRole, since activeSince: Date) -> ActivationRecord? {
+    /// The accepted or still unconfirmed activations and extensions of this role sent since the activation started
+    /// (5 minutes of clock skew allowed), latest first, under any account the role's account supersedes. Extend is
+    /// refused for approval roles, so an accepted request starts at about the time it was sent.
+    private func activationRecords(of role: EligibleRole, since activeSince: Date) -> [ActivationRecord] {
         let supersession = supersession()
-        let provisioned = RequestStatus.provisioned.rawValue
-        let descriptor = FetchDescriptor<ActivationRecord>(predicate: #Predicate { $0.statusRaw == provisioned })
+        let provisioned = RequestStatus.provisioned.rawValue, sent = RequestStatus.sent.rawValue
+        let descriptor = FetchDescriptor<ActivationRecord>(predicate: #Predicate {
+            $0.statusRaw == provisioned || $0.statusRaw == sent
+        })
         let earliest = activeSince.addingTimeInterval(-300)
         return ((try? context.fetch(descriptor)) ?? [])
             .filter {
                 ($0.action == .activate || $0.action == .extend) && $0.requestedDuration != nil && $0.sentAt >= earliest
                     && supersession.resolve(eligibleRoleId: $0.eligibleRoleId, source: $0.source) == role.id
             }
-            .max { $0.sentAt < $1.sentAt }
+            .sorted { $0.sentAt > $1.sentAt }
     }
 
     /// An active row is busy while its own request runs, or while its role is extended: keyed on the eligible role,
