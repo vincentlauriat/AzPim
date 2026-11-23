@@ -10,7 +10,8 @@ French entry lists every French phrase of that shortcut (`stringSet`); each phra
 
 `--stringsdata DIR` (macOS job, after a Debug build with SWIFT_EMIT_LOC_STRINGS): also compares the app catalog with
 the strings the compiler extracted, so a string added in code but not in the catalog, or a catalog key no longer in
-code, fails too (phrases: the `AppShortcuts` table).
+code, fails too (phrases: the `AppShortcuts` table). Repeat it for each target sharing the catalog (the Mac app and
+AzPimMobile): a key counts as in the code when any of them extracted it.
 """
 import argparse
 import json
@@ -178,12 +179,15 @@ def check_shortcuts_catalog():
     return catalog
 
 
-def check_extracted(catalogs, directory):
+def check_extracted(catalogs, directories):
     """`catalogs`: (table name, catalog path, catalog) to compare with the extracted keys of that table."""
     extracted = {table: set() for table, _, _ in catalogs}
-    files = list(pathlib.Path(directory).rglob("*.stringsdata"))
-    if not files:
-        errors.append(f"no .stringsdata under {directory}")
+    files = []
+    for directory in directories:
+        found = list(pathlib.Path(directory).rglob("*.stringsdata"))
+        if not found:
+            errors.append(f"no .stringsdata under {directory}")
+        files += found
     for path in files:
         data = json.loads(path.read_text(encoding="utf-8"))
         for table in extracted:
@@ -198,7 +202,8 @@ def check_extracted(catalogs, directory):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stringsdata", help="build folder holding the app's .stringsdata files")
+    parser.add_argument("--stringsdata", action="append",
+                        help="build folder holding a target's .stringsdata files (repeat for each target)")
     args = parser.parse_args()
     catalog = check_app_catalog()
     shortcuts = check_shortcuts_catalog()
