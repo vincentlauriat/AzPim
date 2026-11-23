@@ -58,7 +58,8 @@ struct MainWindow: View {
         NavigationSplitView {
             List(SidebarItem.allCases, selection: snapshot == nil ? $selection : .constant(nil)) { item in
                 Label {
-                    Text(item.title)
+                    // Snapshots: a vibrant sidebar label is captured black by `cacheDisplay`; a plain colour is not.
+                    Text(item.title).foregroundStyle(snapshot == nil ? Color.primary : Color(nsColor: .textColor))
                 } icon: {
                     Image(systemName: item.symbol).foregroundStyle(item.tint)
                 }
