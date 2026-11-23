@@ -1,5 +1,7 @@
 import Foundation
 import Testing
+
+#if os(macOS) // Process (Azure CLI) is macOS-only.
 @testable import AzPimCore
 
 /// Fake runner returning canned outputs and recording calls.
@@ -13,17 +15,6 @@ final class FakeRunner: ProcessRunning, @unchecked Sendable {
         calls.append(arguments)
         return outputs.isEmpty ? ProcessOutput(status: 1, stdout: "", stderr: "no more outputs") : outputs.removeFirst()
     }
-}
-
-/// Builds an unsigned JWT with the given claims.
-func fakeJWT(_ claims: [String: Any]) -> String {
-    func b64(_ data: Data) -> String {
-        data.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
-    }
-    let header = b64(Data(#"{"alg":"none"}"#.utf8))
-    let body = b64((try? JSONSerialization.data(withJSONObject: claims)) ?? Data())
-    return "\(header).\(body).sig"
 }
 
 struct AzureCLITokenProviderTests {
@@ -215,3 +206,4 @@ struct AzureCLITokenProviderTests {
 final class NoExecutables: FileManager, @unchecked Sendable {
     override func isExecutableFile(atPath path: String) -> Bool { false }
 }
+#endif

@@ -53,6 +53,7 @@ struct SecurityHardeningTests {
         #expect(recorder.durations == [.seconds(30)])
     }
 
+    #if os(macOS) // The Azure CLI provider is macOS-only.
     @Test func azEnvironmentIsAllowlisted() throws {
         let own = FileManager.default.temporaryDirectory.appendingPathComponent("azcfg-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: own, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
@@ -79,6 +80,8 @@ struct SecurityHardeningTests {
         }
     }
 
+    #endif
+
     /// The bearer token must not follow a redirect to another host or to http.
     @Test func redirectsStayOnTheSameHttpsHost() {
         let arm = URL(string: "https://management.azure.com/a")
@@ -88,11 +91,13 @@ struct SecurityHardeningTests {
         #expect(!SameHostRedirects.allows(from: nil, to: URL(string: "https://management.azure.com/b")))
     }
 
+    #if os(macOS)
     /// Known install locations still resolve after the trusted-chain check (Homebrew is admin-writable).
     @Test(.enabled(if: FileManager.default.fileExists(atPath: "/opt/homebrew/bin/az")))
     func homebrewAzStillFound() {
         #expect(AzureCLITokenProvider().locateCLI() != nil)
     }
+    #endif
 }
 
 final class SleepRecorder: @unchecked Sendable {

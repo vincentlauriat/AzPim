@@ -363,6 +363,7 @@ struct PIMServiceTests {
     }
 }
 
+#if os(macOS) // Uses the Azure CLI provider.
 /// Live read-only check against Azure with the Azure CLI session. Opt-in: AZPIM_LIVE=1
 struct LiveARMTests {
     @Test(.enabled(if: ProcessInfo.processInfo.environment["AZPIM_LIVE"] == "1"))
@@ -384,3 +385,4 @@ struct LiveARMTests {
         print("live pending:", pending.map { "\($0.roleName) @ \($0.scopeName)" })
     }
 }
+#endif
