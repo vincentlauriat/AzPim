@@ -1,6 +1,7 @@
 /* AzPimCore, French. Plural strings are in Localizable.stringsdict. */
 
 "%@ is limited to %lld characters" = "%1$@ : %2$lld caractères au maximum";
+"%@ left" = "reste %@";
 "%@ must be between %lld and %lld" = "%1$@ : entre %2$lld et %3$lld";
 "%@ required" = "%@ : valeur requise";
 "%@ — no approval in time, or the request failed." = "%@ — pas d’approbation à temps, ou la demande a échoué.";
@@ -8,6 +9,7 @@
 "%@ — the request was canceled or revoked." = "%@ — la demande a été annulée ou révoquée.";
 "%@ — the role is active." = "%@ — le rôle est actif.";
 "%lld of %lld activated" = "Activés : %1$lld sur %2$lld";
+"%lld of %lld deactivated" = "Désactivés : %1$lld sur %2$lld";
 "%lld pending" = "%lld en attente";
 ", %lld pending approval" = ", %lld en attente d’approbation";
 "A request for this role is already in progress." = "Une demande pour ce rôle est déjà en cours.";
@@ -68,3 +70,4 @@
 "Your organization requires you to sign in again (MFA)." = "Votre organisation vous demande de vous reconnecter (MFA).";
 "failed" = "échec";
 "next expiry in %@" = "prochaine expiration dans %@";
+"no end date" = "sans date de fin";

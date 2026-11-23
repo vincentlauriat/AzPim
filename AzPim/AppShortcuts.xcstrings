@@ -1,0 +1,57 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Activate a role with ${applicationName}" : {
+      "localizations" : {
+        "fr" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Activer un rôle avec ${applicationName}",
+              "Activer un rôle Azure avec ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Deactivate all roles in ${applicationName}" : {
+      "localizations" : {
+        "fr" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Désactiver tous les rôles dans ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "List active roles in ${applicationName}" : {
+      "localizations" : {
+        "fr" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Lister les rôles actifs dans ${applicationName}",
+              "Afficher mes rôles actifs dans ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Run a favorite with ${applicationName}" : {
+      "localizations" : {
+        "fr" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Lancer un favori avec ${applicationName}",
+              "Lancer un favori ${applicationName}"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

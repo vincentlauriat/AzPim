@@ -107,9 +107,12 @@ extension RoleStore {
     // MARK: - Favorites (T4.2)
 
     /// Activates every role of a favorite without a sheet. Returns the toast text. `answers`: what the grouped favorite
-    /// sheet asked (`favoriteNeeds`); without them a role that requires a ticket is not sent.
+    /// sheet asked (`favoriteNeeds`); without them a role that requires a ticket is not sent. `requireKnownPolicy`
+    /// (links, Shortcuts): the policy is never read here, and a role whose policy was never read is not sent. `only`:
+    /// the eligible role ids a confirmation listed as sent; any other role is not sent.
     @discardableResult
-    func run(_ favorite: Favorite, fromPanel: Bool = true, answers: FavoriteAnswers? = nil) async -> String {
+    func run(_ favorite: Favorite, fromPanel: Bool = true, answers: FavoriteAnswers? = nil,
+             requireKnownPolicy: Bool = false, only: Set<String>? = nil) async -> String {
         // Value copies: the model may be deleted while requests are in flight.
         let favoriteId = favorite.id, favoriteName = favorite.name, items = favorite.items
         guard !runningFavorites.contains(favoriteId) else { return String(localized: "\(favoriteName) is already running.") }
@@ -133,7 +136,15 @@ extension RoleStore {
                 results.append(.init(roleName: role.displayRoleName, status: waiting.status))
                 continue
             }
-            await ensurePolicy(for: role)
+            if !requireKnownPolicy { await ensurePolicy(for: role) }
+            // Links and Shortcuts send only what their confirmation showed: never on a policy's defaults, never a role
+            // whose policy was read only after it.
+            let refusal = requireKnownPolicy && role.policyFetchedAt == nil ? String(localized: "unreadable policy")
+                : only.map { $0.contains(role.id) } == false ? String(localized: "not confirmed") : nil
+            if let refusal {
+                results.append(.init(roleName: role.displayRoleName, status: nil, error: refusal))
+                continue
+            }
             switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification,
                                      answers: answers, tenantId: role.account?.tenantId ?? "") {
             case .failure(let failure):

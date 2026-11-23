@@ -5,10 +5,12 @@ App: AzPim/Localizable.xcstrings (String Catalog). Every key to translate needs 
 plural variants), the same placeholders as the key, and no `stale` extraction state.
 Core: Packages/AzPimCore/Sources/AzPimCore/Resources/{en,fr}.lproj (.strings / .stringsdict: SwiftPM 6.1 copies a
 String Catalog without compiling it). Every `L10n.string("...")` of the core sources needs a French entry.
+Siri / Shortcuts phrases: AzPim/AppShortcuts.xcstrings. One key per App Shortcut (its first English phrase), whose
+French entry lists every French phrase of that shortcut (`stringSet`); each phrase names `${applicationName}`.
 
 `--stringsdata DIR` (macOS job, after a Debug build with SWIFT_EMIT_LOC_STRINGS): also compares the app catalog with
 the strings the compiler extracted, so a string added in code but not in the catalog, or a catalog key no longer in
-code, fails too.
+code, fails too (phrases: the `AppShortcuts` table).
 """
 import argparse
 import json
@@ -19,6 +21,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP_CATALOG = ROOT / "AzPim/Localizable.xcstrings"
+SHORTCUTS_CATALOG = ROOT / "AzPim/AppShortcuts.xcstrings"
 CORE = ROOT / "Packages/AzPimCore/Sources/AzPimCore"
 CORE_RESOURCES = CORE / "Resources"
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?(?:lld|ld|d|@|lf|f)")
@@ -154,19 +157,43 @@ def check_core():
         errors.append(f"core: French entry no longer in the code: {key!r}")
 
 
-def check_extracted(catalog, directory):
-    extracted = set()
+def check_shortcuts_catalog():
+    catalog = json.loads(SHORTCUTS_CATALOG.read_text(encoding="utf-8"))
+    name = SHORTCUTS_CATALOG.name
+    if catalog.get("version") != "1.0":
+        errors.append(f"{name}: version {catalog.get('version')!r}, Xcode 16 expects '1.0'")
+    for key, entry in catalog["strings"].items():
+        if entry.get("extractionState") == "stale":
+            errors.append(f"{name}: stale phrase {key!r} (no longer in the code)")
+        if "${applicationName}" not in key:
+            errors.append(f"{name}: {key!r} does not name ${{applicationName}}")
+        french = entry.get("localizations", {}).get("fr", {}).get("stringSet", {})
+        if french.get("state") != "translated" or not french.get("values"):
+            errors.append(f"{name}: no French phrases for {key!r}")
+        for value in french.get("values", []):
+            if "${applicationName}" not in value:
+                errors.append(f"{name}: French phrase {value!r} does not name ${{applicationName}}")
+            if FRENCH_SPACE.search(value):
+                errors.append(f"{name}: ordinary space around French punctuation in {value!r} (use U+00A0)")
+    return catalog
+
+
+def check_extracted(catalogs, directory):
+    """`catalogs`: (table name, catalog path, catalog) to compare with the extracted keys of that table."""
+    extracted = {table: set() for table, _, _ in catalogs}
     files = list(pathlib.Path(directory).rglob("*.stringsdata"))
     if not files:
         errors.append(f"no .stringsdata under {directory}")
     for path in files:
         data = json.loads(path.read_text(encoding="utf-8"))
-        extracted |= {item["key"] for item in data.get("tables", {}).get("Localizable", [])}
-    keys = set(catalog["strings"])
-    for key in sorted(extracted - keys):
-        errors.append(f"{APP_CATALOG.name}: {key!r} is in the code but not in the catalog")
-    for key in sorted(keys - extracted):
-        errors.append(f"{APP_CATALOG.name}: {key!r} is no longer in the code")
+        for table in extracted:
+            extracted[table] |= {item["key"] for item in data.get("tables", {}).get(table, [])}
+    for table, path, catalog in catalogs:
+        keys = set(catalog["strings"])
+        for key in sorted(extracted[table] - keys):
+            errors.append(f"{path.name}: {key!r} is in the code but not in the catalog")
+        for key in sorted(keys - extracted[table]):
+            errors.append(f"{path.name}: {key!r} is no longer in the code")
 
 
 def main():
@@ -174,13 +201,16 @@ def main():
     parser.add_argument("--stringsdata", help="build folder holding the app's .stringsdata files")
     args = parser.parse_args()
     catalog = check_app_catalog()
+    shortcuts = check_shortcuts_catalog()
     check_core()
     if args.stringsdata:
-        check_extracted(catalog, args.stringsdata)
+        check_extracted([("Localizable", APP_CATALOG, catalog), ("AppShortcuts", SHORTCUTS_CATALOG, shortcuts)],
+                        args.stringsdata)
     if errors:
         print("\n".join(f"::error::{e}" for e in errors))
         sys.exit(1)
-    print(f"Localizations OK: {len(catalog['strings'])} app strings, French complete")
+    print(f"Localizations OK: {len(catalog['strings'])} app strings, {len(shortcuts['strings'])} shortcut phrases, "
+          "French complete")
 
 
 main()
