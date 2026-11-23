@@ -235,11 +235,12 @@ final class RoleStore {
     /// `fromPanel` false for deep links and notification actions: no `panelOpenedAt`, so the record stays out of
     /// the time-to-activation median. `refreshAfter` false when the caller refreshes once after a batch.
     /// `discardIfAlreadyActive` true for an attempt the caller will retry when Azure still reports the role as
-    /// active: that refusal is removed instead of staying in History as a failure.
+    /// active: that refusal is removed instead of staying in History as a failure. `remembersDuration` true only from
+    /// the Activation Sheet: its duration becomes the role's default (never Shortcuts, quick paths or favorites).
     @discardableResult
     func activate(_ role: EligibleRole, input: ActivationInput, viaFavorite: String? = nil, fromPanel: Bool = true,
                   action: ActivationAction = .activate, refreshAfter: Bool = true,
-                  discardIfAlreadyActive: Bool = false) async -> RequestStatus? {
+                  discardIfAlreadyActive: Bool = false, remembersDuration: Bool = false) async -> RequestStatus? {
         guard let account = role.account else { return nil }
         // One request per row: a second tap, a second sheet or a favorite during an Extend must not submit it twice.
         guard action == .extend || !extending.contains(role.id), inFlight.insert(role.id).inserted else {
@@ -270,7 +271,7 @@ final class RoleStore {
             // An empty justification (optional, quick activation) never replaces the one remembered for the sheet,
             // favorites and Extend.
             if !input.justification.isEmpty { role.lastJustification = input.justification }
-            if viaFavorite == nil, action == .activate { rememberDuration(input.duration, for: role) }   // sheet only
+            if remembersDuration { rememberDuration(input.duration, for: role) }   // the Activation Sheet only
             rememberTicket(input, for: role)   // the sheet and the grouped favorite sheet
             try? context.save()
             if refreshAfter { await refresh() }

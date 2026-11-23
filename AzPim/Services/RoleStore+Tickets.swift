@@ -93,6 +93,24 @@ extension RoleStore {
         return roles
     }
 
+    /// Panel chip and Favorites › Run now: runs the favorite at once, or returns its roles for the grouped sheet when a
+    /// role it can send needs a justification or a ticket. A role whose policy could not be read is never sent.
+    func startFavorite(_ favorite: Favorite, fromPanel: Bool) async -> FavoriteRunRequest? {
+        let roles = await favoriteRolesToSend(favorite)
+        if favoriteNeeds(roles.filter { $0.role.policyFetchedAt != nil }).any {
+            return FavoriteRunRequest(favorite: favorite, roles: roles)
+        }
+        await run(favorite, fromPanel: fromPanel, requireKnownPolicy: true)
+        return nil
+    }
+
+    /// Grouped favorite sheet: sends only the roles it lists as sent (read policy), with its answers.
+    func runFavorite(_ request: FavoriteRunRequest, answers: FavoriteAnswers, fromPanel: Bool) async -> FavoriteOutcome {
+        let listed = Set(request.roles.map(\.role).filter { $0.policyFetchedAt != nil }.map(\.id))
+        return await runFavorite(request.favorite, fromPanel: fromPanel, answers: answers, requireKnownPolicy: true,
+                                 only: listed)
+    }
+
     /// What the grouped favorite sheet must ask before `run` can send these roles (nothing: run it at once).
     func favoriteNeeds(_ roles: [(item: FavoriteItem, role: EligibleRole)]) -> FavoriteNeeds {
         FavoriteRun.needs(roles.map {

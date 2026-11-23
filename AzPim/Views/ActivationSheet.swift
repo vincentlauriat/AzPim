@@ -107,7 +107,7 @@ struct ActivationSheet: View {
                                     ticketNumber: role.requiresTicket ? ticket.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
                                     ticketSystem: role.requiresTicket ? ticketSystem.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
         // Accepted (any status): never sent twice from this sheet, which closes on the announced result.
-        guard let status = await store.activate(role, input: input, fromPanel: fromPanel) else { return }
+        guard let status = await store.activateFromSheet(role, input: input, fromPanel: fromPanel) else { return }
         await store.announceActivation(of: role, status: status, input: input)
         close()
     }

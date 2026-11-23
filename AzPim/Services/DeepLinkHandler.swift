@@ -45,6 +45,16 @@ enum DeepLinkHandler {
         guard let store = Self.store, !confirming else { return }
         confirming = true
         defer { confirming = false }
+        // After a cold launch by the link: the launch refresh first, so the lines leave out superseded accounts.
+        do {
+            try await store.intentReady()
+        } catch {
+            // Still loading after about a minute: nothing is asked or sent on unfiltered data.
+            NSApp.activate(ignoringOtherApps: true)
+            alert(String(localized: "Couldn't run the link."),
+                  info: (error as? RoleStore.IntentFailure)?.message ?? RoleStore.message(for: error))
+            return
+        }
         guard let favorite = store.favorite(named: name) else {
             NSApp.activate(ignoringOtherApps: true)
             // The name comes from the link: shown short and quoted, never as instructions. A dialog, not a
@@ -53,48 +63,24 @@ enum DeepLinkHandler {
             alert(String(localized: "No favorite named “\(shown)”."), info: String(localized: "Create it in AzPim › Favorites."))
             return
         }
-        NSApp.activate(ignoringOtherApps: true)
-        let confirm = NSAlert()
-        confirm.messageText = String(localized: "Activate “\(favorite.name)”?")
-        // Same policy as the run reads (fetched if never read), so the lines below match what is sent.
-        for role in favorite.items.compactMap({ store.favoriteRole(for: $0) }) {
-            await store.ensurePolicy(for: role)
+        // Everything the request will send: account, tenant, duration and justification of each role; the run sends
+        // only the roles listed as sent, on the policies the lines were built from.
+        let outcome = await store.linkRunFavorite(favorite) { text in
+            NSApp.activate(ignoringOtherApps: true)
+            let confirm = NSAlert()
+            confirm.messageText = String(localized: "Activate “\(favorite.name)”?")
+            confirm.informativeText = text
+            // Cancel is the default button: a Return typed for another app must not activate privileged roles.
+            let activate = confirm.addButton(withTitle: String(localized: "Activate"))
+            activate.keyEquivalent = ""
+            let cancel = confirm.addButton(withTitle: String(localized: "Cancel"))
+            cancel.keyEquivalent = "\r"
+            confirm.alertStyle = .warning
+            return confirm.runModal() == .alertFirstButtonReturn
         }
-        // Everything the request will send: account, tenant, duration and justification of each role.
-        let lines = favorite.items.compactMap { item -> String? in
-            guard let role = store.favoriteRole(for: item) else { return nil }
-            let account = role.account.map { String(localized: "\($0.upn) (tenant \($0.tenantName ?? $0.tenantId))") }
-                ?? String(localized: "unknown account")
-            let heading = "• \(role.displayRoleName) — \(role.displayScopeName)\n   "
-            // Same skip as the run: a request still waiting is not sent again.
-            if store.waitingRequest(for: role) != nil {
-                return heading + String(localized: "\(account): skipped (already requested, waiting)")
-            }
-            // Same skip as the run (`requireKnownPolicy`): never sent on a policy's defaults.
-            if role.policyFetchedAt == nil {
-                return heading + String(localized: "\(account): not sent (\(String(localized: "unreadable policy")))")
-            }
-            // Same computation as the run itself: what is shown is what will be sent (capped duration, fallback reason).
-            switch FavoriteRun.input(for: item, policy: role.policy, lastJustification: role.lastJustification) {
-            case .success(let input):
-                let duration = ISODuration.label(ISODuration.seconds(input.duration) ?? 0)
-                return heading + "\(account), \(duration), “\(input.justification)”"
-            case .failure(let failure):
-                return heading + String(localized: "\(account): not sent (\(failure.userMessage))")
-            }
-        }
-        confirm.informativeText = String(localized: "A link asked AzPim to activate:") + "\n" + lines.joined(separator: "\n")
-        // Cancel is the default button: a Return typed for another app must not activate privileged roles.
-        let activate = confirm.addButton(withTitle: String(localized: "Activate"))
-        activate.keyEquivalent = ""
-        let cancel = confirm.addButton(withTitle: String(localized: "Cancel"))
-        cancel.keyEquivalent = "\r"
-        confirm.alertStyle = .warning
-        guard confirm.runModal() == .alertFirstButtonReturn else { return }
-        // The policies the lines above were built from: never read again (nor sent on defaults) by the run.
+        guard let outcome else { return }
         // A full success is notified (or shown as the favorite's toast when notifications are off). Anything else
         // (a role failed, sign-in or consent needed, already running) is never silent: a dialog with the details.
-        let outcome = await store.runFavorite(favorite, fromPanel: false, requireKnownPolicy: true)
         if outcome.isFullSuccess {
             await store.announce(favorite: favorite.name, outcome)
         } else {

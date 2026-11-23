@@ -221,10 +221,10 @@ public struct PaletteSession: Sendable, Equatable {
         self.selectedId = selectedId
     }
 
-    /// Index of the selection in `ids`: the first row when nothing (or a row no longer listed) is selected.
+    /// Index of the selection in `ids`: nil when nothing is selected, or when the selected row is no longer listed
+    /// (a refresh never moves Return onto another role). The first ↓ then selects the first row.
     public func index(in ids: [String]) -> Int? {
-        guard !ids.isEmpty else { return nil }
-        return selectedId.flatMap { ids.firstIndex(of: $0) } ?? 0
+        selectedId.flatMap { ids.firstIndex(of: $0) }
     }
 
     public mutating func select(_ id: String?) {
@@ -240,9 +240,9 @@ public struct PaletteSession: Sendable, Equatable {
         select(QuickPalette.move(current, by: delta, count: ids.count).map { ids[$0] })
     }
 
-    /// A new search: the best match is selected.
-    public mutating func queryChanged(firstId: String?) {
-        selectedId = firstId
+    /// A new search: the best match is selected; an empty search selects nothing.
+    public mutating func queryChanged(_ query: String, firstId: String?) {
+        selectedId = query.isEmpty ? nil : firstId
         confirming = nil
         message = nil
     }

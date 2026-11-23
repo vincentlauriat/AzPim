@@ -19,8 +19,13 @@ struct ExtendTests {
         arm = sources[0]
         await arm.set(eligible: [eligibility], assignments: [Fixture.activation(eligibility, instance: "i1")])
         await harness.refresh()
-        // Extend reuses the last justification (none yet: the role was activated elsewhere).
-        harness.role(account, "e1")?.lastJustification = "Release"
+        // Extend reuses the justification of the request that made the activation (i1 started 1 h ago).
+        let record = ActivationRecord(account: account, eligibleRoleId: "\(account.id.uuidString)|e1", roleName: "Contributor",
+                                      scopeName: "Scope e1", source: .azureResource, action: .activate,
+                                      requestedDuration: "PT1H", justification: "Release")
+        record.status = .provisioned
+        record.sentAt = .now.addingTimeInterval(-3600)
+        harness.context.insert(record)
     }
 
     var roleId: String { "\(account.id.uuidString)|e1" }

@@ -171,8 +171,7 @@ struct PaletteSessionTests {
         var session = PaletteSession(selectedId: "e2")
         #expect(session.index(in: ids) == 1)
         #expect(session.index(in: ["a1", "e2"]) == 1)   // rows reordered: still e2
-        #expect(session.index(in: ["a1"]) == 0)        // gone: the first row
-        #expect(PaletteSession().index(in: ids) == 0)
+        #expect(session.index(in: ["a1"]) == nil)      // gone: no row (Return never acts on another role)
         #expect(PaletteSession().index(in: []) == nil)
         session.move(by: 1, in: ids)
         #expect(session.selectedId == "a1")
@@ -184,10 +183,25 @@ struct PaletteSessionTests {
         var session = PaletteSession(selectedId: "a1")
         session.ask("a1")
         session.message = "Extending…"
-        session.queryChanged(firstId: "e1")
+        session.queryChanged("own", firstId: "e1")
         #expect(session.confirming == nil)
         #expect(session.message == nil)
         #expect(session.selectedId == "e1")
+    }
+
+    /// An empty search with nothing chosen selects no row: Return does nothing, the first ↓ selects the first row.
+    @Test func anEmptySearchSelectsNothingUntilDown() {
+        var session = PaletteSession()
+        #expect(session.index(in: ids) == nil)
+        #expect(PaletteCommand.forKey(.returnKey, kind: session.index(in: ids).map { _ in .eligible }, queryEmpty: true,
+                                      escapeCloses: true) == .pass)
+        session.move(by: 1, in: ids)
+        #expect(session.selectedId == "e1")
+        // Typing then clearing the search drops the selection again.
+        session.queryChanged("own", firstId: "e2")
+        #expect(session.selectedId == "e2")
+        session.queryChanged("", firstId: "e1")
+        #expect(session.index(in: ids) == nil)
     }
 
     @Test func aSelectionChangeDropsTheQuestion() {

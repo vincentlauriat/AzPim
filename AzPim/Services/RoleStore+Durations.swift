@@ -39,6 +39,11 @@ extension RoleStore {
         ActivationDuration.iso(defaultDurationMinutes(for: role))
     }
 
+    /// Activation Sheet › Activate: the only request whose duration becomes the role's default.
+    func activateFromSheet(_ role: EligibleRole, input: ActivationInput, fromPanel: Bool) async -> RequestStatus? {
+        await activate(role, input: input, fromPanel: fromPanel, remembersDuration: true)
+    }
+
     func rememberDuration(_ duration: String, for role: EligibleRole) {
         guard let key = Self.durationKey(role), ISODuration.seconds(duration) != nil else { return }
         var all = durationMemory.load()

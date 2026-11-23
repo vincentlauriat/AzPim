@@ -180,7 +180,8 @@ public enum ExtendPlan: Equatable, Sendable {
         if now.timeIntervalSince(activeSince) < 300 {
             return .blocked(L10n.string("Azure refuses changes within 5 minutes of activation.", locale: locale))
         }
-        let justification = lastJustification ?? ""
+        // `lastJustification`: the one of the activation being extended. Sent only when the policy asks for one.
+        let justification = policy.requiresJustification ? lastJustification ?? "" : ""
         if policy.requiresJustification, Validation.justification(justification, required: true) != nil {
             return .blocked(L10n.string("No previous justification for this role: open the panel to activate it again.",
                                         locale: locale))

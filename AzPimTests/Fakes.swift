@@ -28,6 +28,8 @@ actor FakeSource: PIMSource {
     private(set) var inputs: [ActivationInput] = []
     private(set) var deactivateCount = 0
     private(set) var pendingCount = 0
+    /// `TokenInteraction.isBackground` of each policy read, in order (true: no sign-in window may open).
+    private(set) var policyReadsInBackground: [Bool] = []
 
     init(_ source: RoleSource) {
         self.source = source
@@ -71,7 +73,8 @@ actor FakeSource: PIMSource {
     }
 
     func policy(for eligibility: RemoteEligibility) async throws -> RolePolicy {
-        try policyResult.get()
+        policyReadsInBackground.append(TokenInteraction.isBackground)
+        return try policyResult.get()
     }
 
     func activate(_ eligibility: RemoteEligibility, principalId: String, input: ActivationInput) async throws -> RequestOutcome {

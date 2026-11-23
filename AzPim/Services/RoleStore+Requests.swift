@@ -10,33 +10,68 @@ extension RoleStore {
     /// ended and the role activated again with its last parameters. Returns the text of the follow-up notification,
     /// which always says whether the role is still held.
     func extend(eligibleRoleId: String) async -> String {
-        guard !extending.contains(eligibleRoleId) else { return String(localized: "An extension is already running for this role.") }
-        extending.insert(eligibleRoleId)
-        defer { extending.remove(eligibleRoleId) }
-        guard let role = eligibleRole(id: eligibleRoleId) else { return String(localized: "This role is no longer eligible.") }
-        guard let current = activeActivations().first(where: { $0.eligibleRole?.id == eligibleRoleId }) else {
-            return String(localized: "\(role.displayRoleName) is no longer active.")
+        await runExtend(eligibleRoleId: eligibleRoleId).text
+    }
+
+    /// Extend from the expiry notification: the follow-up body never carries an Azure error, only whether the role is
+    /// still held; the detail stays on the panel row (`rowErrors`).
+    func extendFromNotification(eligibleRoleId: String) async -> String {
+        let result = await runExtend(eligibleRoleId: eligibleRoleId)
+        return result.notification ?? result.text
+    }
+
+    /// `notification`: the generic text for the follow-up notification when `text` holds an error detail.
+    private func runExtend(eligibleRoleId: String) async -> (text: String, notification: String?) {
+        // A role of a superseded Azure CLI account (an older notification) is extended under the Microsoft sign-in.
+        guard let role = resolvedRole(id: eligibleRoleId) else { return (String(localized: "This role is no longer eligible."), nil) }
+        let roleId = role.id
+        guard !extending.contains(roleId) else { return (String(localized: "An extension is already running for this role."), nil) }
+        extending.insert(roleId)
+        defer { extending.remove(roleId) }
+        guard let current = activeActivations().first(where: { $0.eligibleRole?.id == roleId }) else {
+            return (String(localized: "\(role.displayRoleName) is no longer active."), nil)
         }
         // The active row stays busy too (`isBusy`), through the policy read, the deactivation and the waits between
         // attempts, even when a refresh replaces it meanwhile.
         let activeSince = current.startAt
-        let lastDuration = role.account?.records
-            .filter { $0.eligibleRoleId == eligibleRoleId && $0.action != .deactivate && $0.requestedDuration != nil }
-            .max { $0.sentAt < $1.sentAt }?.requestedDuration
-            // Records stay under the account that sent them: after the Microsoft sign-in superseded the Azure CLI
-            // account, the duration remembered for the role is used; else `ExtendPlan` falls back to 1 h.
-            ?? self.lastDuration(for: role)
+        // The justification and the duration of the request that made this activation, never an older one.
+        let records = activationRecords(of: role, since: activeSince)
+        let made = records.first { $0.status == .provisioned }
+        // Only a request Azure has not confirmed yet: nothing to reuse safely, and no other justification is sent.
+        if made == nil, records.contains(where: { $0.status == .sent }) {
+            let reason = String(localized: "This activation isn't confirmed yet.")
+            return (String(localized: "\(reason) The role is still active."), nil)
+        }
         // Never decide on a cached or default policy: ending the activation must be safe to undo.
         guard await refreshPolicy(for: role) else {
-            return String(localized: "Couldn't read the role's policy: not extended, the role is still active.")
+            return (String(localized: "Couldn't read the role's policy: not extended, the role is still active."), nil)
         }
-        switch ExtendPlan.decide(policy: role.policy, lastJustification: role.lastJustification, lastDuration: lastDuration,
-                                 activeSince: activeSince) {
+        // No such request (activated elsewhere): no justification; the duration remembered for the role, else 1 h.
+        switch ExtendPlan.decide(policy: role.policy, lastJustification: made?.justification,
+                                 lastDuration: made?.requestedDuration ?? lastDuration(for: role), activeSince: activeSince) {
         case .blocked(let reason):
-            return String(localized: "\(reason) The role is still active.")
+            return (String(localized: "\(reason) The role is still active."), nil)
         case .reactivate(let input):
             return await reactivate(role, input: input)
         }
+    }
+
+    /// The accepted or still unconfirmed activations and extensions of this role sent since the activation started
+    /// (5 minutes of clock skew allowed), latest first, under any account the role's account supersedes. Extend is
+    /// refused for approval roles, so an accepted request starts at about the time it was sent.
+    private func activationRecords(of role: EligibleRole, since activeSince: Date) -> [ActivationRecord] {
+        let supersession = supersession()
+        let provisioned = RequestStatus.provisioned.rawValue, sent = RequestStatus.sent.rawValue
+        let descriptor = FetchDescriptor<ActivationRecord>(predicate: #Predicate {
+            $0.statusRaw == provisioned || $0.statusRaw == sent
+        })
+        let earliest = activeSince.addingTimeInterval(-300)
+        return ((try? context.fetch(descriptor)) ?? [])
+            .filter {
+                ($0.action == .activate || $0.action == .extend) && $0.requestedDuration != nil && $0.sentAt >= earliest
+                    && supersession.resolve(eligibleRoleId: $0.eligibleRoleId, source: $0.source) == role.id
+            }
+            .sorted { $0.sentAt > $1.sentAt }
     }
 
     /// An active row is busy while its own request runs, or while its role is extended: keyed on the eligible role,
@@ -45,15 +80,16 @@ extension RoleStore {
         busy.contains(assignment.id) || assignment.eligibleRole.map { extending.contains($0.id) } == true
     }
 
-    private func reactivate(_ role: EligibleRole, input: ActivationInput) async -> String {
+    private func reactivate(_ role: EligibleRole, input: ActivationInput) async -> (text: String, notification: String?) {
         let roleId = role.id
         guard let current = activeActivations().first(where: { $0.eligibleRole?.id == roleId }) else {
-            return String(localized: "\(role.displayRoleName) is no longer active.")
+            return (String(localized: "\(role.displayRoleName) is no longer active."), nil)
         }
         let currentId = current.id
         guard await deactivate(current, refreshAfter: false) else {
             let detail = rowErrors[currentId] ?? String(localized: "deactivation failed")
-            return String(localized: "Couldn't extend: \(detail). The role is still active.")
+            return (String(localized: "Couldn't extend: \(detail). The role is still active."),
+                    String(localized: "Couldn't extend. The role is still active; the panel shows why."))
         }
         // Azure may still report the old activation for a few seconds after the deactivation. Refusals that are
         // retried leave no record: History shows one extension, plus the last refusal if every attempt failed.
@@ -69,14 +105,16 @@ extension RoleStore {
         switch status {
         case .provisioned?:
             let end = Date.now.addingTimeInterval(ISODuration.seconds(input.duration) ?? 0)
-            return String(localized: "Extended until \(end.appFormatted(date: .omitted, time: .shortened)).")
+            return (String(localized: "Extended until \(end.appFormatted(date: .omitted, time: .shortened))."), nil)
         case .pendingApproval?:
-            return String(localized: "Role deactivated; the new activation is waiting for approval.")
+            return (String(localized: "Role deactivated; the new activation is waiting for approval."), nil)
         case .sent?:
-            return String(localized: "Role deactivated; the new activation was sent but not confirmed yet. Check the panel in a moment.")
+            return (String(localized: "Role deactivated; the new activation was sent but not confirmed yet. Check the panel in a moment."),
+                    nil)
         default:
             let detail = rowErrors[roleId] ?? String(localized: "unknown error")
-            return String(localized: "Role deactivated; re-activation failed: \(detail). Activate it from the panel.")
+            return (String(localized: "Role deactivated; re-activation failed: \(detail). Activate it from the panel."),
+                    String(localized: "Role deactivated; re-activation failed. Activate it from the panel, which shows why."))
         }
     }
 

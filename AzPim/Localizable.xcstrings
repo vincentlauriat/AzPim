@@ -1593,6 +1593,16 @@
         }
       }
     },
+    "Couldn't extend. The role is still active; the panel shows why." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolongation impossible. Le rôle est toujours actif ; le panneau indique pourquoi."
+          }
+        }
+      }
+    },
     "Couldn't extend: %@. The role is still active." : {
       "localizations" : {
         "fr" : {
@@ -1639,6 +1649,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossible de lire la stratégie du rôle : rien n’a été envoyé. Réessayez dans un instant."
+          }
+        }
+      }
+    },
+    "Couldn't run the link." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’exécuter le lien."
           }
         }
       }
@@ -2952,6 +2972,16 @@
         }
       }
     },
+    "Not sent: unreadable policy" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non envoyé : stratégie illisible"
+          }
+        }
+      }
+    },
     "Not set: every active role. An empty list deactivates nothing." : {
       "localizations" : {
         "fr" : {
@@ -3492,6 +3522,16 @@
         }
       }
     },
+    "Role deactivated; re-activation failed. Activate it from the panel, which shows why." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rôle désactivé ; échec de la réactivation. Activez-le depuis le panneau, qui indique pourquoi."
+          }
+        }
+      }
+    },
     "Role deactivated; re-activation failed: %@. Activate it from the panel." : {
       "localizations" : {
         "fr" : {
@@ -3860,6 +3900,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cette activation n’a pas d’éligibilité à prolonger."
+          }
+        }
+      }
+    },
+    "This activation isn't confirmed yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette activation n’est pas encore confirmée."
           }
         }
       }

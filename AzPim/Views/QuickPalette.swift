@@ -78,7 +78,7 @@ struct QuickPaletteView: View {
     var body: some View {
         Group {
             if let role = sheetRole {
-                ActivationSheet(role: role, close: close)
+                ActivationSheet(role: role, fromPanel: false, close: close)
             } else {
                 // Built once per body: the store clock ticks every second near an expiry.
                 let model = makeModel()
@@ -130,7 +130,7 @@ struct QuickPaletteView: View {
                 .padding(.horizontal, 16)
                 .frame(height: 34)
         }
-        .onChange(of: query) { session.queryChanged(firstId: makeRows(makeModel()).first?.id) }
+        .onChange(of: query) { session.queryChanged(query, firstId: makeRows(makeModel()).first?.id) }
         .announcesChanges(session.message)
         .onAppear {
             searchFocused = true
@@ -205,7 +205,7 @@ struct QuickPaletteView: View {
     private func activate(_ role: EligibleRole) {
         session.message = String(localized: "Activating \(role.displayRoleName)…")
         Task {
-            switch await store.quickActivate(role) {
+            switch await store.quickActivate(role, fromPanel: false) {
             case .needsSheet: sheetRole = role
             case .sent(_?): close()
             case .sent(nil): session.message = store.rowErrors[role.id] ?? String(localized: "Activation failed.")
@@ -315,7 +315,7 @@ final class QuickPalettePanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
-/// Opens and closes the palette. Each open builds a fresh view (empty search, first row selected).
+/// Opens and closes the palette. Each open builds a fresh view (empty search, no row selected until ↓).
 @MainActor
 final class QuickPaletteController: NSObject, NSWindowDelegate {
     private let container: ModelContainer

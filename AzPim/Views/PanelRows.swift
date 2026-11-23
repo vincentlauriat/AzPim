@@ -351,12 +351,7 @@ extension FavoriteChips {
     /// Reads the roles once: runs at once, or hands them to the grouped sheet.
     private func start(_ favorite: Favorite) async {
         guard checking.insert(favorite.id).inserted else { return }
-        let roles = await store.favoriteRolesToSend(favorite)
-        checking.remove(favorite.id)
-        if store.favoriteNeeds(roles).any {
-            ask(FavoriteRunRequest(favorite: favorite, roles: roles))
-        } else {
-            await store.run(favorite)
-        }
+        defer { checking.remove(favorite.id) }
+        if let request = await store.startFavorite(favorite, fromPanel: true) { ask(request) }
     }
 }
