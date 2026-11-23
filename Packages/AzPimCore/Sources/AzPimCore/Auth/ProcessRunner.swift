@@ -1,5 +1,7 @@
 import Foundation
 
+#if os(macOS) // Process (Azure CLI) is macOS-only.
+
 public struct ProcessOutput: Sendable, Equatable {
     public let status: Int32
     public let stdout: String
@@ -104,3 +106,4 @@ public struct ProcessRunner: ProcessRunning {
         }
     }
 }
+#endif

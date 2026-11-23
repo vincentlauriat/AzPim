@@ -24,3 +24,14 @@ struct JWTClaimsTests {
         #expect(JWTClaims(token: "a.%%%.c") == nil)
     }
 }
+
+/// Unsigned JWT with the given claims (header alg none), for parsing tests.
+func fakeJWT(_ claims: [String: Any]) -> String {
+    func b64(_ data: Data) -> String {
+        data.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+    let header = b64(Data(#"{"alg":"none"}"#.utf8))
+    let body = b64((try? JSONSerialization.data(withJSONObject: claims)) ?? Data())
+    return "\(header).\(body).sig"
+}

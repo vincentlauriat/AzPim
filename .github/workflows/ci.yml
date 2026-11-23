@@ -71,6 +71,13 @@ jobs:
       - name: Core tests
         run: swift test --parallel --package-path Packages/AzPimCore
 
+      # The core also targets iOS (AzPim 2.0 for iPhone): the library and its tests must compile for it.
+      - name: Core builds for iOS
+        working-directory: Packages/AzPimCore
+        run: |
+          xcodebuild -scheme AzPimCore -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ../../build/DD-iOS CODE_SIGNING_ALLOWED=NO build-for-testing
+
       - name: Generate project
         run: xcodegen generate
 

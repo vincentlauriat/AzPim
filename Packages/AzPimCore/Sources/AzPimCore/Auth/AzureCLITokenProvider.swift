@@ -1,5 +1,7 @@
 import Foundation
 
+#if os(macOS) // Process (Azure CLI) is macOS-only.
+
 /// Token provider backed by the user's Azure CLI session (`az login`). Azure resource roles only:
 /// the CLI's Graph token cannot carry PIM directory scopes (AADSTS65002, verified 2026-11-03).
 public actor AzureCLITokenProvider: TokenProvider {
@@ -163,3 +165,4 @@ public actor AzureCLITokenProvider: TokenProvider {
 struct UncheckedFileManager: @unchecked Sendable {
     let value: FileManager
 }
+#endif
