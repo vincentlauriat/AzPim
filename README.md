@@ -152,8 +152,8 @@ ticket and maximum duration.
   Microsoft's MSAL library.
 - **Local data** (roles, policies, history, favorites) sits in `~/Library/Application Support/AzPim/`, a folder
   only your user can read. *Settings › Accounts › Privacy › Delete All Local Data* removes Microsoft sign-ins from
-  MSAL's Keychain cache, forgets Azure CLI accounts (your `az` session is not touched) and deletes the folder's
-  content (details in [Persistence](#6-persistence)).
+  MSAL's Keychain cache, forgets Azure CLI accounts (your `az` session is not touched) and deletes every account,
+  role, favorite and history row from the local store (details in [Persistence](#6-persistence)).
 - **Small preferences** (remembered durations, ticket system per tenant, recent ticket numbers kept 8 h) are in the
   app's preferences file, `~/Library/Preferences/fr.vincentlauriat.azpim.plist`.
 - **`az` is run safely:** explicit arguments, no shell, a minimal environment; a custom path must be owned by you or
@@ -278,7 +278,7 @@ sequenceDiagram
     H->>T: token again with the claims (MSAL step-up, or the az login command)
     H->>MS: same request once more
   end
-  MS-->>H: request with status
+  MS-->>H: response with status
   H-->>P: JSON
   P-->>R: RequestOutcome (requestId, status)
   R->>R: record status / remoteRequestId, remember justification, duration, ticket
@@ -397,7 +397,8 @@ count:
 
 - **401 with a `claims="…"` value in `WWW-Authenticate`.** ARM sends the claims base64-encoded and they are
   decoded; Graph may send JSON as is.
-- **Graph 400 whose error message ends with `&claims=<url-encoded JSON>`** (`RoleAssignmentRequestAcrsValidationFailed`).
+- **Graph 400 whose error message contains `claims=<url-encoded JSON>`** (`RoleAssignmentRequestAcrsValidationFailed`),
+  where the decoded JSON names an `access_token` challenge.
   This happens with an Entra role whose policy requires an authentication context. The message may be nested as a
   JSON string inside `error.message`. The request was rejected, so stepping up and sending it again is safe.
 
@@ -505,7 +506,7 @@ every refresh. The Activation Sheet, quick activation, links and Shortcuts read 
 | Condition | Error | Shown as (`ErrorKind`) |
 |---|---|---|
 | HTTP 429 | `PIMError.throttled(retryAfter:)` | `.throttled`: "Microsoft is throttling requests — try again in …" |
-| 403 containing `PermissionScopeNotGranted` or `AADSTS65001`, or a nested Graph `errorCode: PermissionScopeNotGranted` | `TokenError.consentRequired` | the account becomes `.consentRequired`; the admin-consent helper |
+| a nested Graph `errorCode: PermissionScopeNotGranted` (any status), or a 403 containing `PermissionScopeNotGranted` or `AADSTS65001` | `TokenError.consentRequired` | the account becomes `.consentRequired`; the admin-consent helper |
 | other 403 | `PIMError.http(403, …)` | `.forbidden(message)`, Microsoft's text |
 | other HTTP errors | `PIMError.http(status, code, message)` (Graph's JSON-in-`message` unwrapped) | `.other(message)` |
 | `URLError.timedOut` | | `.timedOut` (one account, not "Offline") |
@@ -604,8 +605,8 @@ Sparkle keeps its own `SU*` keys in the same domain.
   session is not touched.
 - It deletes every `Account`, `Favorite`, `ActivationRecord`, `EligibleRole`, `ActiveAssignment` and `AppSettings`
   row, then seeds fresh settings, so onboarding shows again.
-- It prunes the remembered durations, ticket systems and ticket numbers (`pruneDurations`, `pruneTickets`). With no
-  role left, they are emptied.
+- The Settings view then calls `store.pruneDurations()` (which runs `pruneTickets()` first), even if the deletion
+  threw. With no role left, the remembered durations, ticket systems and ticket numbers are emptied.
 
 The store file itself stays, now empty. The panel layout keys, the link setting and the shortcut stay in
 UserDefaults. Nothing in Azure changes.
@@ -614,8 +615,9 @@ UserDefaults. Nothing in Azure changes.
 
 **The refresh loop.** `RoleStore.start()` starts it at launch, independent of any view.
 
-- **When it runs.** It refreshes at once, then every `refreshIntervalMinutes`, always in background mode
-  (`TokenInteraction.$isBackground`), so a token that needs the user becomes a banner, never a window. A new
+- **When it runs.** It refreshes at once, then every `refreshIntervalMinutes`. Timer refreshes run in background mode
+  (`TokenInteraction.$isBackground`), so a token that needs the user becomes a banner, never a window; a refresh the
+  user asked for (⌘R, Sign in) may open one, even when it was queued behind a timer refresh. A new
   interval in Settings applies at once, counted from the last refresh.
 - **On panel open.** Opening the panel refreshes when the data is more than 60 s old (`refreshIfStale`).
 - **Queued requests.** A refresh asked while one runs is not dropped: it runs once more right after, so an action's
@@ -645,7 +647,8 @@ relying on it.
 
 **Expiry notifications.** `NotificationScheduler.reschedule` plans them:
 
-- **One per live activation**, with id `expiry-<eligible role id>`, fired `notificationLeadMinutes` before `endAt`.
+- **One per live activation**, with id `expiry-<eligible role id>` (the assignment id when no eligible role
+  matches; that notification has no Extend button), fired `notificationLeadMinutes` before `endAt`.
   It fires at once if the activation is already inside that window, and only once (`notifiedAt` records the planned
   date).
 - **Category `EXPIRY`**, with an **Extend** action marked `authenticationRequired` (it changes privileges, so the
