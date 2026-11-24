@@ -179,6 +179,7 @@ targets:
     dependencies:
       - package: AzPimCore
       - package: MSAL
+      - target: AzPimWidgets
     settings:
       base:
         PRODUCT_NAME: AzPim
@@ -224,3 +225,27 @@ targets:
               - msauth.fr.vincentlauriat.azpim.ios
         # Microsoft Authenticator / Company Portal broker (MSAL 2.x).
         LSApplicationQueriesSchemes: [msauthv2, msauthv3]
+
+  AzPimWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: AzPimWidgets
+        excludes: ["**/*.entitlements"]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fr.vincentlauriat.azpim.ios.widgets
+        SWIFT_VERSION: "6.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        MARKETING_VERSION: "2.0"
+        CURRENT_PROJECT_VERSION: "1"
+    info:
+      path: AzPimWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: AzPim
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
