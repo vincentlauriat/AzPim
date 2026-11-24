@@ -920,13 +920,21 @@ are behind `#if os(macOS)`; macOS-only files (hot key, deep links, Sparkle, menu
 Sign-in is MSAL only, through Microsoft Authenticator when installed (redirect URI
 `msauth.fr.vincentlauriat.azpim.ios://auth`, keychain group `com.microsoft.adalcache`). A Conditional Access "app
 protection policy" answer is shown as a clear message (no Intune SDK). Both apps share `AzPim/Localizable.xcstrings`.
+The layout adapts to the window: below 600 pt (iPhone, iPhone Duo folded) the panel (active roles, favorites,
+eligible roles, role detail pushed on top); from 600 pt, safe areas included, or in a regular size class (iPhone Duo
+unfolded, a Max in landscape) two panes, the filtered roles list (`RoleRows`, shared with the Mac Roles Window) next
+to the selected role's detail. The panes are laid out by hand: `NavigationSplitView` overlays its sidebar while the
+UIKit trait is still compact at that width. The selection, open sheets and filters live in `MobileNavigation`, above
+the layout switch, so a fold, an unfold or a rotation keeps them.
 Demo mode (Debug only) runs the app on the snapshot fixtures without a tenant:
 
 ```bash
 xcodebuild -project AzPim.xcodeproj -scheme AzPimMobile -configuration Debug \
   -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DD-ios build
 xcrun simctl install booted build/DD-ios/Build/Products/Debug-iphonesimulator/AzPim.app
-SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim.ios   # or eligible, activate, settings, onboarding
+SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim.ios
+# screens: roles, eligible, activate, settings, history, detail, onboarding, fold (sheet open, turns to landscape
+# after 4 s); SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
 ```
 
 **Release pipeline.** `Scripts/release.sh <version>`, in order:
@@ -1031,7 +1039,7 @@ fixed by the next build.
 - [ ] Step 5 — quality: error states, accessibility, performance, security reviews (in progress)
 - [x] Step 6 — signed and notarized DMG, automatic updates (Sparkle): 1.0 shipped (build 7); 0.9.4 was the first AzPim build
 - [ ] Later — Mac App Store version
-- [ ] 2.0 — AzPim for iPhone: iOS target and Microsoft sign-in done (simulator); adaptive layout, Live Activity and
+- [ ] 2.0 — AzPim for iPhone: iOS target and Microsoft sign-in, adaptive layout (simulator) done; Live Activity and
   widgets, App Store next
 
 ## License
