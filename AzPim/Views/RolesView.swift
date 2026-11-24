@@ -11,22 +11,8 @@ struct RolesView: View {
     @State private var search = ""
     @State private var source: RoleSource?
     @State private var accountId: UUID?
-    @State private var state: StateFilter = .all
+    @State private var state: RoleStateFilter = .all
     @State private var selection: RoleRow.ID?
-
-    enum StateFilter: String, CaseIterable, Identifiable {
-        case all = "All", eligible = "Eligible", active = "Active", permanent = "Permanent"
-        var id: String { rawValue }
-
-        var title: String {
-            switch self {
-            case .all: String(localized: "All")
-            case .eligible: String(localized: "Eligible")
-            case .active: String(localized: "Active")
-            case .permanent: String(localized: "Permanent")
-            }
-        }
-    }
 
     /// Accounts in use: an Azure CLI account replaced by a Microsoft sign-in of the same identity is left out.
     private var activeAccounts: [Account] {
@@ -47,28 +33,9 @@ struct RolesView: View {
     }
 
     private var rows: [RoleRow] {
-        let live = liveAssignments
-        let permanentKeys = Set(live.filter { $0.assignmentType == .assigned }.map(\.facts.key))
-        var list = activeRoles.map { role in
-            RoleRow(role: role, assignment: live.first { $0.eligibleRole?.id == role.id && $0.assignmentType == .activated },
-                    heldPermanently: permanentKeys.contains(role.heldKey))
-        }
-        // One row per permanent role. One also held as an activation is shown by that activation's eligible row
-        // ("also permanent"), when that row is listed; otherwise it keeps its own permanent row.
-        let byId = Dictionary(live.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let listed = Set(activeRoles.map(\.id))
-        list += RoleMerge.merge(live.map(\.facts)).compactMap { group -> ActiveAssignment? in
-            guard group.type == .activated else { return byId[group.primaryId] }
-            guard group.alsoPermanent else { return nil }
-            if let role = byId[group.primaryId]?.eligibleRole, listed.contains(role.id) { return nil }
-            return group.memberIds.compactMap { byId[$0] }.first { $0.assignmentType == .assigned }
-        }.map { RoleRow(permanent: $0) }
-        return list.filter { row in
-            (source == nil || row.source == source)
-                && (accountId == nil || row.account?.id == accountId)
-                && state.matches(row)
-                && (search.isEmpty || row.searchText.localizedCaseInsensitiveContains(search))
-        }
+        RoleRows.filter(RoleRows.make(roles: roles, assignments: assignments, supersession: store.supersession(accounts),
+                                      now: store.now),
+                        source: source, accountId: accountId, state: state, search: search)
     }
 
     var body: some View {
@@ -168,7 +135,7 @@ struct RolesView: View {
                 Text("PIM groups").tag(RoleSource?.some(.pimGroup))
             }
             Picker("State", selection: $state) {
-                ForEach(StateFilter.allCases) { Text($0.title).tag($0) }
+                ForEach(RoleStateFilter.allCases) { Text($0.title).tag($0) }
             }
             if activeAccounts.count > 1 {
                 Picker("Account", selection: $accountId) {
@@ -182,51 +149,6 @@ struct RolesView: View {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
             .disabled(store.isRefreshing)
-        }
-    }
-}
-
-/// One line of the Roles table: an eligible role (maybe active) or a permanent assignment.
-struct RoleRow: Identifiable {
-    let id: String
-    let role: EligibleRole?
-    let assignment: ActiveAssignment?
-    /// An eligible role also assigned permanently: it is held even without an activation.
-    let heldPermanently: Bool
-
-    init(role: EligibleRole, assignment: ActiveAssignment?, heldPermanently: Bool = false) {
-        id = role.id
-        self.role = role
-        self.assignment = assignment
-        self.heldPermanently = heldPermanently
-    }
-
-    init(permanent: ActiveAssignment) {
-        id = permanent.id
-        role = nil
-        assignment = permanent
-        heldPermanently = true
-    }
-
-    var source: RoleSource { role?.source ?? assignment?.source ?? .azureResource }
-    var roleName: String { role?.roleName ?? assignment?.roleName ?? "" }
-    var scopeName: String { role?.scopeName ?? assignment?.scopeName ?? "" }
-    var scope: String { role?.scope ?? assignment?.scope ?? "" }
-    var account: Account? { role?.account ?? assignment?.account }
-    var isPermanent: Bool { role == nil }
-    var displayRoleName: String { DisplayName.role(roleName, source: source) }
-    var displayScopeName: String { DisplayName.scope(scopeName, source: source) }
-    /// Raw and displayed names, so « Owner » and « Propriétaire » both match.
-    var searchText: String { "\(roleName) \(scopeName) \(displayRoleName) \(displayScopeName) \(account?.upn ?? "")" }
-}
-
-extension RolesView.StateFilter {
-    func matches(_ row: RoleRow) -> Bool {
-        switch self {
-        case .all: true
-        case .eligible: !row.isPermanent && row.assignment == nil && !row.heldPermanently
-        case .active: !row.isPermanent && (row.assignment != nil || row.heldPermanently)
-        case .permanent: row.isPermanent
         }
     }
 }
