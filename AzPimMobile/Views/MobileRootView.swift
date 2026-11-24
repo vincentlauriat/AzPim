@@ -23,7 +23,7 @@ struct MobileRootView: View {
             Group {
                 if accountList.isEmpty {
                     MobileOnboardingView()
-                } else if MobileLayout.isRegular(sizeClass: sizeClass, width: geometry.size.width) {
+                } else if MobileLayout.isRegular(sizeClass: sizeClass, width: MobileLayout.windowWidth(geometry)) {
                     // The split view collapses to one column in a compact size class: wide enough is regular.
                     RolesSplitView().environment(\.horizontalSizeClass, .regular)
                 } else {

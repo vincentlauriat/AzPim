@@ -10,7 +10,6 @@ struct RolesSplitView: View {
     @Query(sort: \Account.sortOrder) private var accounts: [Account]
     @Query(sort: \EligibleRole.roleName) private var roles: [EligibleRole]
     @Query(sort: \ActiveAssignment.roleName) private var assignments: [ActiveAssignment]
-
     /// Accounts in use: an Azure CLI account replaced by a Microsoft sign-in of the same identity is left out.
     private var activeAccounts: [Account] {
         let supersession = store.supersession(accounts)
@@ -22,34 +21,49 @@ struct RolesSplitView: View {
         let all = RoleRows.make(roles: roles, assignments: assignments, supersession: store.supersession(accounts), now: store.now)
         let rows = RoleRows.filter(all, source: navigation.source, accountId: navigation.accountId, state: navigation.state,
                                    search: navigation.search)
-        NavigationSplitView {
-            List(selection: $navigation.selection) {
-                StatusSection(accounts: activeAccounts)
-                Section {
-                    ForEach(rows) { row in RoleListRow(row: row).tag(row.id) }
-                } header: {
-                    Text("Roles")
-                } footer: {
-                    if rows.isEmpty { Text(all.isEmpty ? "No eligible role" : "No match") }
+        // Two panes side by side, not `NavigationSplitView`: at about 670 pt the window's UIKit trait stays compact
+        // and the split view shows the list as an overlay over a dimmed detail, whatever the column width.
+        GeometryReader { geometry in
+            HStack(spacing: 0) {
+                NavigationStack {
+                    List(selection: $navigation.selection) {
+                        StatusSection(accounts: activeAccounts)
+                        Section {
+                            ForEach(rows) { row in RoleListRow(row: row).tag(row.id) }
+                        } header: {
+                            Text("Roles")
+                        } footer: {
+                            if rows.isEmpty { Text(all.isEmpty ? "No eligible role" : "No match") }
+                        }
+                    }
+                    .listStyle(.insetGrouped)
+                    .searchable(text: $navigation.search, placement: .navigationBarDrawer(displayMode: .always),
+                                prompt: "Search roles and scopes")
+                    .refreshable { await store.refresh() }
+                    .navigationTitle("AzPim")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        MobileToolbar()
+                        ToolbarItem(placement: .topBarTrailing) { filterMenu }
+                    }
                 }
-            }
-            .listStyle(.insetGrouped)
-            .searchable(text: $navigation.search, placement: .sidebar, prompt: "Search roles and scopes")
-            .refreshable { await store.refresh() }
-            .navigationTitle("AzPim")
-            .toolbar {
-                MobileToolbar()
-                ToolbarItem(placement: .topBarTrailing) { filterMenu }
-            }
-        } detail: {
-            NavigationStack {
-                if let id = navigation.selection, all.contains(where: { $0.id == id }) {
-                    RoleDetailScreen(rowId: id)
-                } else {
-                    ContentUnavailableView("Select a role", systemImage: "key.horizontal")
+                .frame(width: Self.listWidth(geometry.size.width))
+                Divider().ignoresSafeArea()
+                NavigationStack {
+                    if let id = navigation.selection, all.contains(where: { $0.id == id }) {
+                        RoleDetailScreen(rowId: id)
+                    } else {
+                        ContentUnavailableView("Select a role", systemImage: "key.horizontal")
+                    }
                 }
+                .frame(maxWidth: .infinity)
             }
         }
+    }
+
+    /// The roles list's width: about 40 % of the space, between 260 and 360 pt.
+    static func listWidth(_ total: CGFloat) -> CGFloat {
+        min(max(total * 0.4, 260), 360)
     }
 
     /// Source, state and account pickers in one menu; its label says which filters are on.

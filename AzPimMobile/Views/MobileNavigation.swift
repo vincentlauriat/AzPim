@@ -52,4 +52,10 @@ enum MobileLayout {
     static func isRegular(sizeClass: UserInterfaceSizeClass?, width: CGFloat) -> Bool {
         sizeClass == .regular || width >= splitMinWidth
     }
+
+    /// The window's width: the geometry's width plus the side safe areas (about 59 pt each in landscape), which the
+    /// geometry leaves out. Without them a 678 pt landscape window measures about 560 pt and stays compact.
+    static func windowWidth(_ geometry: GeometryProxy) -> CGFloat {
+        geometry.size.width + geometry.safeAreaInsets.leading + geometry.safeAreaInsets.trailing
+    }
 }

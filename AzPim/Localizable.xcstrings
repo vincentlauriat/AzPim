@@ -368,6 +368,46 @@
         }
       }
     },
+    "%lld pending approval" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld pending approval"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld pending approval"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld en attente d’approbation"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld en attente d’approbation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld roles" : {
       "localizations" : {
         "en" : {
@@ -1969,6 +2009,16 @@
         }
       }
     },
+    "Details" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Détails"
+          }
+        }
+      }
+    },
     "Direct" : {
       "localizations" : {
         "fr" : {
@@ -2280,6 +2330,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Favoris"
+          }
+        }
+      }
+    },
+    "Filters" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtres"
           }
         }
       }
@@ -2972,6 +3032,16 @@
         }
       }
     },
+    "No match" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun résultat"
+          }
+        }
+      }
+    },
     "No request yet" : {
       "localizations" : {
         "fr" : {
@@ -3112,6 +3182,16 @@
         }
       }
     },
+    "Off" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivés"
+          }
+        }
+      }
+    },
     "Offline" : {
       "localizations" : {
         "fr" : {
@@ -3128,6 +3208,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hors ligne · données datant de %@"
+          }
+        }
+      }
+    },
+    "On" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activés"
           }
         }
       }
