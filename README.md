@@ -926,6 +926,15 @@ unfolded, any iPhone in landscape) two panes, the filtered roles list (`RoleRows
 to the selected role's detail. The panes are laid out by hand: `NavigationSplitView` overlays its sidebar while the
 UIKit trait is still compact at that width. The selection, open sheets and filters live in `MobileNavigation`, above
 the layout switch, so a fold, an unfold or a rotation keeps them.
+**Live Activity.** The activated role that ends first stays on the Lock Screen and in the Dynamic Island (compact,
+minimal, expanded) with a countdown (`Text(timerInterval:)`, it ticks without updates; `staleDate` is the end) and an
+Extend button. The widget extension `AzPimWidgets` only draws it: it holds no store, token or network code, and no App
+Group. `LiveActivityController` starts, updates or ends the one activity after every refresh (activation, Extend,
+deactivation, expiry) and when the app comes to the foreground; the decision (`LiveActivityPlan`) is platform-neutral
+and tested on Mac. There is no push server, so an activity only *starts* while AzPim is in the foreground: a role
+activated on another device appears when the app is next opened. Extend is a `LiveActivityIntent` that runs in the
+app's process (unlocked device required) and calls the store's Extend, never an interactive sign-in; its result is
+posted as a notification. Settings › Live Activity turns it off.
 Demo mode (Debug only) runs the app on the snapshot fixtures without a tenant:
 
 ```bash
@@ -934,7 +943,8 @@ xcodebuild -project AzPim.xcodeproj -scheme AzPimMobile -configuration Debug \
 xcrun simctl install booted build/DD-ios/Build/Products/Debug-iphonesimulator/AzPim.app
 SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim.ios
 # screens: roles, eligible, activate, settings, history, detail, onboarding, fold (sheet open, turns to landscape
-# after 4 s); SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
+# after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island);
+# SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
 ```
 
 **Release pipeline.** `Scripts/release.sh <version>`, in order:
