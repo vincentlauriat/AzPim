@@ -150,6 +150,7 @@ struct ActiveRoleCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Text(assignment.displayScopeName).font(.caption).foregroundStyle(.secondary)
                     .lineLimit(1).truncationMode(.middle)
+                if alsoPermanent { Text("also permanent").font(.caption2).foregroundStyle(.secondary) }
             }
             Spacer(minLength: 0)
             status
@@ -192,7 +193,6 @@ struct ActiveRoleCard: View {
         } else {
             Text("Permanent").font(.subheadline.weight(.medium)).foregroundStyle(Theme.slate)
         }
-        if alsoPermanent { Text("also permanent").font(.caption2).foregroundStyle(.secondary) }
     }
 }
 
