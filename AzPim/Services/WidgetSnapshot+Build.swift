@@ -12,10 +12,10 @@ extension RoleStore {
         let supersession = supersession(accountList)
         let model = PanelModel(accounts: accountList.filter { !supersession.isRetired($0.id) }, assignments: assignments,
                                supersession: supersession, now: now)
-        let roles = (model.activations + model.permanents).map { row in
+        let roles = (model.activations + model.permanents).enumerated().map { index, row in
             let assignment = row.assignment
             let timed = assignment.assignmentType == .activated
-            return WidgetSnapshot.Role(id: assignment.id, name: assignment.displayRoleName,
+            return WidgetSnapshot.Role(id: String(index), name: assignment.displayRoleName,
                                        scope: assignment.displayScopeName, symbol: SourceIcon.name(assignment.source),
                                        startAt: timed ? assignment.startAt : nil, endAt: timed ? assignment.endAt : nil)
         }

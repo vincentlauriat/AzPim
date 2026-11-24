@@ -175,6 +175,8 @@ targets:
       - path: AzPim/Localizable.xcstrings
       # Live Activity attributes and its Extend intent: compiled by the app and the widget extension (2.0 step 4a).
       - path: Shared/LiveActivity
+      # Widget views: drawn by the extension, rendered by the Debug widget gallery (2.0 step 4b).
+      - path: Shared/Widgets
     configFiles:
       Debug: Config/AzPim.xcconfig
       Release: Config/AzPim.xcconfig
@@ -225,12 +227,15 @@ targets:
             CFBundleURLSchemes:
               # MSAL redirect URI msauth.<bundle id>://auth (to register in Entra) and broker responses.
               - msauth.fr.vincentlauriat.azpim.ios
+              # Widget links: azpim://favorite?id=<uuid> opens the favorite's confirmation (2.0 step 4b).
+              - azpim
         # Microsoft Authenticator / Company Portal broker (MSAL 2.x).
         LSApplicationQueriesSchemes: [msauthv2, msauthv3]
         # Live Activity of the role that ends first (2.0 step 4a), started from the foreground app only.
         NSSupportsLiveActivities: true
 
-  # Widget extension: draws the Live Activity (2.0 step 4a). No AzPimCore, no MSAL, no network, no shared storage.
+  # Widget extension: draws the Live Activity (2.0 step 4a) and the widgets (4b). No AzPimCore, no MSAL, no network;
+  # it only reads the widget snapshot the app writes to the App Group.
   AzPimWidgets:
     type: app-extension
     platform: iOS
@@ -239,6 +244,8 @@ targets:
       - path: AzPimWidgets
         excludes: ["**/*.entitlements", "Info.plist"]
       - path: Shared/LiveActivity
+      - path: Shared/Widgets
+      - path: AzPim/Services/WidgetSnapshot.swift
       - path: AzPim/Views/Theme.swift
       - path: AzPim/Localizable.xcstrings
     settings:

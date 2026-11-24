@@ -53,6 +53,8 @@ struct MobileRootView: View {
         } message: { assignment in
             Text(assignment.displayScopeName)
         }
+        // Favorites widget: the favorite's confirmation (MSAL's redirect stays with the App's handler).
+        .onOpenURL { navigation.openFavorite($0, store: store) }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             store.panelOpenedAt = .now

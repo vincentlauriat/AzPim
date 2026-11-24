@@ -33,7 +33,7 @@ struct WidgetSnapshotTests {
             Fixture.activation(late, instance: "i1", end: .now.addingTimeInterval(7200)),
             Fixture.activation(soon, instance: "i2", end: .now.addingTimeInterval(600)),
             Fixture.activation(gone, instance: "i3", end: .now.addingTimeInterval(-60)),
-            permanent,
+            permanent
         ])
         await harness.refresh()
         let roleId = "\(account.id.uuidString)|e1"
@@ -51,8 +51,9 @@ struct WidgetSnapshotTests {
         #expect(snapshot.favorites.map(\.name) == ["Morning", "Second"])
         #expect(snapshot.favorites.map(\.roleCount) == [2, 0])
         // Nothing about the account: no UPN, tenant or object id in the file.
-        let text = String(decoding: try snapshot.encoded(), as: UTF8.self)
+        let text = try #require(String(bytes: try snapshot.encoded(), encoding: .utf8))
         #expect(!text.contains("user@test") && !text.contains("tenant-1") && !text.contains("oid-1"))
+        #expect(!text.contains(account.id.uuidString))
     }
 
     /// One account per identity: the Azure CLI account a Microsoft sign-in supersedes adds no second row.

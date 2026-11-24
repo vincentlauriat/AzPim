@@ -7,7 +7,7 @@ import Foundation
 /// account, no tenant, no id beyond the favorites' (the links that open their confirmation).
 struct WidgetSnapshot: Codable, Equatable, Sendable {
     struct Role: Codable, Equatable, Sendable, Identifiable {
-        /// The activation or assignment row's id (only tells the rows apart).
+        /// The row's position in the list (only tells the rows apart; no account or Azure id leaves the app).
         let id: String
         /// Role and scope names as the app shows them (translated when AzPim translates them).
         let name: String
