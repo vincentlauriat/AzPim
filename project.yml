@@ -173,12 +173,15 @@ targets:
       - path: AzPim/Views/RoleRows.swift
       - path: AzPim/Views/Theme.swift
       - path: AzPim/Localizable.xcstrings
+      # Live Activity attributes and its Extend intent: compiled by the app and the widget extension (2.0 step 4a).
+      - path: Shared/LiveActivity
     configFiles:
       Debug: Config/AzPim.xcconfig
       Release: Config/AzPim.xcconfig
     dependencies:
       - package: AzPimCore
       - package: MSAL
+      - target: AzPimWidgets
     settings:
       base:
         PRODUCT_NAME: AzPim
@@ -224,3 +227,37 @@ targets:
               - msauth.fr.vincentlauriat.azpim.ios
         # Microsoft Authenticator / Company Portal broker (MSAL 2.x).
         LSApplicationQueriesSchemes: [msauthv2, msauthv3]
+        # Live Activity of the role that ends first (2.0 step 4a), started from the foreground app only.
+        NSSupportsLiveActivities: true
+
+  # Widget extension: draws the Live Activity (2.0 step 4a). No AzPimCore, no MSAL, no network, no shared storage.
+  AzPimWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: AzPimWidgets
+        excludes: ["**/*.entitlements", "Info.plist"]
+      - path: Shared/LiveActivity
+      - path: AzPim/Views/Theme.swift
+      - path: AzPim/Localizable.xcstrings
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fr.vincentlauriat.azpim.ios.widgets
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_EMIT_LOC_STRINGS: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        MARKETING_VERSION: "2.0"
+        CURRENT_PROJECT_VERSION: "1"
+    info:
+      path: AzPimWidgets/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, fr]
+        CFBundleDisplayName: AzPim
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension

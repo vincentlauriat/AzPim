@@ -10,6 +10,7 @@ struct AzPimMobileApp: App {
     private let container: ModelContainer
     @State private var accounts: AccountService
     @State private var store: RoleStore
+    @State private var liveActivity: LiveActivityController
 
     init() {
         #if DEBUG
@@ -18,6 +19,9 @@ struct AzPimMobileApp: App {
             container = demo.container
             _accounts = State(initialValue: demo.accounts)
             _store = State(initialValue: demo.store)
+            let controller = Self.liveActivity(for: demo.store)
+            controller.demoAllowed = MobileDemo.screen == "liveactivity"
+            _liveActivity = State(initialValue: controller)
             return
         }
         #endif
@@ -34,7 +38,15 @@ struct AzPimMobileApp: App {
         notifications.onExtend = { roleId in await roleStore.extendFromNotification(eligibleRoleId: roleId) }
         notifications.onOpen = { roleId in roleStore.focusedRoleId = roleId }
         _store = State(initialValue: roleStore)
+        _liveActivity = State(initialValue: Self.liveActivity(for: roleStore))
         Task { @MainActor in roleStore.start() }
+    }
+
+    /// The Live Activity follows every refresh; its Extend button runs the store's Extend in this process.
+    private static func liveActivity(for store: RoleStore) -> LiveActivityController {
+        let controller = LiveActivityController(store: store)
+        ExtendRoleActivityIntent.register(store: store)
+        return controller
     }
 
     var body: some Scene {
@@ -46,13 +58,16 @@ struct AzPimMobileApp: App {
                 }
                 .environment(accounts)
                 .environment(store)
+                .environment(liveActivity)
                 .modelContainer(container)
         }
     }
 
     private var root: some View {
         #if DEBUG
-        MobileRootView(navigation: MobileDemo.navigation(in: store)).task { await MobileDemo.applyOrientation() }
+        MobileRootView(navigation: MobileDemo.navigation(in: store))
+            .task { await MobileDemo.applyOrientation() }
+            .task { await MobileDemo.startLiveActivity(liveActivity) }
         #else
         MobileRootView()
         #endif

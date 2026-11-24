@@ -96,13 +96,15 @@ jobs:
             -clonedSourcePackagesDirPath SourcePackages CODE_SIGNING_ALLOWED=NO build
 
       # The strings the compiler extracted (SWIFT_EMIT_LOC_STRINGS) must match the String Catalog, all in French.
-      # Both apps share the catalog: a key counts as in the code when either target extracted it.
+      # Both apps and the iPhone widget extension (Live Activity) share the catalog: a key counts as in the code when
+      # any target extracted it. The extension is built, unsigned, with the iOS app (embedded dependency).
       - name: Localizations match the code
         run: |
           plutil -lint Packages/AzPimCore/Sources/AzPimCore/Resources/*.lproj/*
           python3 Scripts/check-localizations.py \
             --stringsdata build/DD/Build/Intermediates.noindex/AzPim.build/Debug/AzPim.build \
-            --stringsdata build/DD-iOS-app/Build/Intermediates.noindex/AzPim.build/Debug-iphonesimulator/AzPimMobile.build
+            --stringsdata build/DD-iOS-app/Build/Intermediates.noindex/AzPim.build/Debug-iphonesimulator/AzPimMobile.build \
+            --stringsdata build/DD-iOS-app/Build/Intermediates.noindex/AzPim.build/Debug-iphonesimulator/AzPimWidgets.build
 
       # RoleStore tests hosted in the Debug app. The step fails unless tests actually ran: a bundle that does not
       # load into the host reports success with zero tests.

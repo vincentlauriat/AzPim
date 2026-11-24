@@ -4,6 +4,8 @@ included:
   - Packages/AzPimCore/Tests
   - AzPimTests
   - AzPimMobile
+  - AzPimWidgets
+  - Shared
 excluded:
   - Packages/AzPimCore/.build
 line_length:
