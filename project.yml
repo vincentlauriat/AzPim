@@ -170,6 +170,7 @@ targets:
       - path: AzPim/Views/FavoriteActivationSheet.swift
       - path: AzPim/Views/PanelModel.swift
       - path: AzPim/Views/ResultStatusLine.swift
+      - path: AzPim/Views/RoleRows.swift
       - path: AzPim/Views/Theme.swift
       - path: AzPim/Localizable.xcstrings
     configFiles:
@@ -208,7 +209,9 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
-        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Landscape too: an iPhone in landscape (667 pt and up) gets the two-pane layout (2.0 step 3).
+        UISupportedInterfaceOrientations:
+          [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         # MSAL client id (Config/AzPim.xcconfig), same app registration as the Mac app.

@@ -2,27 +2,21 @@ import AzPimCore
 import SwiftData
 import SwiftUI
 
-/// The iPhone panel (compact layout, 2.0 step 2): active roles with their countdown, favorites, eligible roles grouped
-/// by type. Same rules as the Mac panel (`PanelModel`: one account per identity, one row per role, held roles left out
-/// of the eligible list). Tap an eligible role → Activation Sheet; Deactivate on an active one; pull to refresh.
+/// The iPhone panel (compact width: iPhone, iPhone Duo folded): active roles with their countdown, favorites, eligible
+/// roles grouped by type. Same rules as the Mac panel (`PanelModel`: one account per identity, one row per role, held
+/// roles left out of the eligible list). Tap an eligible role → Activation Sheet; Deactivate on an active one; swipe
+/// an activation to extend it; Details (context menu, VoiceOver action) pushes the role detail; pull to refresh.
+/// Sheets and the selection live in `MobileNavigation`, so they survive a switch to the split view.
 struct RolesScreen: View {
     @Environment(RoleStore.self) private var store
+    @Environment(MobileNavigation.self) private var navigation
     @Query(sort: \Account.sortOrder) private var accountList: [Account]
     @Query(sort: \ActiveAssignment.endAt) private var assignments: [ActiveAssignment]
     @Query(sort: \Favorite.sortOrder) private var favorites: [Favorite]
     /// Requests that may still be waiting; `isWaiting` decides (a sent one stops blocking the row after 15 min).
     @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" || $0.statusRaw == "sent" })
     private var pendingRecords: [ActivationRecord]
-    @State private var activating: EligibleRole?
-    @State private var askingFavorite: FavoriteRunRequest?
-    @State private var deactivating: ActiveAssignment?
     @State private var runningFavorite: UUID?
-    @State private var showSettings: Bool
-
-    init(showSettings: Bool = false, activating: EligibleRole? = nil) {
-        _showSettings = State(initialValue: showSettings)
-        _activating = State(initialValue: activating)
-    }
 
     private var supersession: Supersession { store.supersession(accountList) }
     /// Accounts in use: an Azure CLI account replaced by a Microsoft sign-in of the same identity is left out.
@@ -35,11 +29,12 @@ struct RolesScreen: View {
     }
 
     var body: some View {
+        @Bindable var navigation = navigation
         let model = model
         NavigationStack {
             ScrollViewReader { proxy in
                 List {
-                    statusSection
+                    StatusSection(accounts: activeAccounts)
                     activeSection(model)
                     if !favorites.isEmpty { favoritesSection }
                     ForEach(PanelRoleType.allCases, id: \.self) { type in
@@ -48,8 +43,10 @@ struct RolesScreen: View {
                             Section(type.title) {
                                 ForEach(roles) { role in
                                     EligibleRoleRow(role: role, waiting: model.waiting(role, in: pendingRecords, now: store.now)) {
-                                        activating = $0
+                                        navigation.activating = $0
                                     }
+                                    .contextMenu { detailsButton(role.id) }
+                                    .accessibilityActions { detailsButton(role.id) }
                                 }
                             }
                             .id(type.title)
@@ -64,57 +61,16 @@ struct RolesScreen: View {
             .listStyle(.insetGrouped)
             .refreshable { await store.refresh() }
             .navigationTitle("AzPim")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showSettings = true } label: { Label("Settings", systemImage: "gearshape") }
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    if store.isRefreshing { ProgressView() }
-                }
-            }
+            .toolbar { MobileToolbar() }
+            .navigationDestination(item: $navigation.selection) { id in RoleDetailScreen(rowId: id) }
         }
-        .sheet(item: $activating) { role in
-            ScrollView { ActivationSheet(role: role) { activating = nil }.padding(.top, 8) }
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(item: $askingFavorite) { request in
-            ScrollView { FavoriteActivationSheet(request: request) { askingFavorite = nil }.padding(.top, 8) }
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showSettings) { MobileSettingsView() }
-        .confirmationDialog(deactivating.map { "Deactivate \($0.displayRoleName)?" } ?? "",
-                            isPresented: Binding(get: { deactivating != nil }, set: { if !$0 { deactivating = nil } }),
-                            titleVisibility: .visible, presenting: deactivating) { assignment in
-            Button("Deactivate", role: .destructive) { Task { await store.deactivate(assignment) } }
-        }
+    }
+
+    private func detailsButton(_ rowId: String) -> some View {
+        Button { navigation.selection = rowId } label: { Label("Details", systemImage: "info.circle") }
     }
 
     // MARK: Sections
-
-    @ViewBuilder private var statusSection: some View {
-        let banners = activeAccounts.flatMap { account in
-            Set((store.refreshErrors[account.id] ?? [:]).values).filter { $0 != .offline }
-                .sorted { $0.message < $1.message }.map { (account, $0) }
-        }
-        let recent = store.lastResult.flatMap { $0.isRecent(at: store.now) ? $0 : nil }
-        if store.isOffline || !banners.isEmpty || recent != nil {
-            Section {
-                if store.isOffline, let lastOnline = store.lastOnline {
-                    Label("Offline · data from \(lastOnline.appFormatted(date: .omitted, time: .shortened))",
-                          systemImage: "wifi.slash")
-                        .font(.callout).foregroundStyle(Theme.warning)
-                }
-                ForEach(banners, id: \.1.message) { account, kind in
-                    ErrorBanner(kind: kind, account: activeAccounts.count > 1 ? account.upn : nil,
-                                onSignIn: { Task { await store.refresh() } })
-                        .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
-                }
-                if let recent { ResultStatusLine(result: recent) }
-            }
-        }
-    }
 
     private func activeSection(_ model: PanelModel) -> some View {
         Section {
@@ -122,13 +78,33 @@ struct RolesScreen: View {
                 Text("No active role").foregroundStyle(.secondary)
             }
             ForEach(model.activations) { row in
-                ActiveRoleRow(assignment: row.assignment, alsoPermanent: row.alsoPermanent) { deactivating = $0 }
+                ActiveRoleRow(assignment: row.assignment, alsoPermanent: row.alsoPermanent) { navigation.deactivating = $0 }
+                    .swipeActions(edge: .leading) {
+                        if let role = row.assignment.eligibleRole, !store.isBusy(row.assignment) {
+                            Button("Extend") { navigation.extend(role, store: store) }.tint(Theme.accentFill)
+                        }
+                    }
+                    .contextMenu { activeMenu(row.assignment) }
+                    .accessibilityActions { activeMenu(row.assignment) }
             }
             ForEach(model.permanents) { row in
                 ActiveRoleRow(assignment: row.assignment, alsoPermanent: false, deactivate: nil)
+                    .contextMenu { detailsButton(row.assignment.id) }
+                    .accessibilityActions { detailsButton(row.assignment.id) }
             }
         } header: {
             Text("Active roles")
+        }
+    }
+
+    /// Extend and Details of an activation (its row in the roles list is its eligible role's). An activation whose
+    /// eligibility is unknown (its source failed, or it was removed) has no row in the roles list: no Details.
+    @ViewBuilder private func activeMenu(_ assignment: ActiveAssignment) -> some View {
+        if let role = assignment.eligibleRole {
+            if !store.isBusy(assignment) {
+                Button { navigation.extend(role, store: store) } label: { Label("Extend", systemImage: "clock.arrow.circlepath") }
+            }
+            detailsButton(role.id)
         }
     }
 
@@ -161,102 +137,57 @@ struct RolesScreen: View {
     private func start(_ favorite: Favorite) async {
         runningFavorite = favorite.id
         defer { runningFavorite = nil }
-        if let request = await store.startFavorite(favorite, fromPanel: true) { askingFavorite = request }
+        if let request = await store.startFavorite(favorite, fromPanel: true) { navigation.askingFavorite = request }
     }
 }
 
-/// An activation (countdown, Deactivate) or a permanent assignment (read-only).
-private struct ActiveRoleRow: View {
+/// Offline state, refresh errors and the last result, on top of the panel and of the roles list.
+struct StatusSection: View {
     @Environment(RoleStore.self) private var store
-    let assignment: ActiveAssignment
-    let alsoPermanent: Bool
-    /// Nil for a permanent assignment.
-    let deactivate: ((ActiveAssignment) -> Void)?
-
-    /// Azure refuses deactivation within 5 minutes of activation (BackendSchema › business rules).
-    private var tooRecent: Bool { store.now.timeIntervalSince(assignment.startAt) < 300 }
-    private var remaining: TimeInterval? { assignment.endAt.map { $0.timeIntervalSince(store.now) } }
+    /// Accounts in use (retired ones left out).
+    let accounts: [Account]
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            RoleLabel(name: assignment.displayRoleName, scope: assignment.displayScopeName, source: assignment.source,
-                      tenant: nil)
-            Spacer(minLength: 4)
-            VStack(alignment: .trailing, spacing: 6) {
-                if let remaining {
-                    Text(Countdown.compact(remaining))
-                        .font(.callout.weight(.semibold)).monospacedDigit()
-                        .foregroundStyle(Theme.remaining(remaining))
-                        .accessibilityLabel(Countdown.spoken(remaining))
-                } else {
-                    Text("Permanent").font(.footnote).foregroundStyle(.secondary)
-                }
-                if alsoPermanent { Text("also permanent").font(.caption2).foregroundStyle(.secondary) }
-                if let deactivate {
-                    if store.isBusy(assignment) {
-                        ProgressView()
-                    } else {
-                        Button("Deactivate", role: .destructive) { deactivate(assignment) }
-                            .buttonStyle(.bordered).controlSize(.small)
-                            .disabled(tooRecent || store.isOffline)
-                    }
-                }
-            }
+        let banners = accounts.flatMap { account in
+            Set((store.refreshErrors[account.id] ?? [:]).values).filter { $0 != .offline }
+                .sorted { $0.message < $1.message }.map { (account, $0) }
         }
-        .padding(.vertical, 2)
-        if let error = store.rowErrors[assignment.id] {
-            Text(error).font(.footnote).foregroundStyle(Theme.danger)
+        let recent = store.lastResult.flatMap { $0.isRecent(at: store.now) ? $0 : nil }
+        if store.isOffline || !banners.isEmpty || recent != nil {
+            Section {
+                if store.isOffline, let lastOnline = store.lastOnline {
+                    Label("Offline · data from \(lastOnline.appFormatted(date: .omitted, time: .shortened))",
+                          systemImage: "wifi.slash")
+                        .font(.callout).foregroundStyle(Theme.warning)
+                }
+                ForEach(banners, id: \.1.message) { account, kind in
+                    ErrorBanner(kind: kind, account: accounts.count > 1 ? account.upn : nil,
+                                onSignIn: { Task { await store.refresh() } })
+                        .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
+                }
+                if let recent { ResultStatusLine(result: recent) }
+            }
         }
     }
 }
 
-/// An eligible role: tap to open the Activation Sheet.
-private struct EligibleRoleRow: View {
+/// Settings, History (with the count of requests waiting for an approver) and the refresh spinner.
+struct MobileToolbar: ToolbarContent {
     @Environment(RoleStore.self) private var store
-    let role: EligibleRole
-    let waiting: ActivationRecord?
-    let activate: (EligibleRole) -> Void
+    @Environment(MobileNavigation.self) private var navigation
+    @Query(filter: #Predicate<ActivationRecord> { $0.statusRaw == "pendingApproval" })
+    private var waiting: [ActivationRecord]
 
-    var body: some View {
-        Button {
-            activate(role)
-        } label: {
-            HStack(spacing: 12) {
-                RoleLabel(name: role.displayRoleName, scope: role.displayScopeName, source: role.source, tenant: nil)
-                Spacer(minLength: 4)
-                if store.busy.contains(role.id) {
-                    ProgressView()
-                } else if waiting?.status == .pendingApproval {
-                    Label("Pending approval", systemImage: "hourglass").labelStyle(.iconOnly).foregroundStyle(Theme.warning)
-                } else {
-                    Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
-                }
+    var body: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            Button { navigation.showHistory = true } label: {
+                Label("History", systemImage: waiting.isEmpty ? "clock.arrow.circlepath" : "clock.badge.exclamationmark")
             }
-            .contentShape(Rectangle())
+            .accessibilityValue(waiting.isEmpty ? "" : String(localized: "\(waiting.count) pending approval"))
+            Button { navigation.showSettings = true } label: { Label("Settings", systemImage: "gearshape") }
         }
-        .buttonStyle(.plain)
-        .accessibilityHint("Activate…")
-        if let error = store.rowErrors[role.id] {
-            Text(error).font(.footnote).foregroundStyle(Theme.danger)
-        }
-    }
-}
-
-/// Role name, scope and type tag.
-private struct RoleLabel: View {
-    let name: String
-    let scope: String
-    let source: RoleSource
-    let tenant: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(name).font(.body.weight(.medium)).lineLimit(2)
-            HStack(spacing: 6) {
-                TypeTag(source: source)
-                Text(scope).font(.footnote).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-            }
+        ToolbarItem(placement: .topBarLeading) {
+            if store.isRefreshing { ProgressView() }
         }
     }
 }

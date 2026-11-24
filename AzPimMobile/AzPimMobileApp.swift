@@ -39,7 +39,7 @@ struct AzPimMobileApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MobileRootView()
+            root
                 // Microsoft Authenticator (broker) and the system web session return through the msauth redirect URI.
                 .onOpenURL { url in
                     _ = MSALPublicClientApplication.handleMSALResponse(url, sourceApplication: nil)
@@ -48,5 +48,13 @@ struct AzPimMobileApp: App {
                 .environment(store)
                 .modelContainer(container)
         }
+    }
+
+    private var root: some View {
+        #if DEBUG
+        MobileRootView(navigation: MobileDemo.navigation(in: store)).task { await MobileDemo.applyOrientation() }
+        #else
+        MobileRootView()
+        #endif
     }
 }

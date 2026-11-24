@@ -15,16 +15,6 @@ struct PanelSection<Content: View>: View {
     }
 }
 
-enum SourceIcon {
-    static func name(_ source: RoleSource) -> String {
-        switch source {
-        case .azureResource: "cloud"
-        case .entraRole: "person.badge.key"
-        case .pimGroup: "person.3"
-        }
-    }
-}
-
 struct EligibleRow: View {
     @Environment(RoleStore.self) private var store
     let role: EligibleRole
