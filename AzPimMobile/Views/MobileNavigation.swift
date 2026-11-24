@@ -12,6 +12,8 @@ final class MobileNavigation {
     var selection: String?
     var activating: EligibleRole?
     var askingFavorite: FavoriteRunRequest?
+    /// The favorite chooser, opened by the Control Center control « Run Favorite » (`OpenFavoritesIntent`).
+    var choosingFavorite = false
     var deactivating: ActiveAssignment?
     var showSettings = false
     var showHistory = false
