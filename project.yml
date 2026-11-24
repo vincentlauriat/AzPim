@@ -243,6 +243,7 @@ targets:
       - path: AzPim/Localizable.xcstrings
     settings:
       base:
+        CODE_SIGN_ENTITLEMENTS: AzPimWidgets/AzPimWidgets.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: fr.vincentlauriat.azpim.ios.widgets
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
