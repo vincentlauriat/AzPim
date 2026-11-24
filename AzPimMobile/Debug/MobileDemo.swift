@@ -38,7 +38,9 @@ enum MobileDemo {
                 role.policy = RolePolicy(maxDuration: "PT8H", requiresTicket: role.roleName == "Security Reader")
             }
             // `empty`: no role active, the panel's empty dial.
-            if screen == "empty" { try? context.delete(model: ActiveAssignment.self) }
+            if screen == "empty" {
+                for assignment in (try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? [] { context.delete(assignment) }
+            }
         }
         try? context.save()
         let accounts = AccountService(context: context)

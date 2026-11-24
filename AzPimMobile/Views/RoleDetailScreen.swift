@@ -9,8 +9,7 @@ import SwiftUI
 struct RoleDetailScreen: View {
     @Environment(RoleStore.self) private var store
     @Environment(MobileNavigation.self) private var navigation
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .title) private var dialSize: CGFloat = 76
+    @ScaledMetric(relativeTo: .title) private var dialSize: CGFloat = 68
     @Query(sort: \Account.sortOrder) private var accounts: [Account]
     @Query(sort: \EligibleRole.roleName) private var roles: [EligibleRole]
     @Query(sort: \ActiveAssignment.roleName) private var assignments: [ActiveAssignment]
@@ -46,25 +45,33 @@ struct RoleDetailScreen: View {
 
     // MARK: Sections
 
-    /// The panel's look: the activation's dial (time left in its middle), else the source square; name, scope, state.
+    /// The panel's look: the activation's dial, else the source square, next to the name, scope and state; under
+    /// them when that does not fit on one line (narrow detail column, long name, large Dynamic Type).
     private func header(_ row: RoleRow) -> some View {
         Section {
-            let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
-                : AnyLayout(HStackLayout(alignment: .center, spacing: 14))
-            layout {
-                if let assignment = row.assignment, assignment.endAt != nil {
-                    ActivationDial(assignment: assignment, size: min(dialSize, 120))
-                } else {
-                    SourceBadge(source: row.source, size: min(dialSize * 0.7, 84))
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(row.displayRoleName).font(.title2.weight(.semibold))
-                        .accessibilityAddTraits(.isHeader)
-                    Text(row.displayScopeName).foregroundStyle(.secondary)
-                    RoleStateText(row: row, now: store.now).font(.headline)
-                }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 14) { headerMark(row); headerText(row).fixedSize() }
+                VStack(alignment: .leading, spacing: 10) { headerMark(row); headerText(row) }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 6)
+        }
+    }
+
+    @ViewBuilder private func headerMark(_ row: RoleRow) -> some View {
+        if let assignment = row.assignment, assignment.endAt != nil {
+            ActivationDial(assignment: assignment, size: min(dialSize, 110))
+        } else {
+            SourceBadge(source: row.source, size: min(dialSize * 0.75, 80))
+        }
+    }
+
+    private func headerText(_ row: RoleRow) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(row.displayRoleName).font(.title2.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            Text(row.displayScopeName).foregroundStyle(.secondary)
+            RoleStateText(row: row, now: store.now).font(.headline)
         }
     }
 
