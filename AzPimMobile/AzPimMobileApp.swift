@@ -69,7 +69,7 @@ struct AzPimMobileApp: App {
 
     /// The Control Center control « Run Favorite » opens the favorite chooser; a favorite runs only from its sheet.
     private static func registerControl(navigation: MobileNavigation) {
-        OpenFavoritesIntent.handler = { [weak navigation] in navigation?.choosingFavorite = true }
+        OpenFavoritesIntent.handler = { [weak navigation] in navigation?.chooseFavorite() }
     }
 
     var body: some Scene {

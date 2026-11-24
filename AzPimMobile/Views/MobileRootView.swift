@@ -61,7 +61,7 @@ struct MobileRootView: View {
         // A tapped expiry notification, or its Extend (which opens the app on iPhone): shows that role.
         .onChange(of: store.focusedRoleId, initial: true) { _, id in
             guard let id else { return }
-            navigation.selection = store.resolvedRole(id: id)?.id ?? id
+            if let role = store.resolvedRole(id: id) { navigation.selection = role.id }
             store.focusedRoleId = nil
         }
         .onChange(of: scenePhase) { _, phase in

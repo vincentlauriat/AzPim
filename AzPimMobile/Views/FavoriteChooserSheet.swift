@@ -37,6 +37,9 @@ struct FavoriteChooserSheet: View {
             }
         }
         .task {
+            // Launched cold from the control: wait for the first refresh, so the sheet lists today's roles (the
+            // cached activations may be stale), as Shortcuts and the notification Extend do.
+            try? await store.intentReady()
             let runnable = store.runnableFavorites()
             favorites = runnable
             if runnable.count == 1, let only = runnable.first { await choose(only) }
