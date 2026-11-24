@@ -12,9 +12,22 @@ final class MobileNavigation {
     var selection: String?
     var activating: EligibleRole?
     var askingFavorite: FavoriteRunRequest?
+    /// The favorite chooser, opened by the Control Center control « Run Favorite » (`OpenFavoritesIntent`).
+    var choosingFavorite = false
     var deactivating: ActiveAssignment?
     var showSettings = false
     var showHistory = false
+
+    /// The Control Center control: SwiftUI shows one sheet at a time, so any open sheet or question is closed first,
+    /// otherwise the chooser would not appear (and would pop up later, once that sheet closed).
+    func chooseFavorite() {
+        activating = nil
+        askingFavorite = nil
+        deactivating = nil
+        showSettings = false
+        showHistory = false
+        choosingFavorite = true
+    }
     /// Last Extend result of each role, by eligible role id (shown on the role detail, announced to VoiceOver).
     var extendResults: [String: String] = [:]
     /// Filters of the roles list (regular width).

@@ -69,6 +69,19 @@ extension RoleStore {
         (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// The favorites the iPhone's Control Center control offers (2.0 step 4c), in the panel's order; a favorite with no
+    /// role is left out (nothing to run).
+    func runnableFavorites() -> [Favorite] {
+        let favorites = (try? context.fetch(FetchDescriptor<Favorite>(sortBy: [SortDescriptor(\.sortOrder)]))) ?? []
+        return favorites.filter { !$0.items.isEmpty }
+    }
+
+    /// The grouped sheet's request for a favorite, never a run: the sheet is the confirmation, even when no role needs
+    /// a justification or a ticket (`startFavorite` runs such a favorite at once, which a control must not do).
+    func favoriteRunRequest(_ favorite: Favorite) async -> FavoriteRunRequest {
+        FavoriteRunRequest(favorite: favorite, roles: await favoriteRolesToSend(favorite))
+    }
+
     /// `azpim://activate`: the same confirmation as « Run favorite », without answers (a role that needs a ticket, or a
     /// justification it does not have, is listed as not sent). `confirm` false sends nothing; true sends exactly the
     /// roles the confirmation listed as sent, on the policies it was built from. Nil when not confirmed.

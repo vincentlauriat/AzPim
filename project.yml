@@ -175,6 +175,8 @@ targets:
       - path: AzPim/Localizable.xcstrings
       # Live Activity attributes and its Extend intent: compiled by the app and the widget extension (2.0 step 4a).
       - path: Shared/LiveActivity
+      # Control Center « Run Favorite » intent: run by the app, referenced by the extension's control (2.0 step 4c).
+      - path: Shared/Controls
     configFiles:
       Debug: Config/AzPim.xcconfig
       Release: Config/AzPim.xcconfig
@@ -230,7 +232,8 @@ targets:
         # Live Activity of the role that ends first (2.0 step 4a), started from the foreground app only.
         NSSupportsLiveActivities: true
 
-  # Widget extension: draws the Live Activity (2.0 step 4a). No AzPimCore, no MSAL, no network, no shared storage.
+  # Widget extension: draws the Live Activity (2.0 step 4a) and the Control Center control (4c). No AzPimCore, no
+  # MSAL, no network, no shared storage.
   AzPimWidgets:
     type: app-extension
     platform: iOS
@@ -239,6 +242,7 @@ targets:
       - path: AzPimWidgets
         excludes: ["**/*.entitlements", "Info.plist"]
       - path: Shared/LiveActivity
+      - path: Shared/Controls
       - path: AzPim/Views/Theme.swift
       - path: AzPim/Localizable.xcstrings
     settings:
