@@ -8,6 +8,7 @@ import SwiftUI
 /// Coming back to the foreground refreshes data older than a minute, as opening the Mac panel does.
 struct MobileRootView: View {
     @Environment(RoleStore.self) private var store
+    @Environment(LiveActivityController.self) private var liveActivity
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Query private var accountList: [Account]
@@ -55,6 +56,8 @@ struct MobileRootView: View {
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             store.panelOpenedAt = .now
+            // A Live Activity can only start in the foreground: a role activated elsewhere gets one now.
+            liveActivity.sync()
             Task { await store.refreshIfStale() }
         }
     }

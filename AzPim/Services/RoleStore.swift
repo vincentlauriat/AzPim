@@ -82,6 +82,8 @@ final class RoleStore {
     @ObservationIgnored var durationMemory = DurationMemory.defaults(.standard)
     /// Ticket system per tenant and last ticket number per role (`PreferenceKeys.ticketSystems`, `.lastTickets`).
     @ObservationIgnored var ticketMemory = TicketMemory.defaults(.standard)
+    /// Called after every refresh (actions and expiries end with one): the iPhone's Live Activity follows the activations.
+    @ObservationIgnored var onRefreshed: (@MainActor () -> Void)?
 
     init(context: ModelContext, accounts: AccountService, notifications: NotificationScheduler) {
         self.context = context
@@ -180,6 +182,7 @@ final class RoleStore {
         purgeHistory()
         await notifications.reschedule(activations: activeActivations(), leadMinutes: accounts.settings.notificationLeadMinutes)
         try? context.save()   // after reschedule: it records `notifiedAt`
+        onRefreshed?()
     }
 
     private func refresh(_ account: Account) async {

@@ -1,22 +1,11 @@
 import SwiftUI
 import WidgetKit
 
+/// AzPim's widget extension: the Live Activity of the activated role that ends first (2.0 step 4a). Widgets (4b) come
+/// later. The extension only draws: no store, no token, no network call.
 @main
 struct AzPimWidgetsBundle: WidgetBundle {
-    var body: some Widget { SpikeWidget() }
-}
-
-struct SpikeWidget: Widget {
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "spike", provider: SpikeProvider()) { _ in Text("AzPim") }
-    }
-}
-
-struct SpikeProvider: TimelineProvider {
-    struct Entry: TimelineEntry { let date: Date }
-    func placeholder(in context: Context) -> Entry { Entry(date: .now) }
-    func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) { completion(Entry(date: .now)) }
-    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
-        completion(Timeline(entries: [Entry(date: .now)], policy: .never))
+    var body: some Widget {
+        RoleLiveActivity()
     }
 }

@@ -7,6 +7,8 @@ struct MobileSettingsView: View {
     @Environment(AccountService.self) private var accounts
     @Environment(RoleStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(LiveActivityController.self) private var liveActivity
+    @AppStorage(LiveActivityController.enabledKey) private var liveActivityEnabled = true
     @Query(sort: \Account.sortOrder) private var accountList: [Account]
     @State private var busy = false
     @State private var error: String?
@@ -28,6 +30,15 @@ struct MobileSettingsView: View {
                     Text("Accounts")
                 } footer: {
                     if let error { Text(error).foregroundStyle(Theme.danger) }
+                }
+                Section {
+                    Toggle("Live Activity", isOn: $liveActivityEnabled)
+                        .onChange(of: liveActivityEnabled) { liveActivity.sync() }
+                } footer: {
+                    Text("""
+                        The role that ends first stays on the Lock Screen and in the Dynamic Island, with Extend. \
+                        It starts when AzPim is open.
+                        """)
                 }
                 Section {
                     LabeledContent("Version", value: Self.version)

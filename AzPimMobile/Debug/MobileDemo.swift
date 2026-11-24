@@ -12,6 +12,7 @@ import UIKit
 /// Sheet open), `settings`, `history`, `detail` (Contributor selected: its detail, pushed in compact width, in the
 /// detail column in regular width), `fold` (Contributor selected and the Activation Sheet open, then the app turns to
 /// landscape after 4 s: on a Max that is a real compact → regular size-class change, as unfolding the iPhone Duo).
+/// `liveactivity` (the roles screen, and the Live Activity of the activation that ends first: go home or lock to see it).
 /// `AZPIM_ORIENTATION=landscape` turns the app to landscape at launch (the regular layout on a Max).
 @MainActor
 enum MobileDemo {
@@ -61,6 +62,16 @@ enum MobileDemo {
         case "fold": MobileNavigation(selection: named("Contributor")?.id, activating: named("Global Reader"))
         default: MobileNavigation()
         }
+    }
+
+    /// `liveactivity`: the Live Activity of the fixtures' activation that ends first, started once the app is in the
+    /// foreground (the only time ActivityKit allows it). Go home or lock the screen to see it. Other screens: none.
+    static func startLiveActivity(_ controller: LiveActivityController) async {
+        guard screen == "liveactivity" else { return }
+        for _ in 0..<20 where UIApplication.shared.applicationState != .active {
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        controller.sync()
     }
 
     /// Turns the app to landscape (`AZPIM_ORIENTATION=landscape` at launch, `fold` after 4 s); simctl cannot rotate.
