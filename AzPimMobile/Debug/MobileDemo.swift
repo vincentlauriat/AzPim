@@ -12,6 +12,7 @@ import UIKit
 /// Sheet open), `settings`, `history`, `detail` (Contributor selected: its detail, pushed in compact width, in the
 /// detail column in regular width), `fold` (Contributor selected and the Activation Sheet open, then the app turns to
 /// landscape after 4 s: on a Max that is a real compact → regular size-class change, as unfolding the iPhone Duo).
+/// `empty` (no active role: the panel's empty dial).
 /// `liveactivity` (the roles screen, and the Live Activity of the activation that ends first: go home or lock to see it).
 /// `AZPIM_ORIENTATION=landscape` turns the app to landscape at launch (the regular layout on a Max).
 @MainActor
@@ -36,6 +37,8 @@ enum MobileDemo {
             for role in (try? context.fetch(FetchDescriptor<EligibleRole>())) ?? [] {
                 role.policy = RolePolicy(maxDuration: "PT8H", requiresTicket: role.roleName == "Security Reader")
             }
+            // `empty`: no role active, the panel's empty dial.
+            if screen == "empty" { try? context.delete(model: ActiveAssignment.self) }
         }
         try? context.save()
         let accounts = AccountService(context: context)
