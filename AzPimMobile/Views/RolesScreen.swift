@@ -97,15 +97,14 @@ struct RolesScreen: View {
         }
     }
 
-    /// Extend and Details of an activation (its row in the roles list is its eligible role's).
+    /// Extend and Details of an activation (its row in the roles list is its eligible role's). An activation whose
+    /// eligibility is unknown (its source failed, or it was removed) has no row in the roles list: no Details.
     @ViewBuilder private func activeMenu(_ assignment: ActiveAssignment) -> some View {
         if let role = assignment.eligibleRole {
             if !store.isBusy(assignment) {
                 Button { navigation.extend(role, store: store) } label: { Label("Extend", systemImage: "clock.arrow.circlepath") }
             }
             detailsButton(role.id)
-        } else {
-            detailsButton(assignment.id)
         }
     }
 

@@ -50,6 +50,7 @@ enum MobileDemo {
 
     /// The selection and sheets of the screen asked for.
     static func navigation(in store: RoleStore) -> MobileNavigation {
+        guard screen != nil else { return MobileNavigation() }   // no demo: no fetch on every App body evaluation
         let roles = (try? store.context.fetch(FetchDescriptor<EligibleRole>())) ?? []
         let named = { (name: String) in roles.first { $0.roleName == name && $0.account?.mode == .msal } }
         return switch screen {

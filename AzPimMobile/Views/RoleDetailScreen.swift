@@ -35,7 +35,10 @@ struct RoleDetailScreen: View {
                 if let role = row.role { await store.ensurePolicy(for: role) }
             }
         } else {
+            // The row is gone (account signed out, eligibility removed): drop the selection, which pops this page in
+            // compact width instead of leaving a "Select a role" page with no list to select from.
             ContentUnavailableView("Select a role", systemImage: "key.horizontal")
+                .task(id: rowId) { if navigation.selection == rowId { navigation.selection = nil } }
         }
     }
 
@@ -84,8 +87,8 @@ struct RoleDetailScreen: View {
                     .disabled(block != nil)
                     if let block { Text(block.message).font(.footnote).foregroundStyle(.secondary) }
                 }
-                if let result = navigation.extendResult, result.roleId == role.id {
-                    Text(result.text).font(.footnote)
+                if let result = navigation.extendResults[role.id] {
+                    Text(result).font(.footnote)
                 }
             } else {
                 Text("Permanent assignment: managed by your administrator, not through PIM.").foregroundStyle(.secondary)

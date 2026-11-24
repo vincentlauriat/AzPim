@@ -15,8 +15,8 @@ final class MobileNavigation {
     var deactivating: ActiveAssignment?
     var showSettings = false
     var showHistory = false
-    /// Last Extend result, per eligible role id (shown on the role detail, announced to VoiceOver).
-    var extendResult: (roleId: String, text: String)?
+    /// Last Extend result of each role, by eligible role id (shown on the role detail, announced to VoiceOver).
+    var extendResults: [String: String] = [:]
     /// Filters of the roles list (regular width).
     var search = ""
     var source: RoleSource?
@@ -34,18 +34,18 @@ final class MobileNavigation {
     func extend(_ role: EligibleRole, store: RoleStore) {
         let roleId = role.id
         VoiceOverAnnouncer.post(String(localized: "Extending \(role.displayRoleName)…"))
-        extendResult = nil
+        extendResults[roleId] = nil
         Task {
             let text = await store.extend(eligibleRoleId: roleId)
-            extendResult = (roleId, text)
+            extendResults[roleId] = text
             VoiceOverAnnouncer.post(text)
         }
     }
 }
 
-/// Compact or regular layout. The size class decides; a window at least 600 pt wide also gets the split view, since
+/// Compact or regular layout. The size class decides; a window at least 600 pt wide also gets the two panes, since
 /// Apple has not documented which size class the unfolded iPhone Duo reports (about 669 pt wide unfolded, 466 pt
-/// folded, per the simulator's screen sizes).
+/// folded, per the simulator's screen sizes). So any iPhone in landscape (667 pt and up) gets them too, not only a Max.
 enum MobileLayout {
     static let splitMinWidth: CGFloat = 600
 

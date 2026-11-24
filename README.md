@@ -922,7 +922,7 @@ Sign-in is MSAL only, through Microsoft Authenticator when installed (redirect U
 protection policy" answer is shown as a clear message (no Intune SDK). Both apps share `AzPim/Localizable.xcstrings`.
 The layout adapts to the window: below 600 pt (iPhone, iPhone Duo folded) the panel (active roles, favorites,
 eligible roles, role detail pushed on top); from 600 pt, safe areas included, or in a regular size class (iPhone Duo
-unfolded, a Max in landscape) two panes, the filtered roles list (`RoleRows`, shared with the Mac Roles Window) next
+unfolded, any iPhone in landscape) two panes, the filtered roles list (`RoleRows`, shared with the Mac Roles Window) next
 to the selected role's detail. The panes are laid out by hand: `NavigationSplitView` overlays its sidebar while the
 UIKit trait is still compact at that width. The selection, open sheets and filters live in `MobileNavigation`, above
 the layout switch, so a fold, an unfold or a rotation keeps them.

@@ -2,7 +2,7 @@ import AzPimCore
 import SwiftData
 import SwiftUI
 
-/// Regular width (iPhone Duo unfolded, a Max in landscape): every role, filtered by source, state, account and search,
+/// Regular width (iPhone Duo unfolded, any iPhone in landscape): every role, filtered by source, state, account and search,
 /// next to the selected role's detail, as the Mac Roles Window. The selection and the filters are `MobileNavigation`'s.
 struct RolesSplitView: View {
     @Environment(RoleStore.self) private var store

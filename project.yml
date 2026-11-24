@@ -209,7 +209,7 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
-        # Landscape too: a Max in landscape gets the regular-width split view (2.0 step 3).
+        # Landscape too: an iPhone in landscape (667 pt and up) gets the two-pane layout (2.0 step 3).
         UISupportedInterfaceOrientations:
           [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UIApplicationSceneManifest:

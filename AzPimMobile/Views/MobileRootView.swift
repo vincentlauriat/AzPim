@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 
 /// Onboarding until an account is signed in, then the roles: the panel in compact width (iPhone, iPhone Duo folded),
-/// a split view (roles list | role detail) in regular width (iPhone Duo unfolded, a Max in landscape). The selection,
+/// a split view (roles list | role detail) in regular width (iPhone Duo unfolded, any iPhone in landscape). The selection,
 /// the sheets and the deactivate question are held here, above that switch, so a fold or an unfold keeps them.
 /// Coming back to the foreground refreshes data older than a minute, as opening the Mac panel does.
 struct MobileRootView: View {
