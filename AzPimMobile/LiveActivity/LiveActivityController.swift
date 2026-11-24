@@ -22,6 +22,17 @@ final class LiveActivityController {
     init(store: RoleStore, defaults: UserDefaults = .standard) {
         self.store = store
         self.defaults = defaults
+        followRefreshes()
+    }
+
+    /// Every refresh sets `lastRefresh` once its activations are stored; the sync runs right after (next main-actor turn).
+    private func followRefreshes() {
+        withObservationTracking { _ = store.lastRefresh } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.sync()
+                self?.followRefreshes()
+            }
+        }
     }
 
     var isEnabled: Bool {

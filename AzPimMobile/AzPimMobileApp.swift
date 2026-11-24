@@ -45,7 +45,6 @@ struct AzPimMobileApp: App {
     /// The Live Activity follows every refresh; its Extend button runs the store's Extend in this process.
     private static func liveActivity(for store: RoleStore) -> LiveActivityController {
         let controller = LiveActivityController(store: store)
-        store.onRefreshed = { [weak controller] in controller?.sync() }
         ExtendRoleActivityIntent.register(store: store)
         return controller
     }

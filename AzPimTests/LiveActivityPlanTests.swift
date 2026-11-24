@@ -82,16 +82,3 @@ struct LiveActivityPlanTests {
                                         now: now) == .end)
     }
 }
-
-/// The store calls `onRefreshed` at the end of every refresh: the iPhone's Live Activity follows activations, Extend,
-/// deactivations and expiries through it.
-@MainActor
-struct RefreshHookTests {
-    @Test func refreshCallsTheHookOnce() async throws {
-        let harness = try Harness()
-        var calls = 0
-        harness.store.onRefreshed = { calls += 1 }
-        await harness.refresh()
-        #expect(calls == 1)
-    }
-}

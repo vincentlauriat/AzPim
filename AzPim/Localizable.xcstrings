@@ -448,6 +448,46 @@
         }
       }
     },
+    "+%lld other active roles" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%lld other active role"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%lld other active roles"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%lld autre rôle actif"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%lld autres rôles actifs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     ", ending first: %@" : {
       "localizations" : {
         "fr" : {
@@ -2222,6 +2262,16 @@
         }
       }
     },
+    "Expired" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expiré"
+          }
+        }
+      }
+    },
     "Expires at %@ (%@)." : {
       "localizations" : {
         "en" : {
@@ -2274,6 +2324,16 @@
         }
       }
     },
+    "Extend Role" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolonger le rôle"
+          }
+        }
+      }
+    },
     "Extend or deactivate from the actions" : {
       "localizations" : {
         "fr" : {
@@ -2300,6 +2360,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prolongation de %@…"
+          }
+        }
+      }
+    },
+    "Extends the activation shown in the Live Activity." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prolonge l’activation affichée dans l’activité en direct."
           }
         }
       }
@@ -2629,6 +2699,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Liste les rôles Azure actifs, avec leur étendue et le temps restant."
+          }
+        }
+      }
+    },
+    "Live Activity" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité en direct"
           }
         }
       }
@@ -4110,6 +4190,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La requête a expiré."
+          }
+        }
+      }
+    },
+    "The role that ends first stays on the Lock Screen and in the Dynamic Island, with Extend. It starts when AzPim is open." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le rôle qui expire le premier reste affiché sur l’écran verrouillé et dans la Dynamic Island, avec Prolonger. L’affichage démarre quand AzPim est ouvert."
           }
         }
       }
