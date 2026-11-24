@@ -54,6 +54,8 @@ struct RoleLiveActivity: Widget {
 /// the lock screen follows the colour scheme.
 enum ActivityTone {
     /// Green with time left, orange in the last 15 minutes, red in the last 5 (as `Theme.remaining`), grey once stale.
+    /// Computed when the system draws the activity, which happens on each update: between updates only the countdown
+    /// moves, so the colour can lag (it turns grey at the end through `staleDate`).
     static func tint(for endAt: Date, isStale: Bool, dark: Bool, now: Date = .now) -> Color {
         let left = endAt.timeIntervalSince(now)
         let tone: Theme.Tone = isStale || left <= 0 ? .slate : left <= 300 ? .danger : left <= 900 ? .warning : .active

@@ -1,6 +1,7 @@
 import ActivityKit
 import AzPimCore
 import Foundation
+import SwiftData
 import UIKit
 
 /// Starts, updates or ends the one Live Activity of the activated role that ends first (2.0 step 4a), after every
@@ -36,11 +37,13 @@ final class LiveActivityController {
     }
 
     var isEnabled: Bool {
-        #if DEBUG
-        if !demoAllowed { return false }
-        #endif
-        return defaults.object(forKey: Self.enabledKey) as? Bool ?? true
+        defaults.object(forKey: Self.enabledKey) as? Bool ?? true
     }
+
+    /// Activities being ended (the end is asynchronous): a sync meanwhile must not keep one of them.
+    @ObservationIgnored private var ending: Set<String> = []
+    /// An Extend made within this window still holds its role (Azure may list the new activation late).
+    private static let extendGrace: TimeInterval = 300
 
     #if DEBUG
     /// Demo mode: only `AZPIM_DEMO=liveactivity` shows the activity, the other screens leave the system's alone.
@@ -49,10 +52,15 @@ final class LiveActivityController {
 
     /// Brings the activity in line with the store's activations.
     func sync() {
+        #if DEBUG
+        guard demoAllowed else { return }   // other demo screens leave the system's activities alone
+        #endif
         let candidates = store.activeActivations().compactMap(Self.candidate)
         // Reconcile with what the system holds: after a relaunch the old activity is still there. Keep the first,
         // end any other (one activity at most).
-        let running = Activity<RoleActivityAttributes>.activities.filter { [.active, .stale].contains($0.activityState) }
+        let running = Activity<RoleActivityAttributes>.activities.filter {
+            [.active, .stale].contains($0.activityState) && !ending.contains($0.id)
+        }
         for extra in running.dropFirst() { end(extra) }
         let current = running.first
         let shown = current.map {
@@ -60,7 +68,8 @@ final class LiveActivityController {
                                    otherActive: $0.content.state.otherActive)
         }
         let canStart = UIApplication.shared.applicationState == .active && ActivityAuthorizationInfo().areActivitiesEnabled
-        switch LiveActivityPlan.decide(candidates: candidates, shown: shown, enabled: isEnabled, canStart: canStart, now: .now) {
+        switch LiveActivityPlan.decide(candidates: candidates, shown: shown, enabled: isEnabled, canStart: canStart,
+                                       now: .now, held: heldRoles()) {
         case .none:
             break
         case .start(let target):
@@ -89,7 +98,20 @@ final class LiveActivityController {
 
     private func end(_ activity: Activity<RoleActivityAttributes>) {
         let id = activity.id
-        Task { await Self.end(id: id) }
+        ending.insert(id)
+        Task {
+            await Self.end(id: id)
+            ending.remove(id)
+        }
+    }
+
+    /// Roles with an Extend running, or sent within `extendGrace`.
+    private func heldRoles() -> Set<String> {
+        let since = Date.now.addingTimeInterval(-Self.extendGrace)
+        let extend = ActivationAction.extend.rawValue
+        let recent = FetchDescriptor<ActivationRecord>(predicate: #Predicate { $0.actionRaw == extend && $0.sentAt > since })
+        let ids = ((try? store.context.fetch(recent)) ?? []).map(\.eligibleRoleId)
+        return store.extending.union(ids)
     }
 
     private static func state(_ target: LiveActivityPlan.Target) -> RoleActivityAttributes.ContentState {
