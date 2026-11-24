@@ -19,10 +19,12 @@ struct RoleRowsTests {
         // and the permanent assignment keeps its own row, as in the Mac 1.0 Roles Window. Owner is only permanent.
         let readerPermanent = RemoteAssignment(id: "p2", source: .azureResource, roleDefinitionId: reader.roleDefinitionId,
                                                roleName: "Reader", scope: reader.scope, scopeName: reader.scopeName,
-                                               type: .assigned, startAt: .now.addingTimeInterval(-86_400), endAt: nil, linkedEligibilityId: nil)
+                                               type: .assigned, startAt: .now.addingTimeInterval(-86_400), endAt: nil,
+                                               linkedEligibilityId: nil)
         let ownerPermanent = RemoteAssignment(id: "p3", source: .azureResource, roleDefinitionId: "rd-perm",
                                               roleName: "Owner", scope: "/scope/perm", scopeName: "Scope perm",
-                                              type: .assigned, startAt: .now.addingTimeInterval(-86_400), endAt: nil, linkedEligibilityId: nil)
+                                              type: .assigned, startAt: .now.addingTimeInterval(-86_400), endAt: nil,
+                                              linkedEligibilityId: nil)
         let (first, arm) = harness.addAccount()
         await arm[0].set(eligible: [contributor, reader],
                          assignments: [Fixture.activation(contributor, instance: "i1"), readerPermanent, ownerPermanent])
