@@ -5,8 +5,8 @@ import Foundation
 enum AzPimScreen: String, AppEnum {
     case favorites
 
-    static let typeDisplayRepresentation: TypeDisplayRepresentation = "AzPim Screen"
-    static let caseDisplayRepresentations: [AzPimScreen: DisplayRepresentation] = [.favorites: "Favorites"]
+    static var typeDisplayRepresentation: TypeDisplayRepresentation { "AzPim Screen" }
+    static var caseDisplayRepresentations: [AzPimScreen: DisplayRepresentation] { [.favorites: "Favorites"] }
 }
 
 /// Action of the Control Center control « Run Favorite » (iPhone, iOS 18, 2.0 step 4c). An `OpenIntent` opens the app,
