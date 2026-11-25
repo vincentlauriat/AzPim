@@ -123,9 +123,12 @@ extension View {
 /// No role active: the dial's outline and how to start one.
 struct EmptyDialCard: View {
     @ScaledMetric(relativeTo: .title) private var dialSize: CGFloat = 64
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        HStack(spacing: 16) {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 16))
+        layout {
             ZStack {
                 Circle().stroke(Theme.track, style: StrokeStyle(lineWidth: 6, lineCap: .round, dash: [2, 9]))
                 Image(systemName: "shield")
@@ -140,8 +143,9 @@ struct EmptyDialCard: View {
                     .font(.subheadline).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 0)
+            if !typeSize.isAccessibilitySize { Spacer(minLength: 0) }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .dialCard()
         .accessibilityElement(children: .combine)
