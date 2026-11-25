@@ -1,6 +1,18 @@
 import AzPimCore
 import SwiftUI
 
+extension EligibleRole {
+    /// Why it cannot be activated now (in progress, a request waiting, offline), as the detail and the eligible row
+    /// show it; nil when it can. Duration and form are the sheet's: only the state is checked. Read once per body
+    /// (`store.now` follows the store clock: a sent request's 15-minute window).
+    @MainActor func activateBlock(in store: RoleStore) -> ActivationBlock? {
+        ActivationBlock.reason(.init(inProgress: store.busy.contains(id),
+                                     pending: store.waitingRequest(for: self, at: store.now) != nil,
+                                     offline: store.isOffline, minutes: ActivationDuration.minMinutes(policyMax: maxDuration),
+                                     policyMax: maxDuration, requiresJustification: false))
+    }
+}
+
 /// An eligible role: its source square, name and scope, an Activate button and a chevron. Tap the row → the role
 /// detail; Activate → the Activation Sheet. One VoiceOver element: Details by default, Activate… as an action.
 struct EligibleRoleRow: View {
@@ -36,13 +48,20 @@ struct EligibleRoleRow: View {
         .contextMenu { menu }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: "\(role.displayRoleName), \(role.displayScopeName), \(TypeTag.text(role.source))"))
-        .accessibilityValue(isPending ? Text("Pending approval") : Text(verbatim: ""))
+        .accessibilityValue(spokenState)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { navigation.selection = role.id }
         .accessibilityActions { menu }
         if let error = store.rowErrors[role.id] {
             Text(error).font(.footnote).foregroundStyle(Theme.danger)
         }
+    }
+
+    /// In progress, waiting for an approver, or why Activate is unavailable (offline, a request just sent).
+    private var spokenState: Text {
+        if store.busy.contains(role.id) { return Text("In progress") }
+        if isPending { return Text("Pending approval") }
+        return role.activateBlock(in: store).map { Text(verbatim: $0.message) } ?? Text(verbatim: "")
     }
 
     private var badge: some View {
@@ -67,11 +86,12 @@ struct EligibleRoleRow: View {
                 .font(.subheadline.weight(.semibold))
                 .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.small)
                 .tint(Theme.accentFill)
+                .disabled(role.activateBlock(in: store) != nil)
         }
     }
 
     @ViewBuilder private var menu: some View {
-        if !store.busy.contains(role.id), !isPending {
+        if role.activateBlock(in: store) == nil {
             Button { navigation.activating = role } label: { Label("Activate…", systemImage: "bolt.fill") }
         }
         Button { navigation.selection = role.id } label: { Label("Details", systemImage: "info.circle") }

@@ -74,6 +74,7 @@ struct RolesScreen: View {
         Section {
             if let hero = model.activations.first {
                 HeroCard(assignment: hero.assignment, alsoPermanent: hero.alsoPermanent)
+                    .id(hero.assignment.id)
                     .cardRow()
                     .swipeActions(edge: .leading) { extendSwipe(hero.assignment) }
             } else if model.permanents.isEmpty {
@@ -88,20 +89,23 @@ struct RolesScreen: View {
             } else if !others.isEmpty {
                 grid(others).cardRow()
             }
+        } header: {
+            // A heading for the VoiceOver rotor; the hero speaks for itself on screen.
+            Text("Active roles")
         }
     }
 
     private func grid(_ rows: [PanelAssignment]) -> some View {
         Grid(horizontalSpacing: 12, verticalSpacing: 12) {
+            // Rows identified by their first role, cards by their role: a dial never animates from one role to another.
             ForEach(Array(stride(from: 0, to: rows.count, by: 2)), id: \.self) { index in
                 GridRow {
-                    ActiveRoleCard(assignment: rows[index].assignment, alsoPermanent: rows[index].alsoPermanent)
-                    if index + 1 < rows.count {
-                        ActiveRoleCard(assignment: rows[index + 1].assignment, alsoPermanent: rows[index + 1].alsoPermanent)
-                    } else {
-                        Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                    ForEach(rows[index..<min(index + 2, rows.count)]) { row in
+                        ActiveRoleCard(assignment: row.assignment, alsoPermanent: row.alsoPermanent)
                     }
+                    if index + 1 == rows.count { Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]) }
                 }
+                .id(rows[index].id)
             }
         }
     }

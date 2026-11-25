@@ -85,7 +85,7 @@ struct RoleDetailScreen: View {
                         Label("Extend", systemImage: "clock.arrow.circlepath")
                     }
                     .disabled(store.isOffline)
-                    let tooRecent = store.now.timeIntervalSince(assignment.startAt) < 300
+                    let tooRecent = assignment.isTooRecentToDeactivate(at: store.now)
                     Button(role: .destructive) { navigation.deactivating = assignment } label: {
                         Label("Deactivate…", systemImage: "stop.circle")
                     }
@@ -94,7 +94,7 @@ struct RoleDetailScreen: View {
                         Text("Can't deactivate within 5 minutes of activation.").font(.footnote).foregroundStyle(.secondary)
                     }
                 } else {
-                    let block = activateBlock(role)
+                    let block = role.activateBlock(in: store)
                     Button { navigation.activating = role } label: {
                         Label("Activate…", systemImage: "bolt.fill")
                     }
@@ -153,15 +153,6 @@ struct RoleDetailScreen: View {
             }
             ForEach(mine.prefix(10)) { record in RecordRow(record: record) }
         }
-    }
-
-    /// Read once per body; `store.now` follows the store clock (a sent request's 15-minute window).
-    private func activateBlock(_ role: EligibleRole) -> ActivationBlock? {
-        // Duration and form are the sheet's: only the state is checked here.
-        ActivationBlock.reason(.init(inProgress: store.busy.contains(role.id),
-                                     pending: store.waitingRequest(for: role, at: store.now) != nil,
-                                     offline: store.isOffline, minutes: ActivationDuration.minMinutes(policyMax: role.maxDuration),
-                                     policyMax: role.maxDuration, requiresJustification: false))
     }
 
     private func sourceName(_ source: RoleSource) -> String {
