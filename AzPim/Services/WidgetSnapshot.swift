@@ -3,11 +3,12 @@ import Foundation
 /// What the iPhone home-screen and lock-screen widgets show (2.0 step 4b): the active roles as the panel shows them and
 /// the favorites. The app writes it to the App Group container after every refresh and when it comes to the foreground
 /// or leaves it (`WidgetSnapshotWriter`); the widget extension only reads it (no store, no token, no network).
-/// Foundation only: compiled by both apps and the extension, tested on Mac. Holds display names only: no token, no
-/// account, no tenant, no id beyond the favorites' (the links that open their confirmation).
+/// Foundation only: compiled by both apps and the extension, tested on Mac. Holds what the app's panel shows: no token,
+/// no account, no tenant, no id beyond the favorites' (the links that open their confirmation). A scope without a
+/// display name is shown as Azure gives it (a resource path or group id), as in the app.
 struct WidgetSnapshot: Codable, Equatable, Sendable {
     struct Role: Codable, Equatable, Sendable, Identifiable {
-        /// The row's position in the list (only tells the rows apart; no account or Azure id leaves the app).
+        /// The row's position in the list (only tells the rows apart; no account id leaves the app).
         let id: String
         /// Role and scope names as the app shows them (translated when AzPim translates them).
         let name: String

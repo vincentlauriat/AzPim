@@ -19,7 +19,8 @@ extension RoleStore {
                                        scope: assignment.displayScopeName, symbol: SourceIcon.name(assignment.source),
                                        startAt: timed ? assignment.startAt : nil, endAt: timed ? assignment.endAt : nil)
         }
-        return WidgetSnapshot(generatedAt: now, roles: roles, favorites: favorites.map {
+        // As the chooser (`runnableFavorites`): a favorite without roles would open nothing.
+        return WidgetSnapshot(generatedAt: now, roles: roles, favorites: favorites.filter { !$0.items.isEmpty }.map {
             WidgetSnapshot.Favorite(id: $0.id, name: $0.name, roleCount: $0.items.count)
         })
     }

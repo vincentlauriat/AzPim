@@ -19,7 +19,7 @@ struct WidgetSnapshotTests {
     // MARK: Building
 
     /// The panel's rows: activations ending first on top, then permanent assignments; expired ones left out; the
-    /// favorites in the app's order with their role count. Display names only, no account.
+    /// favorites with roles, in the app's order, with their role count. Display names only, no account.
     @Test func snapshotListsWhatThePanelShows() async throws {
         let harness = try Harness()
         let (account, sources) = harness.addAccount()
@@ -48,8 +48,9 @@ struct WidgetSnapshotTests {
         let last = try #require(snapshot.roles.last)
         #expect(last.isPermanent && last.startAt == nil)
         #expect(snapshot.roles.first?.startAt != nil)
-        #expect(snapshot.favorites.map(\.name) == ["Morning", "Second"])
-        #expect(snapshot.favorites.map(\.roleCount) == [2, 0])
+        // "Second" has no role: left out, as the chooser does (its tile would open nothing).
+        #expect(snapshot.favorites.map(\.name) == ["Morning"])
+        #expect(snapshot.favorites.map(\.roleCount) == [2])
         // Nothing about the account: no UPN, tenant or object id in the file.
         let text = try #require(String(bytes: try snapshot.encoded(), encoding: .utf8))
         #expect(!text.contains("user@test") && !text.contains("tenant-1") && !text.contains("oid-1"))

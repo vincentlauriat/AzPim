@@ -28,7 +28,9 @@ struct SnapshotProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
         let now = Date.now
         guard let snapshot = WidgetSnapshot.read() else {
-            completion(Timeline(entries: [SnapshotEntry(date: now, snapshot: nil)], policy: .never))
+            // No snapshot yet, or not readable before the first unlock after a restart (file protection): ask again in
+            // 15 minutes, since the app only reloads the widgets when the content changes.
+            completion(Timeline(entries: [SnapshotEntry(date: now, snapshot: nil)], policy: .after(now.addingTimeInterval(900))))
             return
         }
         let dates = snapshot.entryDates(now: now)

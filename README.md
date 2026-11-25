@@ -940,7 +940,7 @@ roles the panel shows, the one ending first on top, with a countdown and a dial 
 `ProgressView(timerInterval:)`: they tick on their own) and « +N »; *Favorites* (small: the first favorite; medium: up
 to four) opens the tapped favorite's grouped sheet in the app (`azpim://favorite?id=<uuid>`), which waits for Activate:
 a widget never activates anything. The app writes a small JSON snapshot (`WidgetSnapshot`: display names, source
-symbol, start and end, favorite names and role counts; no token, account, tenant or Azure id) atomically to the App
+symbol, start and end, favorite names and role counts, as the panel shows them; no token, account or tenant) atomically to the App
 Group `group.fr.vincentlauriat.azpim` after every refresh and when it enters or leaves the foreground, and reloads the
 widgets only when the roles or favorites changed. The extension only reads that file. Its timeline has an entry at
 each role's end and at the 15 and 5 minute colour thresholds, so an expired role leaves the widget without the app.
