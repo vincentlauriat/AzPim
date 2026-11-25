@@ -4,7 +4,6 @@ import SwiftUI
 
 /// Favorites Window (AppFlow, T4.2): create, rename, reorder, delete; per-role duration and justification.
 struct FavoritesView: View {
-    @Environment(\.modelContext) private var context
     @Environment(RoleStore.self) private var store
     @Query(sort: \Favorite.sortOrder) private var favorites: [Favorite]
     @State private var selection: Favorite.ID?
@@ -62,8 +61,7 @@ struct FavoritesView: View {
             get: { confirmingDelete != nil }, set: { if !$0 { confirmingDelete = nil } })) {
             Button("Delete", role: .destructive) {
                 if let favorite = confirmingDelete {
-                    context.delete(favorite)
-                    try? context.save()
+                    store.delete(favorite)
                     selection = nil
                 }
                 confirmingDelete = nil
@@ -74,29 +72,15 @@ struct FavoritesView: View {
     }
 
     private func add() {
-        let base = String(localized: "New favorite")
-        var name = base
-        var index = 2
-        while case .failure = Validation.favoriteName(name, existing: favorites.map(\.name)) {
-            name = "\(base) \(index)"
-            index += 1
-        }
-        let favorite = Favorite(name: name, items: [], sortOrder: (favorites.map(\.sortOrder).max() ?? -1) + 1)
-        context.insert(favorite)
-        try? context.save()
-        selection = favorite.id
+        selection = store.newEmptyFavorite(among: favorites).id
     }
 
     private func move(from source: IndexSet, to destination: Int) {
-        var list = favorites
-        list.move(fromOffsets: source, toOffset: destination)
-        for (index, favorite) in list.enumerated() { favorite.sortOrder = index }
-        try? context.save()
+        store.moveFavorites(favorites, from: source, to: destination)
     }
 }
 
 private struct FavoriteEditor: View {
-    @Environment(\.modelContext) private var context
     @Environment(RoleStore.self) private var store
     @Query(sort: \EligibleRole.roleName) private var roles: [EligibleRole]
     @Bindable var favorite: Favorite
@@ -133,8 +117,7 @@ private struct FavoriteEditor: View {
                             && role.account.map { !supersession.hides($0.id, role.source) } == true
                     }) { role in
                         Button("\(role.displayRoleName) — \(role.displayScopeName)") {
-                            favorite.items.append(FavoriteItem(eligibleRoleId: role.id, duration: store.defaultFavoriteDuration(for: role)))
-                            try? context.save()
+                            store.add(role, to: favorite)
                         }
                     }
                 }
@@ -172,8 +155,7 @@ private struct FavoriteEditor: View {
                 }
                 Spacer()
                 Button {
-                    favorite.items.removeAll { $0.eligibleRoleId == item.eligibleRoleId }
-                    try? context.save()
+                    store.removeItem(item.eligibleRoleId, from: favorite)
                 } label: {
                     Label("Remove from favorite", systemImage: "minus.circle").labelStyle(.iconOnly)
                 }
@@ -195,25 +177,13 @@ private struct FavoriteEditor: View {
     /// Bindings resolve the item by role id at each access: an index could point to a neighbour after a removal.
     /// The favorite keeps its own saved duration, shown capped by the role's current policy (the run caps it too).
     private func durationBinding(_ roleId: String, policyMax: String?) -> Binding<Int> {
-        Binding(get: {
-                    let saved = favorite.items.first { $0.eligibleRoleId == roleId }?.duration
-                    let minutes = saved.flatMap(ISODuration.seconds).map { Int(($0 / 60).rounded()) }
-                    return ActivationDuration.clamp(minutes ?? ActivationDuration.fallbackMinutes, policyMax: policyMax)
-                },
-                set: { value in
-                    guard let index = favorite.items.firstIndex(where: { $0.eligibleRoleId == roleId }) else { return }
-                    favorite.items[index].duration = ActivationDuration.iso(value)
-                    try? context.save()
-                })
+        Binding(get: { RoleStore.favoriteDurationMinutes(favorite, roleId: roleId, policyMax: policyMax) },
+                set: { store.setDuration(minutes: $0, roleId: roleId, in: favorite) })
     }
 
     private func justificationBinding(_ roleId: String) -> Binding<String> {
         Binding(get: { favorite.items.first { $0.eligibleRoleId == roleId }?.justification ?? "" },
-                set: { value in
-                    guard let index = favorite.items.firstIndex(where: { $0.eligibleRoleId == roleId }) else { return }
-                    favorite.items[index].justification = value.isEmpty ? nil : String(value.prefix(500))
-                    try? context.save()
-                })
+                set: { store.setJustification($0, roleId: roleId, in: favorite) })
     }
 
     /// Reads the roles once: runs at once, or hands them to the grouped sheet.
@@ -227,13 +197,9 @@ private struct FavoriteEditor: View {
     private func rename() {
         // Deleting the favorite closes the editor: `onDisappear` must not write to a deleted model.
         guard favorite.modelContext != nil, !favorite.isDeleted else { return }
-        switch Validation.favoriteName(name, existing: others) {
-        case .success(let valid):
+        switch store.rename(favorite, to: name, others: others) {
+        case .success:
             nameError = nil
-            if valid != favorite.name {
-                favorite.name = valid
-                try? context.save()
-            }
         case .failure(let failure):
             nameError = String(localized: "\(failure.userMessage) — kept “\(favorite.name)”.")
         }

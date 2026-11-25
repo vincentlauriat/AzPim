@@ -15,6 +15,9 @@ struct RoleDetailScreen: View {
     @Query(sort: \ActiveAssignment.roleName) private var assignments: [ActiveAssignment]
     @Query(sort: \ActivationRecord.sentAt, order: .reverse) private var records: [ActivationRecord]
     let rowId: String
+    /// The favorite each role was last added to here (by eligible role id), and the haptic's trigger.
+    @State private var addedTo: [String: String] = [:]
+    @State private var addedCount = 0
 
     var body: some View {
         let supersession = store.supersession(accounts)
@@ -23,6 +26,7 @@ struct RoleDetailScreen: View {
             List {
                 header(row)
                 actions(row)
+                if let role = row.role { favorites(role) }
                 details(row)
                 if let role = row.role {
                     policy(role)
@@ -30,6 +34,7 @@ struct RoleDetailScreen: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .sensoryFeedback(.success, trigger: addedCount)
             .navigationTitle(row.displayRoleName)
             .navigationBarTitleDisplayMode(.inline)
             .task(id: row.id) {
@@ -112,6 +117,26 @@ struct RoleDetailScreen: View {
             }
             if let result = store.lastResult, result.roleId != nil, result.roleId == row.role?.id, result.isRecent(at: store.now) {
                 ResultStatusLine(result: result)
+            }
+        }
+    }
+
+    /// Add to favorite: the existing favorites (those already holding the role disabled), then a new one with it.
+    /// Only an eligible role can be added; a short line and a haptic confirm it.
+    private func favorites(_ role: EligibleRole) -> some View {
+        Section {
+            Menu {
+                AddToFavoriteMenu(role: role) { favorite in
+                    addedTo[role.id] = favorite.name
+                    addedCount += 1
+                    VoiceOverAnnouncer.post(String(localized: "Added to “\(favorite.name)”"))
+                }
+            } label: {
+                Label("Add to favorite", systemImage: "star")
+            }
+            if let name = addedTo[role.id] {
+                Label("Added to “\(name)”", systemImage: "checkmark.circle.fill")
+                    .font(.footnote).foregroundStyle(Theme.violet)
             }
         }
     }

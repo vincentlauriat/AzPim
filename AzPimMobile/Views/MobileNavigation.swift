@@ -17,6 +17,9 @@ final class MobileNavigation {
     var deactivating: ActiveAssignment?
     var showSettings = false
     var showHistory = false
+    /// The Favorites screen, and the favorite pushed in it (its detail).
+    var showFavorites = false
+    var favoritePath: [UUID] = []
 
     /// The Control Center control: SwiftUI shows one sheet at a time, so any open sheet or question is closed first,
     /// otherwise the chooser would not appear (and would pop up later, once that sheet closed).
@@ -33,6 +36,8 @@ final class MobileNavigation {
         deactivating = nil
         showSettings = false
         showHistory = false
+        showFavorites = false
+        favoritePath = []
     }
     /// Last Extend result of each role, by eligible role id (shown on the role detail, announced to VoiceOver).
     var extendResults: [String: String] = [:]

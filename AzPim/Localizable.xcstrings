@@ -1132,12 +1132,32 @@
         }
       }
     },
+    "Add roles from a role's detail. Each duration is capped by the role's policy when the favorite runs." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez des rôles depuis le détail d’un rôle. Chaque durée est plafonnée par la stratégie du rôle au lancement du favori."
+          }
+        }
+      }
+    },
     "Add to favorite" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajouter à un favori"
+          }
+        }
+      }
+    },
+    "Added to “%@”" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouté à « %@ »"
           }
         }
       }
@@ -2225,6 +2245,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chaque demande reste confirmée. Désactivez si vous n’activez jamais depuis des liens, des scripts ou Raccourcis."
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifier"
+          }
+        }
+      }
+    },
+    "Edit Favorites" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifier les favoris"
           }
         }
       }
@@ -3432,6 +3472,16 @@
         }
       }
     },
+    "Open a role, then tap Add to favorite. A favorite activates several roles in one tap." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez un rôle, puis touchez Ajouter à un favori. Un favori active plusieurs rôles d’un seul geste."
+          }
+        }
+      }
+    },
     "Opens AzPim on your favorites. Nothing is activated until you confirm." : {
       "localizations" : {
         "fr" : {
@@ -3798,6 +3848,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retirer du favori"
+          }
+        }
+      }
+    },
+    "Removed from favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retiré du favori"
           }
         }
       }
@@ -4254,6 +4314,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toujours en attente du consentement administrateur."
+          }
+        }
+      }
+    },
+    "Tap a favorite on the panel to activate its roles. Favorites stay on this iPhone." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez un favori sur le panneau pour activer ses rôles. Les favoris restent sur cet iPhone."
           }
         }
       }

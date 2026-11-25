@@ -18,6 +18,8 @@ import UIKit
 /// `AZPIM_LIVEACTIVITY_TAP=1` then opens its Extend link).
 /// `favorite` (the favorite chooser that the Control Center control « Run Favorite » opens).
 /// `widgets` (writes the widgets' snapshot to the App Group, then shows the widgets drawn from it: `WidgetGallery`).
+/// `favorites` (the Favorites screen), `favoritedetail` (« Morning deploy » pushed in it), `favoritesempty` (no favorite:
+/// the Favorites screen's empty state).
 /// `AZPIM_ORIENTATION=landscape` turns the app to landscape at launch (the regular layout on a Max).
 @MainActor
 enum MobileDemo {
@@ -45,6 +47,9 @@ enum MobileDemo {
             if screen == "empty" {
                 for assignment in (try? context.fetch(FetchDescriptor<ActiveAssignment>())) ?? [] { context.delete(assignment) }
             }
+            if screen == "favoritesempty" {
+                for favorite in (try? context.fetch(FetchDescriptor<Favorite>())) ?? [] { context.delete(favorite) }
+            }
         }
         try? context.save()
         let accounts = AccountService(context: context)
@@ -70,6 +75,9 @@ enum MobileDemo {
         case "detail": MobileNavigation(selection: named("Contributor")?.id)
         case "fold": MobileNavigation(selection: named("Contributor")?.id, activating: named("Global Reader"))
         case "favorite": choosingFavorite()
+        case "favorites", "favoritesempty": showingFavorites(nil)
+        case "favoritedetail":
+            showingFavorites((try? store.context.fetch(FetchDescriptor<Favorite>()))?.first { $0.name == "Morning deploy" }?.id)
         default: MobileNavigation()
         }
     }
@@ -78,6 +86,14 @@ enum MobileDemo {
     private static func choosingFavorite() -> MobileNavigation {
         let navigation = MobileNavigation()
         navigation.choosingFavorite = true
+        return navigation
+    }
+
+    /// `favorites`, `favoritedetail`, `favoritesempty`: the Favorites screen, with this favorite's detail pushed.
+    private static func showingFavorites(_ id: UUID?) -> MobileNavigation {
+        let navigation = MobileNavigation()
+        navigation.showFavorites = true
+        navigation.favoritePath = id.map { [$0] } ?? []
         return navigation
     }
 

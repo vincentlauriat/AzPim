@@ -3,9 +3,9 @@ import UIKit
 import WidgetKit
 
 /// Writes the widgets' snapshot (`RoleStore.widgetSnapshot`) to the App Group container after every store refresh
-/// (activation, Extend, deactivation, expiry and timer refreshes all end with one), when the app comes to the
-/// foreground and when it leaves it (a favorite edited meanwhile). The widgets are reloaded only when the roles or the
-/// favorites changed: a reload spends the system's widget budget.
+/// (activation, Extend, deactivation, expiry and timer refreshes all end with one), after every favorite edit
+/// (`RoleStore.favoritesDidChange`), when the app comes to the foreground and when it leaves it. The widgets are reloaded only
+/// when the roles or the favorites changed: a reload spends the system's widget budget.
 @MainActor
 final class WidgetSnapshotWriter {
     private let store: RoleStore
@@ -24,8 +24,9 @@ final class WidgetSnapshotWriter {
         written = WidgetSnapshot.read(from: url)
         followRefreshes()
         let center = NotificationCenter.default
-        for name in [UIApplication.didBecomeActiveNotification, UIApplication.didEnterBackgroundNotification] {
-            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+        for (name, object) in [(UIApplication.didBecomeActiveNotification, nil), (UIApplication.didEnterBackgroundNotification, nil),
+                               (RoleStore.favoritesDidChange, store as AnyObject?)] {
+            observers.append(center.addObserver(forName: name, object: object, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.write() }
             })
         }

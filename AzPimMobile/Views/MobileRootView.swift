@@ -50,6 +50,7 @@ struct MobileRootView: View {
         }
         .sheet(isPresented: $navigation.showSettings) { MobileSettingsView() }
         .sheet(isPresented: $navigation.showHistory) { MobileHistoryView() }
+        .sheet(isPresented: $navigation.showFavorites) { FavoritesScreen().environment(navigation) }
         .confirmationDialog(navigation.deactivating.map { String(localized: "Deactivate \($0.displayRoleName)?") } ?? "",
                             isPresented: Binding(get: { navigation.deactivating != nil },
                                                  set: { if !$0 { navigation.deactivating = nil } }),

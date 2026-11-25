@@ -119,7 +119,7 @@ struct RolesScreen: View {
     // MARK: Favorites
 
     private var favoritesSection: some View {
-        Section("Favorites") {
+        Section {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(favorites) { favorite in
@@ -139,6 +139,15 @@ struct RolesScreen: View {
             if let toast = store.favoriteToast {
                 let name = favorites.first { $0.id == toast.favoriteId }?.name ?? String(localized: "Favorite")
                 Text("\(name): \(toast.text)").font(.footnote).foregroundStyle(.secondary)
+            }
+        } header: {
+            HStack {
+                Text("Favorites")
+                Spacer()
+                Button("Edit") { navigation.showFavorites = true }
+                    .font(.subheadline)
+                    .textCase(nil)
+                    .accessibilityLabel("Edit Favorites")
             }
         }
     }
@@ -194,6 +203,7 @@ struct MobileToolbar: ToolbarContent {
                 Label("History", systemImage: waiting.isEmpty ? "clock.arrow.circlepath" : "clock.badge.exclamationmark")
             }
             .accessibilityValue(waiting.isEmpty ? "" : String(localized: "\(waiting.count) pending approval"))
+            Button { navigation.showFavorites = true } label: { Label("Favorites", systemImage: "star") }
             Button { navigation.showSettings = true } label: { Label("Settings", systemImage: "gearshape") }
         }
         ToolbarItem(placement: .topBarLeading) {

@@ -162,6 +162,7 @@ targets:
       - path: AzPim/Debug/DemoFixtures.swift
       - path: AzPim/Views/Accessibility.swift
       - path: AzPim/Views/ActivationSheet.swift
+      - path: AzPim/Views/AddToFavoriteMenu.swift
       - path: AzPim/Views/AdminConsentSheet.swift
       - path: AzPim/Views/Countdown.swift
       - path: AzPim/Views/DisplayName.swift
