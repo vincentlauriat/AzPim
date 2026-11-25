@@ -144,7 +144,6 @@ private struct EmptyRoles: View {
                 Image(systemName: "checkmark.shield").font(.title2).foregroundStyle(Theme.slate)
                 Spacer(minLength: 0)
                 Text("No active role").font(.headline)
-                Text("Active roles").font(.caption).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
@@ -283,8 +282,10 @@ private struct FavoriteTile: View {
         HStack(spacing: 8) {
             Image(systemName: "star.fill").foregroundStyle(Theme.violet).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
-                Text(favorite.name).font(.subheadline.weight(.semibold)).lineLimit(1)
-                Text("\(favorite.roleCount) roles").font(.caption2).foregroundStyle(.secondary)
+                Text(favorite.name).font(.subheadline.weight(.semibold)).foregroundStyle(Color.primary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2).minimumScaleFactor(0.85)
+                Text("\(favorite.roleCount) roles").font(.caption2).foregroundStyle(Color.secondary)
             }
             Spacer(minLength: 0)
         }

@@ -1,11 +1,15 @@
 #if DEBUG
+import AzPimCore
+import SwiftData
 import SwiftUI
+import UIKit
 import WidgetKit
 
 /// Debug only, `AZPIM_DEMO=widgets`: the widgets drawn by the app from the snapshot file it just wrote to the App Group
 /// (the extension's read path), at their home-screen and lock-screen sizes, now and after the first role ends (the
 /// timeline's next entries). For screenshots: the simulator cannot add widgets from the command line.
 struct WidgetGallery: View {
+    @Environment(RoleStore.self) private var store
     @State private var snapshot: WidgetSnapshot?
 
     var body: some View {
@@ -20,18 +24,18 @@ struct WidgetGallery: View {
                         lockScreen(snapshot.liveRoles(at: now), date: now)
                     }
                     tile(.systemMedium) { ActiveRolesWidgetView(roles: snapshot.liveRoles(at: now), date: now, family: .systemMedium) }
+                    caption("Favorites · Active roles with none")
+                    HStack(spacing: 14) {
+                        tile(.systemSmall) { FavoritesWidgetView(favorites: snapshot.favorites, family: .systemSmall) }
+                        tile(.systemSmall) { ActiveRolesWidgetView(roles: [], date: now, family: .systemSmall) }
+                    }
+                    tile(.systemMedium) { FavoritesWidgetView(favorites: snapshot.favorites, family: .systemMedium) }
                     if let later {
                         caption("After the first end (\(snapshot.entryDates(now: now).count) timeline entries)")
                         tile(.systemMedium) {
                             ActiveRolesWidgetView(roles: snapshot.liveRoles(at: later), date: later, family: .systemMedium)
                         }
                     }
-                    caption("Favorites · empty state")
-                    HStack(spacing: 14) {
-                        tile(.systemSmall) { FavoritesWidgetView(favorites: snapshot.favorites, family: .systemSmall) }
-                        tile(.systemSmall) { ActiveRolesWidgetView(roles: [], date: now, family: .systemSmall) }
-                    }
-                    tile(.systemMedium) { FavoritesWidgetView(favorites: snapshot.favorites, family: .systemMedium) }
                 } else {
                     Text(verbatim: "No snapshot in the App Group (unsigned build?)")
                 }
@@ -48,11 +52,32 @@ struct WidgetGallery: View {
             // The writer runs when the app becomes active: read the file once it is there (and not an older one).
             let launched = Date.now.addingTimeInterval(-5)
             for _ in 0..<20 {
-                if let read = WidgetSnapshot.read(), read.generatedAt > launched { snapshot = read; return }
+                if let read = WidgetSnapshot.read(), read.generatedAt > launched {
+                    snapshot = read
+                    await tapFavorite()
+                    return
+                }
                 try? await Task.sleep(for: .milliseconds(500))
             }
             snapshot = WidgetSnapshot.read()
         }
+    }
+
+    /// `AZPIM_WIDGET_TAP=<eligible role name>`: saves a « Widget tap » favorite holding that (inactive) role, then opens
+    /// its widget link as a tap would, through the app's `onOpenURL` (`simctl openurl` asks "Open in AzPim?" first, a
+    /// link the app opens itself does not). The favorite's grouped sheet opens; nothing is sent until Activate.
+    private func tapFavorite() async {
+        guard let name = ProcessInfo.processInfo.environment["AZPIM_WIDGET_TAP"],
+              let role = ((try? store.context.fetch(FetchDescriptor<EligibleRole>())) ?? []).first(where: {
+                  $0.roleName == name && $0.account?.mode == .msal
+              }) else { return }
+        let favorite = Favorite(name: "Widget tap", items: [FavoriteItem(eligibleRoleId: role.id, duration: "PT1H")],
+                                sortOrder: 9)
+        store.context.insert(favorite)
+        try? store.context.save()
+        guard let url = WidgetSnapshot.favoriteURL(favorite.id) else { return }
+        try? await Task.sleep(for: .seconds(2))
+        await UIApplication.shared.open(url)
     }
 
     private func caption(_ text: String) -> some View {
