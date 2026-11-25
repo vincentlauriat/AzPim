@@ -13,6 +13,7 @@ import UIKit
 /// detail column in regular width), `fold` (Contributor selected and the Activation Sheet open, then the app turns to
 /// landscape after 4 s: on a Max that is a real compact → regular size-class change, as unfolding the iPhone Duo).
 /// `liveactivity` (the roles screen, and the Live Activity of the activation that ends first: go home or lock to see it).
+/// `favorite` (the favorite chooser that the Control Center control « Run Favorite » opens).
 /// `widgets` (writes the widgets' snapshot to the App Group, then shows the widgets drawn from it: `WidgetGallery`).
 /// `AZPIM_ORIENTATION=landscape` turns the app to landscape at launch (the regular layout on a Max).
 @MainActor
@@ -61,8 +62,16 @@ enum MobileDemo {
         case "history": MobileNavigation(showHistory: true)
         case "detail": MobileNavigation(selection: named("Contributor")?.id)
         case "fold": MobileNavigation(selection: named("Contributor")?.id, activating: named("Global Reader"))
+        case "favorite": choosingFavorite()
         default: MobileNavigation()
         }
+    }
+
+    /// `favorite`: the chooser the Control Center control « Run Favorite » opens.
+    private static func choosingFavorite() -> MobileNavigation {
+        let navigation = MobileNavigation()
+        navigation.choosingFavorite = true
+        return navigation
     }
 
     /// `liveactivity`: the Live Activity of the fixtures' activation that ends first, started once the app is in the

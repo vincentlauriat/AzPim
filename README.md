@@ -944,6 +944,20 @@ symbol, start and end, favorite names and role counts; no token, account, tenant
 Group `group.fr.vincentlauriat.azpim` after every refresh and when it enters or leaves the foreground, and reloads the
 widgets only when the roles or favorites changed. The extension only reads that file. Its timeline has an entry at
 each role's end and at the 15 and 5 minute colour thresholds, so an expired role leaves the widget without the app.
+**Control Center (iOS 18).** The control « Run Favorite » (Control Center, Lock Screen, Action button) opens AzPim on
+a favorite chooser; the chosen favorite's grouped sheet lists what each role will send, and nothing is activated until
+Activate is tapped (a single favorite opens its sheet at once). The control is not configurable with a favorite: the
+system resolves a control's configuration in the widget extension, which holds no favorites store. Its
+intent (`OpenFavoritesIntent`, an `OpenIntent`) runs in the app's process; the bundle adds the control under
+`if #available(iOS 18.0, *)`, so the deployment target stays iOS 17. Favorites are not synced between Mac and iPhone:
+the chooser lists the favorites of the iPhone's own store.
+**Expiry notification.** The iPhone registers the same Extend / Dismiss category as the Mac. On iPhone, Extend opens
+the app (`.foreground`) and runs there, on the role's detail, after the launch refresh. An Extend deactivates, then
+re-activates with waits of 3, 6 and 12 s while Azure still reports the old activation: iOS does not guarantee that
+much time to a notification action launched in the background, and a suspension between the two halves would leave the
+role deactivated. The token is not the limit: MSAL keeps its cache `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`
+(IdentityCore 2.17.1, `MSIDKeychainTokenCache.m`), so a silent token works on a locked iPhone, and the action needs an
+unlocked device anyway. On the Mac, Extend still runs without bringing AzPim forward.
 Demo mode (Debug only) runs the app on the snapshot fixtures without a tenant:
 
 ```bash
@@ -952,9 +966,9 @@ xcodebuild -project AzPim.xcodeproj -scheme AzPimMobile -configuration Debug \
 xcrun simctl install booted build/DD-ios/Build/Products/Debug-iphonesimulator/AzPim.app
 SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim.ios
 # screens: roles, eligible, activate, settings, history, detail, onboarding, fold (sheet open, turns to landscape
-# after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island);
-# widgets (writes the widget snapshot, then shows the widgets drawn from it at their sizes; needs a signed build
-# for the App Group, i.e. without CODE_SIGNING_ALLOWED=NO);
+# after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island), favorite
+# (the chooser the Control Center control opens); widgets (writes the widget snapshot, then shows the widgets drawn
+# from it at their sizes; needs a signed build for the App Group, i.e. without CODE_SIGNING_ALLOWED=NO);
 # SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
 ```
 

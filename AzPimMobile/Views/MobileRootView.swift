@@ -43,6 +43,11 @@ struct MobileRootView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $navigation.choosingFavorite) {
+            FavoriteChooserSheet { navigation.choosingFavorite = false }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
         .sheet(isPresented: $navigation.showSettings) { MobileSettingsView() }
         .sheet(isPresented: $navigation.showHistory) { MobileHistoryView() }
         .confirmationDialog(navigation.deactivating.map { String(localized: "Deactivate \($0.displayRoleName)?") } ?? "",
@@ -55,6 +60,12 @@ struct MobileRootView: View {
         }
         // Favorites widget: the favorite's confirmation (MSAL's redirect stays with the App's handler).
         .onOpenURL { navigation.openFavorite($0, store: store) }
+        // A tapped expiry notification, or its Extend (which opens the app on iPhone): shows that role.
+        .onChange(of: store.focusedRoleId, initial: true) { _, id in
+            guard let id else { return }
+            if let role = store.resolvedRole(id: id) { navigation.selection = role.id }
+            store.focusedRoleId = nil
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             store.panelOpenedAt = .now

@@ -13,6 +13,8 @@ struct AzPimMobileApp: App {
     @State private var liveActivity: LiveActivityController
     /// The home-screen and lock-screen widgets' snapshot (2.0 step 4b).
     private let widgetSnapshots: WidgetSnapshotWriter
+    /// Owned here, not by the root view: the Control Center control's intent can run on a cold launch, before any view.
+    @State private var navigation: MobileNavigation
 
     init() {
         #if DEBUG
@@ -26,6 +28,9 @@ struct AzPimMobileApp: App {
             _liveActivity = State(initialValue: controller)
             widgetSnapshots = WidgetSnapshotWriter(store: demo.store)
             widgetSnapshots.demoAllowed = MobileDemo.screen == "widgets"
+            let demoNavigation = MobileDemo.navigation(in: demo.store)
+            Self.registerControl(navigation: demoNavigation)
+            _navigation = State(initialValue: demoNavigation)
             return
         }
         #endif
@@ -39,11 +44,24 @@ struct AzPimMobileApp: App {
         _accounts = State(initialValue: accountService)
         let notifications = NotificationScheduler()
         let roleStore = RoleStore(context: container.mainContext, accounts: accountService, notifications: notifications)
-        notifications.onExtend = { roleId in await roleStore.extendFromNotification(eligibleRoleId: roleId) }
+        // Extend opens the app on iPhone (`NotificationScheduler.extendOpensApp`): the role is shown while it runs, and
+        // a cold launch first waits for the launch refresh, as the Live Activity's Extend does.
+        notifications.onExtend = { roleId in
+            roleStore.focusedRoleId = roleId
+            do {
+                try await roleStore.intentReady()
+            } catch {
+                return (error as? RoleStore.IntentFailure)?.message ?? error.localizedDescription
+            }
+            return await roleStore.extendFromNotification(eligibleRoleId: roleId)
+        }
         notifications.onOpen = { roleId in roleStore.focusedRoleId = roleId }
         _store = State(initialValue: roleStore)
         _liveActivity = State(initialValue: Self.liveActivity(for: roleStore))
         widgetSnapshots = WidgetSnapshotWriter(store: roleStore)
+        let mobileNavigation = MobileNavigation()
+        Self.registerControl(navigation: mobileNavigation)
+        _navigation = State(initialValue: mobileNavigation)
         Task { @MainActor in roleStore.start() }
     }
 
@@ -52,6 +70,11 @@ struct AzPimMobileApp: App {
         let controller = LiveActivityController(store: store)
         ExtendRoleActivityIntent.register(store: store)
         return controller
+    }
+
+    /// The Control Center control « Run Favorite » opens the favorite chooser; a favorite runs only from its sheet.
+    private static func registerControl(navigation: MobileNavigation) {
+        OpenFavoritesIntent.handler = { [weak navigation] in navigation?.chooseFavorite() }
     }
 
     var body: some Scene {
@@ -70,12 +93,12 @@ struct AzPimMobileApp: App {
 
     private var root: some View {
         #if DEBUG
-        MobileRootView(navigation: MobileDemo.navigation(in: store))
+        MobileRootView(navigation: navigation)
             .task { await MobileDemo.applyOrientation() }
             .task { await MobileDemo.startLiveActivity(liveActivity) }
             .overlay { if MobileDemo.screen == "widgets" { WidgetGallery() } }
         #else
-        MobileRootView()
+        MobileRootView(navigation: navigation)
         #endif
     }
 }

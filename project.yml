@@ -177,6 +177,8 @@ targets:
       - path: Shared/LiveActivity
       # Widget views: drawn by the extension, rendered by the Debug widget gallery (2.0 step 4b).
       - path: Shared/Widgets
+      # Control Center « Run Favorite » intent: run by the app, referenced by the extension's control (2.0 step 4c).
+      - path: Shared/Controls
     configFiles:
       Debug: Config/AzPim.xcconfig
       Release: Config/AzPim.xcconfig
@@ -234,8 +236,8 @@ targets:
         # Live Activity of the role that ends first (2.0 step 4a), started from the foreground app only.
         NSSupportsLiveActivities: true
 
-  # Widget extension: draws the Live Activity (2.0 step 4a) and the widgets (4b). No AzPimCore, no MSAL, no network;
-  # it only reads the widget snapshot the app writes to the App Group.
+  # Widget extension: draws the Live Activity (2.0 step 4a), the widgets (4b) and the Control Center control (4c). No
+  # AzPimCore, no MSAL, no network; it only reads the widget snapshot the app writes to the App Group.
   AzPimWidgets:
     type: app-extension
     platform: iOS
@@ -246,6 +248,7 @@ targets:
       - path: Shared/LiveActivity
       - path: Shared/Widgets
       - path: AzPim/Services/WidgetSnapshot.swift
+      - path: Shared/Controls
       - path: AzPim/Views/Theme.swift
       - path: AzPim/Localizable.xcstrings
     settings:

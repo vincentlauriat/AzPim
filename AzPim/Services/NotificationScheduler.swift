@@ -81,6 +81,19 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     nonisolated static let roleKey = "eligibleRoleId"
     /// Results of an action (activation, favorite run): never removed by `reschedule`, which only owns `prefix`.
     nonisolated static let resultPrefix = "result-"
+    /// iPhone: Extend opens AzPim and runs there. In the background its time is not guaranteed: an Extend deactivates,
+    /// then re-activates with waits of 3, 6 and 12 s while Azure still reports the old activation, plus a policy read,
+    /// up to four activation requests and a refresh (`RoleStore.reactivate`): iOS gives a notification action launched
+    /// in the background a limited time it does not specify. Suspended between its two halves, an Extend would leave the
+    /// role deactivated.
+    /// The token is not what decides: MSAL's cache is readable while the iPhone is locked (`MSIDKeychainTokenCache.m`
+    /// in IdentityCore 2.17.1 stores items `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`), and the action already
+    /// requires an unlocked device. Mac: runs where it is, the app is not suspended.
+    #if os(iOS)
+    nonisolated static let extendOpensApp = true
+    #else
+    nonisolated static let extendOpensApp = false
+    #endif
     private let center: any NotificationCenterClient
     /// Opens the app on the notification's role (eligible role id, nil for follow-ups).
     var onOpen: ((String?) -> Void)?
@@ -90,12 +103,16 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     init(center: any NotificationCenterClient = SystemNotificationCenter()) {
         self.center = center
         super.init()
-        // Changes privileges: needs an unlocked Mac (security review I1).
         let extend = UNNotificationAction(identifier: Self.extendAction, title: String(localized: "Extend"),
-                                          options: [.authenticationRequired])
+                                          options: Self.extendOptions(opensApp: Self.extendOpensApp))
         let dismiss = UNNotificationAction(identifier: Self.dismissAction, title: String(localized: "Dismiss"), options: [.destructive])
         center.setUp(delegate: self, categories: [UNNotificationCategory(identifier: Self.category, actions: [extend, dismiss],
                                                                          intentIdentifiers: [])])
+    }
+
+    /// Changes privileges: needs an unlocked device (security review I1); `opensApp` brings AzPim to the foreground.
+    nonisolated static func extendOptions(opensApp: Bool) -> UNNotificationActionOptions {
+        opensApp ? [.authenticationRequired, .foreground] : [.authenticationRequired]
     }
 
     func reschedule(activations: [ActiveAssignment], leadMinutes: Int) async {

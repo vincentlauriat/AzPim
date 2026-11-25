@@ -226,7 +226,13 @@ final class FakeNotificationCenter: NotificationCenterClient, @unchecked Sendabl
     /// Immediate notifications (no delay).
     var immediate: [LocalNotification] { lock.withLock { delivered } }
 
-    @MainActor func setUp(delegate: any UNUserNotificationCenterDelegate, categories: Set<UNNotificationCategory>) {}
+    /// The categories the scheduler registered (expiry: Extend, Dismiss).
+    var categories: Set<UNNotificationCategory> { lock.withLock { registered } }
+    private var registered: Set<UNNotificationCategory> = []
+
+    @MainActor func setUp(delegate: any UNUserNotificationCenterDelegate, categories: Set<UNNotificationCategory>) {
+        lock.withLock { registered = categories }
+    }
 
     func pendingIdentifiers() async -> [String] {
         lock.withLock { pendingList.map(\.id) }

@@ -1305,6 +1305,16 @@
     "AzPim" : {
       "shouldTranslate" : false
     },
+    "AzPim Screen" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran d’AzPim"
+          }
+        }
+      }
+    },
     "AzPim app registration" : {
       "localizations" : {
         "fr" : {
@@ -3042,6 +3052,16 @@
         }
       }
     },
+    "No Favorites" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun favori"
+          }
+        }
+      }
+    },
     "No account" : {
       "localizations" : {
         "fr" : {
@@ -3398,6 +3418,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrez la confirmation d’un favori dans AzPim."
+          }
+        }
+      }
+    },
+    "Opens AzPim on your favorites. Nothing is activated until you confirm." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvre AzPim sur vos favoris. Rien n’est activé avant votre confirmation."
           }
         }
       }
@@ -3972,6 +4002,16 @@
         }
       }
     },
+    "Screen" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran"
+          }
+        }
+      }
+    },
     "Search" : {
       "localizations" : {
         "fr" : {
@@ -4320,6 +4360,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ce favori n’existe plus."
+          }
+        }
+      }
+    },
+    "This iPhone has no favorite with roles yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet iPhone n’a encore aucun favori avec des rôles."
           }
         }
       }
