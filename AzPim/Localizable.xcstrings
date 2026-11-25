@@ -2414,16 +2414,6 @@
         }
       }
     },
-    "Extend Role" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prolonger le rôle"
-          }
-        }
-      }
-    },
     "Extend or deactivate from the actions" : {
       "localizations" : {
         "fr" : {
@@ -2450,16 +2440,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prolongation de %@…"
-          }
-        }
-      }
-    },
-    "Extends the activation shown in the Live Activity." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prolonge l’activation affichée dans l’activité en direct."
           }
         }
       }
