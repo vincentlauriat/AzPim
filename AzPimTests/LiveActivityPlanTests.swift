@@ -62,7 +62,7 @@ struct LiveActivityPlanTests {
 
     /// Another role ends first (Extend pushed the shown one later, or a shorter activation): a new activity, since
     /// the role is a static attribute. In the background it cannot start: the shown role stays while still live, with
-    /// its new end (an Extend from the lock screen), so it never shows "Expired" at the old end.
+    /// its new end (an Extend that ended once AzPim left the foreground), so it never shows "Expired" at the old end.
     @Test func anotherRoleEndingFirstReplacesTheActivityInTheForeground() {
         let extended = candidate("a", in: 180), soon = candidate("b", in: 30)
         let running = LiveActivityPlan.Shown(eligibleRoleId: "a", endAt: now.addingTimeInterval(600), otherActive: 1)

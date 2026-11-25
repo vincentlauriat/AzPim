@@ -62,8 +62,8 @@ enum LiveActivityPlan {
         if shown.eligibleRoleId != target.role.eligibleRoleId {
             if canStart { return .replace(target) }
             // Without the foreground the replacement could not start: keep the shown role while it is live, with its
-            // own new end and count (after an Extend that ended once AzPim left the foreground, it ends later than another role now), or
-            // end the activity when the shown role is no longer active.
+            // own new end and count (after an Extend that ended once AzPim left the foreground, it ends later than
+            // another role now), or end the activity when the shown role is no longer active.
             guard let kept = live.first(where: { $0.eligibleRoleId == shown.eligibleRoleId }) else { return .end }
             return refresh(shown, to: Target(role: kept, otherActive: live.count - 1))
         }
