@@ -1405,6 +1405,16 @@
         }
       }
     },
+    "AzPim isn't ready yet. Open AzPim, then try again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AzPim n’est pas encore prêt. Ouvrez AzPim, puis réessayez."
+          }
+        }
+      }
+    },
     "AzPim replaces it and has copied its data. Remove AzurePim from Applications and its entry from System Settings › General › Login Items." : {
       "localizations" : {
         "fr" : {

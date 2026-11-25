@@ -968,7 +968,8 @@ xcodebuild -project AzPim.xcodeproj -scheme AzPimMobile -configuration Debug \
 xcrun simctl install booted build/DD-ios/Build/Products/Debug-iphonesimulator/AzPim.app
 SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim.ios
 # screens: roles, eligible, activate, settings, history, detail, onboarding, fold (sheet open, turns to landscape
-# after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island), favorite
+# after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island;
+# SIMCTL_CHILD_AZPIM_LIVEACTIVITY_TAP=1 then opens its Extend link, showing the role's detail), favorite
 # (the chooser the Control Center control opens); widgets (writes the widget snapshot, then shows the widgets drawn
 # from it at their sizes; needs a signed build for the App Group, i.e. without CODE_SIGNING_ALLOWED=NO);
 # SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
