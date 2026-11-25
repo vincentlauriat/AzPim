@@ -958,6 +958,15 @@ system resolves a control's configuration in the widget extension, which holds n
 intent (`OpenFavoritesIntent`, an `OpenIntent`) runs in the app's process; the bundle adds the control under
 `if #available(iOS 18.0, *)`, so the deployment target stays iOS 17. Favorites are not synced between Mac and iPhone:
 the chooser lists the favorites of the iPhone's own store.
+**Favorites.** The iPhone builds and edits its own favorites (still not synced with the Mac). A role's detail, and
+an eligible row's context menu, have « Add to favorite »: the existing favorites (greyed out when they already hold the
+role) and « New favorite with this role »; a line, a haptic and a VoiceOver announcement confirm it. The Favorites
+screen (star in the toolbar, or Edit on the panel's favorites header; an empty state explains how to add one) lists
+them in order with their role count: Edit to reorder, swipe to delete (confirmed when the favorite holds roles), and a
+favorite's detail to rename it (`Validation.favoriteName`), set each role's duration (the Activation Sheet's
+`DurationPicker`, capped by the role's policy) and remove a role. Mac and iPhone run the same edits
+(`RoleStore+FavoriteEditing`, unit-tested on the Mac); each one posts `RoleStore.favoritesDidChange`, and the iPhone
+rewrites the widget snapshot right away.
 **Expiry notification.** The iPhone registers the same Extend / Dismiss category as the Mac. On iPhone, Extend opens
 the app (`.foreground`) and runs there, on the role's detail, after the launch refresh. An Extend deactivates, then
 re-activates with waits of 3, 6 and 12 s while Azure still reports the old activation: iOS does not guarantee that
@@ -975,7 +984,8 @@ SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim
 # screens: roles, eligible, activate, settings, history, detail, onboarding, fold (sheet open, turns to landscape
 # after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island;
 # SIMCTL_CHILD_AZPIM_LIVEACTIVITY_TAP=1 then opens its Extend link, showing the role's detail), favorite
-# (the chooser the Control Center control opens), empty (no active role: the empty dial); widgets (writes the widget snapshot, then shows the widgets drawn
+# (the chooser the Control Center control opens), favorites, favoritedetail, favoritesempty (the Favorites screen,
+# a favorite's detail, its empty state), empty (no active role: the empty dial); widgets (writes the widget snapshot, then shows the widgets drawn
 # from it at their sizes; needs a signed build for the App Group, i.e. without CODE_SIGNING_ALLOWED=NO);
 # SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
 ```

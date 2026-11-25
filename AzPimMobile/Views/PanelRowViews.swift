@@ -22,6 +22,8 @@ struct EligibleRoleRow: View {
     @ScaledMetric(relativeTo: .body) private var badgeSize: CGFloat = 34
     let role: EligibleRole
     let waiting: ActivationRecord?
+    /// The haptic's trigger when the context menu added the role to a favorite.
+    @State private var addedCount = 0
 
     private var isPending: Bool { waiting?.status == .pendingApproval }
 
@@ -45,7 +47,19 @@ struct EligibleRoleRow: View {
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onTapGesture { navigation.selection = role.id }
-        .contextMenu { menu }
+        .contextMenu {
+            menu
+            // Not in the VoiceOver actions (buttons only): VoiceOver adds from the role's detail.
+            Menu {
+                AddToFavoriteMenu(role: role) { favorite in
+                    addedCount += 1
+                    VoiceOverAnnouncer.post(String(localized: "Added to “\(favorite.name)”"))
+                }
+            } label: {
+                Label("Add to favorite", systemImage: "star")
+            }
+        }
+        .sensoryFeedback(.success, trigger: addedCount)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: "\(role.displayRoleName), \(role.displayScopeName), \(TypeTag.text(role.source))"))
         .accessibilityValue(spokenState)
