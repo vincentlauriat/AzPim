@@ -1,4 +1,5 @@
 #if DEBUG
+import ActivityKit
 import AzPimCore
 import SwiftData
 import SwiftUI
@@ -12,7 +13,8 @@ import UIKit
 /// Sheet open), `settings`, `history`, `detail` (Contributor selected: its detail, pushed in compact width, in the
 /// detail column in regular width), `fold` (Contributor selected and the Activation Sheet open, then the app turns to
 /// landscape after 4 s: on a Max that is a real compact → regular size-class change, as unfolding the iPhone Duo).
-/// `liveactivity` (the roles screen, and the Live Activity of the activation that ends first: go home or lock to see it).
+/// `liveactivity` (the roles screen, and the Live Activity of the activation that ends first: go home or lock to see it;
+/// `AZPIM_LIVEACTIVITY_TAP=1` then opens its Extend link).
 /// `favorite` (the favorite chooser that the Control Center control « Run Favorite » opens).
 /// `widgets` (writes the widgets' snapshot to the App Group, then shows the widgets drawn from it: `WidgetGallery`).
 /// `AZPIM_ORIENTATION=landscape` turns the app to landscape at launch (the regular layout on a Max).
@@ -82,6 +84,18 @@ enum MobileDemo {
             try? await Task.sleep(for: .milliseconds(250))
         }
         controller.sync()
+        await tapLiveActivityExtend()
+    }
+
+    /// `AZPIM_LIVEACTIVITY_TAP=1` (with `liveactivity`): opens the activity's Extend link as a tap would, through the
+    /// app's `onOpenURL` (a link the app opens itself is not confirmed by the system). The role's detail shows;
+    /// nothing is extended until Extend there.
+    private static func tapLiveActivityExtend() async {
+        guard ProcessInfo.processInfo.environment["AZPIM_LIVEACTIVITY_TAP"] != nil else { return }
+        try? await Task.sleep(for: .seconds(2))
+        guard let roleId = Activity<RoleActivityAttributes>.activities.first?.attributes.eligibleRoleId,
+              let url = WidgetSnapshot.roleURL(roleId) else { return }
+        await UIApplication.shared.open(url)
     }
 
     /// Turns the app to landscape (`AZPIM_ORIENTATION=landscape` at launch, `fold` after 4 s); simctl cannot rotate.

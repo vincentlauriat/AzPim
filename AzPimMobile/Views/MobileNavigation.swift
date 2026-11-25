@@ -21,12 +21,18 @@ final class MobileNavigation {
     /// The Control Center control: SwiftUI shows one sheet at a time, so any open sheet or question is closed first,
     /// otherwise the chooser would not appear (and would pop up later, once that sheet closed).
     func chooseFavorite() {
+        dismissPresented()
+        choosingFavorite = true
+    }
+    /// Closes every sheet and the Deactivate question, so what an outside request (Control, Live Activity) shows
+    /// is not hidden behind, or acted on under, something the user left open.
+    func dismissPresented() {
         activating = nil
         askingFavorite = nil
+        choosingFavorite = false
         deactivating = nil
         showSettings = false
         showHistory = false
-        choosingFavorite = true
     }
     /// Last Extend result of each role, by eligible role id (shown on the role detail, announced to VoiceOver).
     var extendResults: [String: String] = [:]

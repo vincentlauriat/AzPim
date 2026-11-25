@@ -58,8 +58,12 @@ struct MobileRootView: View {
         } message: { assignment in
             Text(assignment.displayScopeName)
         }
-        // Favorites widget: the favorite's confirmation (MSAL's redirect stays with the App's handler).
-        .onOpenURL { navigation.openFavorite($0, store: store) }
+        // Favorites widget: the favorite's confirmation; Live Activity's Extend: the role's detail (MSAL's redirect stays
+        // with the App's handler).
+        .onOpenURL { url in
+            navigation.openFavorite(url, store: store)
+            navigation.openRole(url, store: store)
+        }
         // A tapped expiry notification, or its Extend (which opens the app on iPhone): shows that role.
         .onChange(of: store.focusedRoleId, initial: true) { _, id in
             guard let id else { return }

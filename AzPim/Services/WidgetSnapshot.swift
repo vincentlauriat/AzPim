@@ -115,4 +115,27 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
                 .first(where: { $0.name == "id" })?.value else { return nil }
         return UUID(uuidString: value)
     }
+
+    /// `azpim://role?id=<eligible role id>` (the Live Activity's Extend): opens the iPhone app on the role's detail,
+    /// where Extend runs in the foreground. Never extends by itself: any app can open the link. The same link as the
+    /// Mac's `DeepLink.role(id:)` (the widget extension does not link AzPimCore): the id (`<account id>|<schedule id>`)
+    /// is escaped down to the unreserved characters.
+    static func roleURL(_ eligibleRoleId: String) -> URL? {
+        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        guard !eligibleRoleId.isEmpty,
+              let encoded = eligibleRoleId.addingPercentEncoding(withAllowedCharacters: unreserved) else { return nil }
+        var components = URLComponents()
+        components.scheme = "azpim"
+        components.host = "role"
+        components.percentEncodedQueryItems = [URLQueryItem(name: "id", value: encoded)]
+        return components.url
+    }
+
+    /// The eligible role id of an `azpim://role?id=<id>` link, else nil (an empty id too).
+    static func roleID(in url: URL) -> String? {
+        guard url.scheme == "azpim", url.host() == "role",
+              let value = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+                .first(where: { $0.name == "id" })?.value, !value.isEmpty else { return nil }
+        return value
+    }
 }

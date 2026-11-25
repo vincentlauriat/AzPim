@@ -45,7 +45,7 @@ struct AzPimMobileApp: App {
         let notifications = NotificationScheduler()
         let roleStore = RoleStore(context: container.mainContext, accounts: accountService, notifications: notifications)
         // Extend opens the app on iPhone (`NotificationScheduler.extendOpensApp`): the role is shown while it runs, and
-        // a cold launch first waits for the launch refresh, as the Live Activity's Extend does.
+        // a cold launch first waits for the launch refresh, as the Live Activity's Extend link does.
         notifications.onExtend = { roleId in
             roleStore.focusedRoleId = roleId
             do {
@@ -65,11 +65,9 @@ struct AzPimMobileApp: App {
         Task { @MainActor in roleStore.start() }
     }
 
-    /// The Live Activity follows every refresh; its Extend button runs the store's Extend in this process.
+    /// The Live Activity follows every refresh; its Extend button opens the role's detail (`MobileNavigation.openRole`).
     private static func liveActivity(for store: RoleStore) -> LiveActivityController {
-        let controller = LiveActivityController(store: store)
-        ExtendRoleActivityIntent.register(store: store)
-        return controller
+        LiveActivityController(store: store)
     }
 
     /// The Control Center control « Run Favorite » opens the favorite chooser; a favorite runs only from its sheet.

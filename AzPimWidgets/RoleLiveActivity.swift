@@ -1,5 +1,4 @@
 import ActivityKit
-import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -134,9 +133,12 @@ private struct ExtendButton: View {
     let roleId: String
     let isStale: Bool
 
+    /// A link, not an intent button: an intent runs in the background, where iOS may suspend AzPim between the
+    /// deactivation and the re-activation of an Extend. The link opens the role's detail, whose Extend runs in the
+    /// foreground (`MobileNavigation.openRole`).
     var body: some View {
-        if !isStale {
-            Button(intent: ExtendRoleActivityIntent(eligibleRoleId: roleId)) {
+        if !isStale, let url = WidgetSnapshot.roleURL(roleId) {
+            Link(destination: url) {
                 Label("Extend", systemImage: "clock.arrow.circlepath").font(.subheadline.weight(.semibold))
             }
             .buttonStyle(.borderedProminent)

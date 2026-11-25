@@ -932,9 +932,11 @@ Extend button. The widget extension `AzPimWidgets` only draws it: it holds no st
 `LiveActivityController` starts, updates or ends the one activity after every refresh (activation, Extend,
 deactivation, expiry) and when the app comes to the foreground; the decision (`LiveActivityPlan`) is platform-neutral
 and tested on Mac. There is no push server, so an activity only *starts* while AzPim is in the foreground: a role
-activated on another device appears when the app is next opened. Extend is a `LiveActivityIntent` that runs in the
-app's process (unlocked device required) and calls the store's Extend, never an interactive sign-in; its result is
-posted as a notification. Settings › Live Activity turns it off.
+activated on another device appears when the app is next opened. Extend is a `Link` to `azpim://role?id=<eligible role
+id>`: it unlocks and opens AzPim on the role's detail, where Extend runs in the foreground, as the expiry
+notification's Extend does. Never in the background: an Extend deactivates, then re-activates with waits of up to 12 s,
+and iOS could suspend a background launch between the two, leaving the role deactivated. The link never extends by
+itself, since any app can open it: the detail waits for a tap on Extend. Settings › Live Activity turns it off.
 **Widgets.** *Active roles* (home screen small and medium; lock screen rectangular, circular and inline) shows the
 roles the panel shows, the one ending first on top, with a countdown and a dial (`Text(timerInterval:)`,
 `ProgressView(timerInterval:)`: they tick on their own) and « +N »; *Favorites* (small: the first favorite; medium: up
@@ -966,7 +968,8 @@ xcodebuild -project AzPim.xcodeproj -scheme AzPimMobile -configuration Debug \
 xcrun simctl install booted build/DD-ios/Build/Products/Debug-iphonesimulator/AzPim.app
 SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim.ios
 # screens: roles, eligible, activate, settings, history, detail, onboarding, fold (sheet open, turns to landscape
-# after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island), favorite
+# after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island;
+# SIMCTL_CHILD_AZPIM_LIVEACTIVITY_TAP=1 then opens its Extend link, showing the role's detail), favorite
 # (the chooser the Control Center control opens); widgets (writes the widget snapshot, then shows the widgets drawn
 # from it at their sizes; needs a signed build for the App Group, i.e. without CODE_SIGNING_ALLOWED=NO);
 # SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
