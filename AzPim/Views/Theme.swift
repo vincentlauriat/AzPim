@@ -25,6 +25,8 @@ enum Theme {
     /// Favorites, PIM groups.
     static let violet = Tone.violet.color
     static let slate = Tone.slate.color
+    /// Entra roles (iPhone source icons).
+    static let teal = Tone.teal.color
 
     /// Fill of a prominent button (Activate): its white label keeps 4.5:1 or more.
     static let accentFill = Tone.accentFill.color
@@ -44,9 +46,11 @@ enum Theme {
         static let danger = Tone(light: 0xA62529, dark: 0xF78E93, lightContrast: 0x9A1A1E, darkContrast: 0xFF9EA1)
         static let violet = Tone(light: 0x5026F2, dark: 0xB19EFF, lightContrast: 0x4A2AC9, darkContrast: 0xC2B5FF)
         static let slate = Tone(light: 0x525A65, dark: 0xA3ABB6, lightContrast: 0x3A414A, darkContrast: 0xC4CBD3)
+        static let teal = Tone(light: 0x085E68, dark: 0x3CC4CF, lightContrast: 0x075A63, darkContrast: 0x6FDDE6)
         static let accentFill = Tone(light: 0x0F6CBD, dark: 0x0F6CBD, lightContrast: 0x0A4F8F, darkContrast: 0x0A4F8F)
         static let text: [(name: String, tone: Tone)] = [("accent", accent), ("active", active), ("warning", warning),
-                                                         ("danger", danger), ("violet", violet), ("slate", slate)]
+                                                         ("danger", danger), ("violet", violet), ("slate", slate),
+                                                         ("teal", teal)]
 
         func hex(dark isDark: Bool, increasedContrast: Bool) -> UInt32 {
             switch (isDark, increasedContrast) {

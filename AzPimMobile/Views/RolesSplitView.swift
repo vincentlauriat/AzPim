@@ -93,15 +93,24 @@ struct RolesSplitView: View {
     }
 }
 
-/// A line of the roles list: name, type and scope, and the state (time left, eligible, permanent).
+/// A line of the roles list, in the panel's style: a small dial for an activation, else the source square; name,
+/// scope and the state (time left, eligible, permanent).
 private struct RoleListRow: View {
     @Environment(RoleStore.self) private var store
+    @ScaledMetric(relativeTo: .body) private var badgeSize: CGFloat = 34
     let row: RoleRow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            RoleLabel(name: row.displayRoleName, scope: row.displayScopeName, source: row.source, tenant: nil)
-            RoleStateText(row: row, now: store.now).font(.footnote)
+        HStack(spacing: 12) {
+            if let assignment = row.assignment, assignment.endAt != nil {
+                ActivationDial(assignment: assignment, size: min(badgeSize, 56))
+            } else {
+                SourceBadge(source: row.source, size: min(badgeSize, 56))
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                RoleTitle(name: row.displayRoleName, scope: row.displayScopeName)
+                RoleStateText(row: row, now: store.now).font(.footnote)
+            }
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)

@@ -836,6 +836,16 @@
         }
       }
     },
+    "Activate an eligible role below: its countdown shows here." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez un rôle éligible ci-dessous : son compte à rebours s’affichera ici."
+          }
+        }
+      }
+    },
     "Activate now" : {
       "localizations" : {
         "fr" : {
@@ -908,6 +918,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Active tous les rôles d’un favori AzPim après confirmation de ce que chacun enverra. Demande une justification ou un ticket quand la stratégie d’un rôle l’exige."
+          }
+        }
+      }
+    },
+    "Activates the roles of this favorite" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active les rôles de ce favori"
           }
         }
       }
@@ -2559,6 +2579,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Icône + nombre + temps"
+          }
+        }
+      }
+    },
+    "In progress" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En cours"
           }
         }
       }

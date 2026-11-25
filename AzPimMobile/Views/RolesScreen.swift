@@ -2,14 +2,16 @@ import AzPimCore
 import SwiftData
 import SwiftUI
 
-/// The iPhone panel (compact width: iPhone, iPhone Duo folded): active roles with their countdown, favorites, eligible
-/// roles grouped by type. Same rules as the Mac panel (`PanelModel`: one account per identity, one row per role, held
-/// roles left out of the eligible list). Tap an eligible role → Activation Sheet; Deactivate on an active one; swipe
-/// an activation to extend it; Details (context menu, VoiceOver action) pushes the role detail; pull to refresh.
+/// The iPhone panel (compact width: iPhone, iPhone Duo folded), "Dials" design: the activation that ends first as a hero
+/// card with a large dial, the other active roles as small cards, favorites as chips, eligible roles grouped by type.
+/// Same rules as the Mac panel (`PanelModel`: one account per identity, one row per role, held roles left out of the
+/// eligible list). Tap any role → its detail (`navigation.selection`); Activate / Deactivate on the row or card; swipe
+/// an activation to extend it; Extend and Details also in context menus and VoiceOver actions; pull to refresh.
 /// Sheets and the selection live in `MobileNavigation`, so they survive a switch to the split view.
 struct RolesScreen: View {
     @Environment(RoleStore.self) private var store
     @Environment(MobileNavigation.self) private var navigation
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Query(sort: \Account.sortOrder) private var accountList: [Account]
     @Query(sort: \ActiveAssignment.endAt) private var assignments: [ActiveAssignment]
     @Query(sort: \Favorite.sortOrder) private var favorites: [Favorite]
@@ -42,11 +44,7 @@ struct RolesScreen: View {
                         if !roles.isEmpty {
                             Section(type.title) {
                                 ForEach(roles) { role in
-                                    EligibleRoleRow(role: role, waiting: model.waiting(role, in: pendingRecords, now: store.now)) {
-                                        navigation.activating = $0
-                                    }
-                                    .contextMenu { detailsButton(role.id) }
-                                    .accessibilityActions { detailsButton(role.id) }
+                                    EligibleRoleRow(role: role, waiting: model.waiting(role, in: pendingRecords, now: store.now))
                                 }
                             }
                             .id(type.title)
@@ -59,6 +57,7 @@ struct RolesScreen: View {
                 #endif
             }
             .listStyle(.insetGrouped)
+            .listSectionSpacing(.compact)
             .refreshable { await store.refresh() }
             .navigationTitle("AzPim")
             .toolbar { MobileToolbar() }
@@ -66,66 +65,77 @@ struct RolesScreen: View {
         }
     }
 
-    private func detailsButton(_ rowId: String) -> some View {
-        Button { navigation.selection = rowId } label: { Label("Details", systemImage: "info.circle") }
-    }
+    // MARK: Active roles
 
-    // MARK: Sections
-
-    private func activeSection(_ model: PanelModel) -> some View {
+    /// The hero, then the other activations and the permanent assignments: a 2-column grid, or one card per row at
+    /// accessibility sizes (where each activation gets its swipe back). No active role: the empty dial.
+    @ViewBuilder private func activeSection(_ model: PanelModel) -> some View {
+        let others = Array(model.activations.dropFirst()) + model.permanents
         Section {
-            if model.activations.isEmpty && model.permanents.isEmpty {
-                Text("No active role").foregroundStyle(.secondary)
+            if let hero = model.activations.first {
+                HeroCard(assignment: hero.assignment, alsoPermanent: hero.alsoPermanent)
+                    .id(hero.assignment.id)
+                    .cardRow()
+                    .swipeActions(edge: .leading) { extendSwipe(hero.assignment) }
+            } else if model.permanents.isEmpty {
+                EmptyDialCard().cardRow()
             }
-            ForEach(model.activations) { row in
-                ActiveRoleRow(assignment: row.assignment, alsoPermanent: row.alsoPermanent) { navigation.deactivating = $0 }
-                    .swipeActions(edge: .leading) {
-                        if let role = row.assignment.eligibleRole, !store.isBusy(row.assignment) {
-                            Button("Extend") { navigation.extend(role, store: store) }.tint(Theme.accentFill)
-                        }
-                    }
-                    .contextMenu { activeMenu(row.assignment) }
-                    .accessibilityActions { activeMenu(row.assignment) }
-            }
-            ForEach(model.permanents) { row in
-                ActiveRoleRow(assignment: row.assignment, alsoPermanent: false, deactivate: nil)
-                    .contextMenu { detailsButton(row.assignment.id) }
-                    .accessibilityActions { detailsButton(row.assignment.id) }
+            if typeSize.isAccessibilitySize {
+                ForEach(others) { row in
+                    ActiveRoleCard(assignment: row.assignment, alsoPermanent: row.alsoPermanent)
+                        .cardRow()
+                        .swipeActions(edge: .leading) { extendSwipe(row.assignment) }
+                }
+            } else if !others.isEmpty {
+                grid(others).cardRow()
             }
         } header: {
+            // A heading for the VoiceOver rotor; the hero speaks for itself on screen.
             Text("Active roles")
         }
     }
 
-    /// Extend and Details of an activation (its row in the roles list is its eligible role's). An activation whose
-    /// eligibility is unknown (its source failed, or it was removed) has no row in the roles list: no Details.
-    @ViewBuilder private func activeMenu(_ assignment: ActiveAssignment) -> some View {
-        if let role = assignment.eligibleRole {
-            if !store.isBusy(assignment) {
-                Button { navigation.extend(role, store: store) } label: { Label("Extend", systemImage: "clock.arrow.circlepath") }
+    private func grid(_ rows: [PanelAssignment]) -> some View {
+        Grid(horizontalSpacing: 12, verticalSpacing: 12) {
+            // Rows identified by their first role, cards by their role: a dial never animates from one role to another.
+            ForEach(Array(stride(from: 0, to: rows.count, by: 2)), id: \.self) { index in
+                GridRow {
+                    ForEach(rows[index..<min(index + 2, rows.count)]) { row in
+                        ActiveRoleCard(assignment: row.assignment, alsoPermanent: row.alsoPermanent)
+                    }
+                    if index + 1 == rows.count { Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]) }
+                }
+                .id(rows[index].id)
             }
-            detailsButton(role.id)
         }
     }
 
+    @ViewBuilder private func extendSwipe(_ assignment: ActiveAssignment) -> some View {
+        if let role = assignment.eligibleRole, !store.isBusy(assignment), !store.isOffline {
+            Button("Extend") { navigation.extend(role, store: store) }.tint(Theme.accentFill)
+        }
+    }
+
+    // MARK: Favorites
+
     private var favoritesSection: some View {
         Section("Favorites") {
-            ForEach(favorites) { favorite in
-                Button {
-                    Task { await start(favorite) }
-                } label: {
-                    HStack {
-                        Label(favorite.name, systemImage: "star.fill").foregroundStyle(Theme.violet)
-                        Spacer()
-                        if runningFavorite == favorite.id || store.runningFavorites.contains(favorite.id) {
-                            ProgressView()
-                        } else {
-                            Text("\(favorite.items.count) roles").font(.footnote).foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(favorites) { favorite in
+                        FavoriteChip(name: favorite.name,
+                                     running: runningFavorite == favorite.id || store.runningFavorites.contains(favorite.id)) {
+                            Task { await start(favorite) }
                         }
+                        .disabled(favorite.items.isEmpty || runningFavorite != nil || store.isOffline)
                     }
                 }
-                .disabled(favorite.items.isEmpty || runningFavorite != nil || store.isOffline)
+                .padding(.vertical, 2)
             }
+            .contentMargins(.horizontal, 16, for: .scrollContent)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             if let toast = store.favoriteToast {
                 let name = favorites.first { $0.id == toast.favoriteId }?.name ?? String(localized: "Favorite")
                 Text("\(name): \(toast.text)").font(.footnote).foregroundStyle(.secondary)

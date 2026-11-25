@@ -926,6 +926,11 @@ unfolded, any iPhone in landscape) two panes, the filtered roles list (`RoleRows
 to the selected role's detail. The panes are laid out by hand: `NavigationSplitView` overlays its sidebar while the
 UIKit trait is still compact at that width. The selection, open sheets and filters live in `MobileNavigation`, above
 the layout switch, so a fold, an unfold or a rotation keeps them.
+The panel follows the app icon's countdown dial ("Dials" design): the activation that ends first is a hero card with a
+large progress ring (time left over its window, `Countdown.fraction`; green, orange under 15 min, red under 5; static
+with Reduce Motion), Extend and Deactivate; the other active roles are small cards with a mini ring (or the source and
+« Permanent »), favorites are chips, eligible roles show their source in a tinted square with an Activate button.
+Tapping any role opens its detail (also headed by its dial); each card is one VoiceOver element with its actions.
 **Live Activity.** The activated role that ends first stays on the Lock Screen and in the Dynamic Island (compact,
 minimal, expanded) with a countdown (`Text(timerInterval:)`, it ticks without updates; `staleDate` is the end) and an
 Extend button. The widget extension `AzPimWidgets` only draws it: it holds no store, token or network code.
@@ -970,7 +975,7 @@ SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim
 # screens: roles, eligible, activate, settings, history, detail, onboarding, fold (sheet open, turns to landscape
 # after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island;
 # SIMCTL_CHILD_AZPIM_LIVEACTIVITY_TAP=1 then opens its Extend link, showing the role's detail), favorite
-# (the chooser the Control Center control opens); widgets (writes the widget snapshot, then shows the widgets drawn
+# (the chooser the Control Center control opens), empty (no active role: the empty dial); widgets (writes the widget snapshot, then shows the widgets drawn
 # from it at their sizes; needs a signed build for the App Group, i.e. without CODE_SIGNING_ALLOWED=NO);
 # SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
 ```

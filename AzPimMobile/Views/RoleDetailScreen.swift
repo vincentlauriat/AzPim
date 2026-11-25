@@ -9,6 +9,7 @@ import SwiftUI
 struct RoleDetailScreen: View {
     @Environment(RoleStore.self) private var store
     @Environment(MobileNavigation.self) private var navigation
+    @ScaledMetric(relativeTo: .title) private var dialSize: CGFloat = 68
     @Query(sort: \Account.sortOrder) private var accounts: [Account]
     @Query(sort: \EligibleRole.roleName) private var roles: [EligibleRole]
     @Query(sort: \ActiveAssignment.roleName) private var assignments: [ActiveAssignment]
@@ -44,20 +45,33 @@ struct RoleDetailScreen: View {
 
     // MARK: Sections
 
+    /// The panel's look: the activation's dial, else the source square, next to the name, scope and state; under
+    /// them when that does not fit on one line (narrow detail column, long name, large Dynamic Type).
     private func header(_ row: RoleRow) -> some View {
         Section {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Image(systemName: SourceIcon.name(row.source))
-                        .foregroundStyle(row.assignment != nil ? Theme.active : Theme.accent)
-                        .accessibilityHidden(true)
-                    Text(row.displayRoleName).font(.title2.weight(.semibold))
-                        .accessibilityAddTraits(.isHeader)
-                }
-                Text(row.displayScopeName).foregroundStyle(.secondary)
-                RoleStateText(row: row, now: store.now)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 14) { headerMark(row); headerText(row).fixedSize() }
+                VStack(alignment: .leading, spacing: 10) { headerMark(row); headerText(row) }
             }
-            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 6)
+        }
+    }
+
+    @ViewBuilder private func headerMark(_ row: RoleRow) -> some View {
+        if let assignment = row.assignment, assignment.endAt != nil {
+            ActivationDial(assignment: assignment, size: min(dialSize, 110))
+        } else {
+            SourceBadge(source: row.source, size: min(dialSize * 0.75, 80))
+        }
+    }
+
+    private func headerText(_ row: RoleRow) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(row.displayRoleName).font(.title2.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            Text(row.displayScopeName).foregroundStyle(.secondary)
+            RoleStateText(row: row, now: store.now).font(.headline)
         }
     }
 
@@ -71,7 +85,7 @@ struct RoleDetailScreen: View {
                         Label("Extend", systemImage: "clock.arrow.circlepath")
                     }
                     .disabled(store.isOffline)
-                    let tooRecent = store.now.timeIntervalSince(assignment.startAt) < 300
+                    let tooRecent = assignment.isTooRecentToDeactivate(at: store.now)
                     Button(role: .destructive) { navigation.deactivating = assignment } label: {
                         Label("Deactivate…", systemImage: "stop.circle")
                     }
@@ -80,7 +94,7 @@ struct RoleDetailScreen: View {
                         Text("Can't deactivate within 5 minutes of activation.").font(.footnote).foregroundStyle(.secondary)
                     }
                 } else {
-                    let block = activateBlock(role)
+                    let block = role.activateBlock(in: store)
                     Button { navigation.activating = role } label: {
                         Label("Activate…", systemImage: "bolt.fill")
                     }
@@ -139,15 +153,6 @@ struct RoleDetailScreen: View {
             }
             ForEach(mine.prefix(10)) { record in RecordRow(record: record) }
         }
-    }
-
-    /// Read once per body; `store.now` follows the store clock (a sent request's 15-minute window).
-    private func activateBlock(_ role: EligibleRole) -> ActivationBlock? {
-        // Duration and form are the sheet's: only the state is checked here.
-        ActivationBlock.reason(.init(inProgress: store.busy.contains(role.id),
-                                     pending: store.waitingRequest(for: role, at: store.now) != nil,
-                                     offline: store.isOffline, minutes: ActivationDuration.minMinutes(policyMax: role.maxDuration),
-                                     policyMax: role.maxDuration, requiresJustification: false))
     }
 
     private func sourceName(_ source: RoleSource) -> String {

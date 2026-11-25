@@ -35,6 +35,15 @@ enum Countdown {
         return SpokenDuration.text(seconds)
     }
 
+    /// Share of the activation still left, 0...1 (iPhone dials): 1 at `start`, 0 at `end`. Nil without an end;
+    /// 0 when the window is empty or reversed.
+    static func fraction(start: Date, end: Date?, now: Date) -> Double? {
+        guard let end else { return nil }
+        let window = end.timeIntervalSince(start)
+        guard window > 0 else { return 0 }
+        return min(1, max(0, end.timeIntervalSince(now) / window))
+    }
+
     private static func clock(_ total: Int) -> String {
         Duration.seconds(total).formatted(.time(pattern: .minuteSecond).locale(AppLanguage.locale))
     }
