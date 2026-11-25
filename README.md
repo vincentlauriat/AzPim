@@ -928,20 +928,29 @@ UIKit trait is still compact at that width. The selection, open sheets and filte
 the layout switch, so a fold, an unfold or a rotation keeps them.
 **Live Activity.** The activated role that ends first stays on the Lock Screen and in the Dynamic Island (compact,
 minimal, expanded) with a countdown (`Text(timerInterval:)`, it ticks without updates; `staleDate` is the end) and an
-Extend button. The widget extension `AzPimWidgets` only draws it: it holds no store, token or network code, and no App
-Group. `LiveActivityController` starts, updates or ends the one activity after every refresh (activation, Extend,
+Extend button. The widget extension `AzPimWidgets` only draws it: it holds no store, token or network code.
+`LiveActivityController` starts, updates or ends the one activity after every refresh (activation, Extend,
 deactivation, expiry) and when the app comes to the foreground; the decision (`LiveActivityPlan`) is platform-neutral
 and tested on Mac. There is no push server, so an activity only *starts* while AzPim is in the foreground: a role
 activated on another device appears when the app is next opened. Extend is a `LiveActivityIntent` that runs in the
 app's process (unlocked device required) and calls the store's Extend, never an interactive sign-in; its result is
 posted as a notification. Settings › Live Activity turns it off.
+**Widgets.** *Active roles* (home screen small and medium; lock screen rectangular, circular and inline) shows the
+roles the panel shows, the one ending first on top, with a countdown and a dial (`Text(timerInterval:)`,
+`ProgressView(timerInterval:)`: they tick on their own) and « +N »; *Favorites* (small: the first favorite; medium: up
+to four) opens the tapped favorite's grouped sheet in the app (`azpim://favorite?id=<uuid>`), which waits for Activate:
+a widget never activates anything. The app writes a small JSON snapshot (`WidgetSnapshot`: display names, source
+symbol, start and end, favorite names and role counts, as the panel shows them; no token, account or tenant) atomically to the App
+Group `group.fr.vincentlauriat.azpim` after every refresh and when it enters or leaves the foreground, and reloads the
+widgets only when the roles or favorites changed. The extension only reads that file. Its timeline has an entry at
+each role's end and at the 15 and 5 minute colour thresholds, so an expired role leaves the widget without the app.
 **Control Center (iOS 18).** The control « Run Favorite » (Control Center, Lock Screen, Action button) opens AzPim on
 a favorite chooser; the chosen favorite's grouped sheet lists what each role will send, and nothing is activated until
 Activate is tapped (a single favorite opens its sheet at once). The control is not configurable with a favorite: the
-system resolves a control's configuration in the widget extension, which cannot read the favorites (no App Group). Its
+system resolves a control's configuration in the widget extension, which holds no favorites store. Its
 intent (`OpenFavoritesIntent`, an `OpenIntent`) runs in the app's process; the bundle adds the control under
-`if #available(iOS 18.0, *)`, so the deployment target stays iOS 17. Favorites are still created on the Mac only and
-are not synced, so on iPhone the chooser lists the favorites of the iPhone's own store.
+`if #available(iOS 18.0, *)`, so the deployment target stays iOS 17. Favorites are not synced between Mac and iPhone:
+the chooser lists the favorites of the iPhone's own store.
 **Expiry notification.** The iPhone registers the same Extend / Dismiss category as the Mac. On iPhone, Extend opens
 the app (`.foreground`) and runs there, on the role's detail, after the launch refresh. An Extend deactivates, then
 re-activates with waits of 3, 6 and 12 s while Azure still reports the old activation: iOS does not guarantee that
@@ -958,7 +967,8 @@ xcrun simctl install booted build/DD-ios/Build/Products/Debug-iphonesimulator/Az
 SIMCTL_CHILD_AZPIM_DEMO=roles xcrun simctl launch booted fr.vincentlauriat.azpim.ios
 # screens: roles, eligible, activate, settings, history, detail, onboarding, fold (sheet open, turns to landscape
 # after 4 s), liveactivity (starts the Live Activity; open another app to see it in the Dynamic Island), favorite
-# (the chooser the Control Center control opens);
+# (the chooser the Control Center control opens); widgets (writes the widget snapshot, then shows the widgets drawn
+# from it at their sizes; needs a signed build for the App Group, i.e. without CODE_SIGNING_ALLOWED=NO);
 # SIMCTL_CHILD_AZPIM_ORIENTATION=landscape starts in landscape. Wait about 10 s before a screenshot.
 ```
 

@@ -11,6 +11,8 @@ struct AzPimMobileApp: App {
     @State private var accounts: AccountService
     @State private var store: RoleStore
     @State private var liveActivity: LiveActivityController
+    /// The home-screen and lock-screen widgets' snapshot (2.0 step 4b).
+    private let widgetSnapshots: WidgetSnapshotWriter
     /// Owned here, not by the root view: the Control Center control's intent can run on a cold launch, before any view.
     @State private var navigation: MobileNavigation
 
@@ -24,6 +26,8 @@ struct AzPimMobileApp: App {
             let controller = Self.liveActivity(for: demo.store)
             controller.demoAllowed = MobileDemo.screen == "liveactivity"
             _liveActivity = State(initialValue: controller)
+            widgetSnapshots = WidgetSnapshotWriter(store: demo.store)
+            widgetSnapshots.demoAllowed = MobileDemo.screen == "widgets"
             let demoNavigation = MobileDemo.navigation(in: demo.store)
             Self.registerControl(navigation: demoNavigation)
             _navigation = State(initialValue: demoNavigation)
@@ -54,6 +58,7 @@ struct AzPimMobileApp: App {
         notifications.onOpen = { roleId in roleStore.focusedRoleId = roleId }
         _store = State(initialValue: roleStore)
         _liveActivity = State(initialValue: Self.liveActivity(for: roleStore))
+        widgetSnapshots = WidgetSnapshotWriter(store: roleStore)
         let mobileNavigation = MobileNavigation()
         Self.registerControl(navigation: mobileNavigation)
         _navigation = State(initialValue: mobileNavigation)
@@ -91,6 +96,7 @@ struct AzPimMobileApp: App {
         MobileRootView(navigation: navigation)
             .task { await MobileDemo.applyOrientation() }
             .task { await MobileDemo.startLiveActivity(liveActivity) }
+            .overlay { if MobileDemo.screen == "widgets" { WidgetGallery() } }
         #else
         MobileRootView(navigation: navigation)
         #endif
