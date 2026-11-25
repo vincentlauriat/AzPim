@@ -448,6 +448,56 @@
         }
       }
     },
+    "+%lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld"
+          }
+        }
+      }
+    },
+    "+%lld favorites" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%lld favorite"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%lld favorites"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%lld favori"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%lld favoris"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "+%lld other active roles" : {
       "localizations" : {
         "en" : {
@@ -1275,6 +1325,16 @@
     "AzPim" : {
       "shouldTranslate" : false
     },
+    "AzPim Screen" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran d’AzPim"
+          }
+        }
+      }
+    },
     "AzPim app registration" : {
       "localizations" : {
         "fr" : {
@@ -1819,6 +1879,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossible d’exécuter le lien."
+          }
+        }
+      }
+    },
+    "Create favorites in AzPim." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créez des favoris dans AzPim."
           }
         }
       }
@@ -3012,6 +3082,16 @@
         }
       }
     },
+    "No Favorites" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun favori"
+          }
+        }
+      }
+    },
     "No account" : {
       "localizations" : {
         "fr" : {
@@ -3128,6 +3208,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucun favori sélectionné"
+          }
+        }
+      }
+    },
+    "No favorites" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun favori"
           }
         }
       }
@@ -3348,6 +3438,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrir les réglages d’ouverture"
+          }
+        }
+      }
+    },
+    "Open a favorite's confirmation in AzPim." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez la confirmation d’un favori dans AzPim."
+          }
+        }
+      }
+    },
+    "Opens AzPim on your favorites. Nothing is activated until you confirm." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvre AzPim sur vos favoris. Rien n’est activé avant votre confirmation."
           }
         }
       }
@@ -3922,6 +4032,16 @@
         }
       }
     },
+    "Screen" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran"
+          }
+        }
+      }
+    },
     "Search" : {
       "localizations" : {
         "fr" : {
@@ -4274,6 +4394,16 @@
         }
       }
     },
+    "This iPhone has no favorite with roles yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet iPhone n’a encore aucun favori avec des rôles."
+          }
+        }
+      }
+    },
     "This role is no longer eligible." : {
       "localizations" : {
         "fr" : {
@@ -4496,6 +4626,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pourquoi avez-vous besoin de ce rôle ?"
+          }
+        }
+      }
+    },
+    "Your active roles and the time left on each." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos rôles actifs et le temps restant pour chacun."
           }
         }
       }

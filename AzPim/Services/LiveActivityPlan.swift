@@ -47,16 +47,30 @@ enum LiveActivityPlan {
 
     /// `shown`: the running activity, nil when there is none. `enabled`: the user setting. `canStart`: an activity can
     /// only be requested while the app is in the foreground (no push server); updating and ending work in the background.
-    static func decide(candidates: [Candidate], shown: Shown?, enabled: Bool, canStart: Bool, now: Date) -> Decision {
+    /// `held`: eligible role ids being extended or extended moments ago. An Extend deactivates, then activates again,
+    /// and Azure may list the new activation a little later: meanwhile the shown role is kept, not ended (once ended,
+    /// the activity could not come back from the background).
+    static func decide(candidates: [Candidate], shown: Shown?, enabled: Bool, canStart: Bool, now: Date,
+                       held: Set<String> = []) -> Decision {
+        let live = candidates.filter { $0.endAt > now }
+        if enabled, let shown, held.contains(shown.eligibleRoleId),
+           !live.contains(where: { $0.eligibleRoleId == shown.eligibleRoleId }) {
+            return .none
+        }
         guard enabled, let target = target(candidates, now: now) else { return shown == nil ? .none : .end }
         guard let shown else { return canStart ? .start(target) : .none }
         if shown.eligibleRoleId != target.role.eligibleRoleId {
-            // Without the foreground the replacement could not start: keep showing a live role rather than nothing,
-            // unless the shown one is no longer among the activations (ended or deactivated).
             if canStart { return .replace(target) }
-            return candidates.contains { $0.eligibleRoleId == shown.eligibleRoleId && $0.endAt > now } ? .none : .end
+            // Without the foreground the replacement could not start: keep the shown role while it is live, with its
+            // own new end and count (after an Extend that ended once AzPim left the foreground, it ends later than
+            // another role now), or end the activity when the shown role is no longer active.
+            guard let kept = live.first(where: { $0.eligibleRoleId == shown.eligibleRoleId }) else { return .end }
+            return refresh(shown, to: Target(role: kept, otherActive: live.count - 1))
         }
-        if shown.endAt == target.role.endAt && shown.otherActive == target.otherActive { return .none }
-        return .update(target)
+        return refresh(shown, to: target)
+    }
+
+    private static func refresh(_ shown: Shown, to target: Target) -> Decision {
+        shown.endAt == target.role.endAt && shown.otherActive == target.otherActive ? .none : .update(target)
     }
 }

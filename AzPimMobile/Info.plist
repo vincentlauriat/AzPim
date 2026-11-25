@@ -33,6 +33,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>msauth.fr.vincentlauriat.azpim.ios</string>
+				<string>azpim</string>
 			</array>
 		</dict>
 	</array>

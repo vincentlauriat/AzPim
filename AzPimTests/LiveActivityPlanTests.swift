@@ -61,15 +61,35 @@ struct LiveActivityPlanTests {
     }
 
     /// Another role ends first (Extend pushed the shown one later, or a shorter activation): a new activity, since
-    /// the role is a static attribute. In the background it cannot start: the shown role stays while still live.
+    /// the role is a static attribute. In the background it cannot start: the shown role stays while still live, with
+    /// its new end (an Extend that ended once AzPim left the foreground), so it never shows "Expired" at the old end.
     @Test func anotherRoleEndingFirstReplacesTheActivityInTheForeground() {
         let extended = candidate("a", in: 180), soon = candidate("b", in: 30)
         let running = LiveActivityPlan.Shown(eligibleRoleId: "a", endAt: now.addingTimeInterval(600), otherActive: 1)
         #expect(LiveActivityPlan.decide(candidates: [extended, soon], shown: running, enabled: true, canStart: true,
                                         now: now) == .replace(.init(role: soon, otherActive: 1)))
         #expect(LiveActivityPlan.decide(candidates: [extended, soon], shown: running, enabled: true, canStart: false,
+                                        now: now) == .update(.init(role: extended, otherActive: 1)))
+        let current = LiveActivityPlan.Shown(eligibleRoleId: "a", endAt: extended.endAt, otherActive: 1)
+        #expect(LiveActivityPlan.decide(candidates: [extended, soon], shown: current, enabled: true, canStart: false,
                                         now: now) == .none)
         #expect(LiveActivityPlan.decide(candidates: [soon], shown: running, enabled: true, canStart: false, now: now) == .end)
+    }
+
+    /// During an Extend (deactivated, not yet listed again) the shown role is kept, foreground or not; once no longer
+    /// held, a missing role ends the activity.
+    @Test func roleBeingExtendedIsKeptWhileAzureCatchesUp() {
+        let soon = candidate("b", in: 30)
+        let running = LiveActivityPlan.Shown(eligibleRoleId: "a", endAt: now.addingTimeInterval(600), otherActive: 1)
+        for canStart in [false, true] {
+            #expect(LiveActivityPlan.decide(candidates: [soon], shown: running, enabled: true, canStart: canStart, now: now,
+                                            held: ["a"]) == .none)
+            #expect(LiveActivityPlan.decide(candidates: [], shown: running, enabled: true, canStart: canStart, now: now,
+                                            held: ["a"]) == .none)
+        }
+        #expect(LiveActivityPlan.decide(candidates: [], shown: running, enabled: false, canStart: true, now: now,
+                                        held: ["a"]) == .end)
+        #expect(LiveActivityPlan.decide(candidates: [], shown: running, enabled: true, canStart: true, now: now) == .end)
     }
 
     @Test func endsWhenNoActivationRemainsOrTheSettingIsOff() {

@@ -1,5 +1,4 @@
 import ActivityKit
-import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -54,6 +53,8 @@ struct RoleLiveActivity: Widget {
 /// the lock screen follows the colour scheme.
 enum ActivityTone {
     /// Green with time left, orange in the last 15 minutes, red in the last 5 (as `Theme.remaining`), grey once stale.
+    /// Computed when the system draws the activity, which happens on each update: between updates only the countdown
+    /// moves, so the colour can lag (it turns grey at the end through `staleDate`).
     static func tint(for endAt: Date, isStale: Bool, dark: Bool, now: Date = .now) -> Color {
         let left = endAt.timeIntervalSince(now)
         let tone: Theme.Tone = isStale || left <= 0 ? .slate : left <= 300 ? .danger : left <= 900 ? .warning : .active
@@ -132,9 +133,12 @@ private struct ExtendButton: View {
     let roleId: String
     let isStale: Bool
 
+    /// A link, not an intent button: an intent runs in the background, where iOS may suspend AzPim between the
+    /// deactivation and the re-activation of an Extend. The link opens the role's detail, whose Extend runs in the
+    /// foreground (`MobileNavigation.openRole`).
     var body: some View {
-        if !isStale {
-            Button(intent: ExtendRoleActivityIntent(eligibleRoleId: roleId)) {
+        if !isStale, let url = WidgetSnapshot.roleURL(roleId) {
+            Link(destination: url) {
                 Label("Extend", systemImage: "clock.arrow.circlepath").font(.subheadline.weight(.semibold))
             }
             .buttonStyle(.borderedProminent)
