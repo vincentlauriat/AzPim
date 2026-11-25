@@ -1405,16 +1405,6 @@
         }
       }
     },
-    "AzPim isn't ready yet. Open AzPim, then try again." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AzPim n’est pas encore prêt. Ouvrez AzPim, puis réessayez."
-          }
-        }
-      }
-    },
     "AzPim replaces it and has copied its data. Remove AzurePim from Applications and its entry from System Settings › General › Login Items." : {
       "localizations" : {
         "fr" : {
@@ -2394,16 +2384,6 @@
         }
       }
     },
-    "Extend Role" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prolonger le rôle"
-          }
-        }
-      }
-    },
     "Extend or deactivate from the actions" : {
       "localizations" : {
         "fr" : {
@@ -2430,16 +2410,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prolongation de %@…"
-          }
-        }
-      }
-    },
-    "Extends the activation shown in the Live Activity." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prolonge l’activation affichée dans l’activité en direct."
           }
         }
       }

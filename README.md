@@ -932,9 +932,11 @@ Extend button. The widget extension `AzPimWidgets` only draws it: it holds no st
 `LiveActivityController` starts, updates or ends the one activity after every refresh (activation, Extend,
 deactivation, expiry) and when the app comes to the foreground; the decision (`LiveActivityPlan`) is platform-neutral
 and tested on Mac. There is no push server, so an activity only *starts* while AzPim is in the foreground: a role
-activated on another device appears when the app is next opened. Extend is a `LiveActivityIntent` that runs in the
-app's process (unlocked device required) and calls the store's Extend, never an interactive sign-in; its result is
-posted as a notification. Settings › Live Activity turns it off.
+activated on another device appears when the app is next opened. Extend is a `Link` to `azpim://role?id=<eligible role
+id>`: it unlocks and opens AzPim on the role's detail, where Extend runs in the foreground, as the expiry
+notification's Extend does. Never in the background: an Extend deactivates, then re-activates with waits of up to 12 s,
+and iOS could suspend a background launch between the two, leaving the role deactivated. The link never extends by
+itself, since any app can open it: the detail waits for a tap on Extend. Settings › Live Activity turns it off.
 **Widgets.** *Active roles* (home screen small and medium; lock screen rectangular, circular and inline) shows the
 roles the panel shows, the one ending first on top, with a countdown and a dial (`Text(timerInterval:)`,
 `ProgressView(timerInterval:)`: they tick on their own) and « +N »; *Favorites* (small: the first favorite; medium: up

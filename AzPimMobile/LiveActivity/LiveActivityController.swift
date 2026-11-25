@@ -9,8 +9,9 @@ import UIKit
 /// to the foreground. The decision is `LiveActivityPlan`'s (tested on Mac).
 ///
 /// No push server: an activity is only *started* while AzPim is in the foreground (ActivityKit refuses a background
-/// request without a push token); it can be updated or ended from the background (an Extend from the activity runs
-/// in the app's process). A role activated on another device appears when AzPim is next opened.
+/// request without a push token); it can be updated or ended from the background (an expiry refresh). The activity's
+/// Extend opens the app on the role (`MobileNavigation.openRole`): an Extend always runs in the foreground. A role
+/// activated on another device appears when AzPim is next opened.
 @MainActor
 @Observable
 final class LiveActivityController {

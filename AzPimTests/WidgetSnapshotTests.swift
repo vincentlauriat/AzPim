@@ -147,4 +147,20 @@ struct WidgetSnapshotTests {
         #expect(WidgetSnapshot.favoriteID(in: try #require(URL(string: "azpim://role?id=\(id.uuidString)"))) == nil)
         #expect(WidgetSnapshot.favoriteID(in: try #require(URL(string: "https://favorite?id=\(id.uuidString)"))) == nil)
     }
+
+    /// The Live Activity's Extend link carries the local id `<account id>|<schedule id>`, whose ARM part has `/`.
+    @Test func roleLinksRoundTrip() throws {
+        let id = "acc-1|/providers/Microsoft.Authorization/roleEligibilitySchedules/a+b&c=d#e%f"
+        let url = try #require(WidgetSnapshot.roleURL(id))
+        #expect(url.scheme == "azpim" && url.host() == "role")
+        #expect(url.query()?.contains("&c") == false)
+        #expect(WidgetSnapshot.roleID(in: url) == id)
+        // The Mac's `DeepLink.role(id:)` escapes the same way: one link for both apps.
+        #expect(url == DeepLink.role(id: id))
+        #expect(WidgetSnapshot.roleURL("") == nil)
+        #expect(WidgetSnapshot.roleID(in: try #require(URL(string: "azpim://role?id="))) == nil)
+        #expect(WidgetSnapshot.roleID(in: try #require(URL(string: "azpim://role"))) == nil)
+        #expect(WidgetSnapshot.roleID(in: try #require(URL(string: "azpim://favorite?id=x"))) == nil)
+        #expect(WidgetSnapshot.roleID(in: try #require(URL(string: "https://role?id=x"))) == nil)
+    }
 }
